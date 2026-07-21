@@ -1,0 +1,131 @@
+{
+  "gaps": [],
+  "operations": {
+    "submit-order": {
+      "name": "Submit order",
+      "owner": "orders-api",
+      "steps": [
+        {
+          "action": "Validates the order",
+          "at": "orders-api",
+          "evidence": [
+            {
+              "observation": "The handler validates the submitted command",
+              "path": "src/Application/SubmitOrderHandler.cs",
+              "symbol": "Handle"
+            }
+          ],
+          "order": 1
+        },
+        {
+          "action": "Stores the accepted order",
+          "evidence": [
+            {
+              "observation": "The handler persists the accepted order",
+              "path": "src/Application/SubmitOrderHandler.cs",
+              "symbol": "Handle"
+            }
+          ],
+          "order": 2,
+          "uses": "write-orders"
+        }
+      ],
+      "trigger": "submit-order-v2"
+    }
+  },
+  "schemaVersion": 1,
+  "source": {
+    "branch": "main",
+    "coverage": {
+      "excluded": [
+        "bin/**",
+        "obj/**"
+      ],
+      "included": [
+        "src/**",
+        "deploy/**"
+      ],
+      "limitations": []
+    },
+    "id": "orders-api",
+    "path": "../orders-api",
+    "repository": "https://example.invalid/orders-api.git",
+    "revision": "replace-with-exact-revision",
+    "scanStatus": "complete"
+  },
+  "units": {
+    "orders-api": {
+      "evidence": [
+        {
+          "observation": "Starts the Orders HTTP application",
+          "path": "src/Api/Program.cs",
+          "symbol": "Program"
+        }
+      ],
+      "identity": {
+        "deploymentIdentity": "orders-api"
+      },
+      "inbound": [
+        {
+          "contract": {
+            "fingerprint": "sha256:replace-with-contract-fingerprint",
+            "format": "JSON",
+            "keyFields": [
+              "orderId",
+              "customerId"
+            ],
+            "name": "SubmitOrder",
+            "schemaPath": "openapi/orders-v2.json",
+            "version": "v2"
+          },
+          "evidence": [
+            {
+              "observation": "Defines POST /api/v2/orders",
+              "path": "src/Api/Controllers/OrdersController.cs",
+              "symbol": "Submit"
+            }
+          ],
+          "id": "submit-order-v2",
+          "kind": "http",
+          "method": "POST",
+          "path": "/api/v2/orders",
+          "purpose": "Submits an order",
+          "rules": [
+            "Requires an authenticated customer"
+          ],
+          "version": "v2"
+        }
+      ],
+      "kind": "runtime",
+      "name": "Orders API",
+      "outbound": [
+        {
+          "evidence": [
+            {
+              "observation": "Writes accepted orders through OrdersDbContext",
+              "path": "src/Infrastructure/OrdersDbContext.cs",
+              "symbol": "OrdersDbContext"
+            }
+          ],
+          "id": "write-orders",
+          "kind": "data",
+          "purpose": "Creates and updates orders",
+          "target": {
+            "database": "Orders",
+            "kind": "store",
+            "schema": "fulfilment",
+            "server": "sales",
+            "technology": "SQL Server"
+          },
+          "technology": "Entity Framework Core/SQL Server"
+        }
+      ],
+      "responsibility": "Accepts and manages orders",
+      "subtype": "api",
+      "technology": [
+        ".NET 8",
+        "ASP.NET Core"
+      ]
+    }
+  }
+}
