@@ -1,7 +1,7 @@
 ---
 name: map-to-c4
-description: Projects a validated canonical architecture discovery model into navigable C4 System Context, Container, Component, Code, and supporting diagrams. Use after gather-architecture for C4 boundary mapping, architecture documentation generation, filtered views, or validating C4 diagrams against gathered repository evidence.
-compatibility: Requires a gather-architecture canonical model and Python 3. Uses bundled standard-library validation and SVG rendering; no paid product, external renderer, package installation, network service, model provider, or agent-specific feature is required.
+description: Projects a validated canonical architecture model into navigable C4 System Context, Container, Component, Code, and supporting diagrams. Use after build-architecture-model for C4 boundary mapping, architecture documentation generation, filtered views, or validating C4 diagrams against repository evidence.
+compatibility: Requires a build-architecture-model canonical model and Python 3. Uses bundled standard-library validation and SVG rendering; no paid product, external renderer, package installation, network service, model provider, or agent-specific feature is required.
 ---
 
 # Map to C4
@@ -10,7 +10,7 @@ Project an evidence-backed canonical architecture model into a navigable C4 mode
 
 Before doing any work, read [references/c4-source-of-truth.md](references/c4-source-of-truth.md) and [references/canonical-input.md](references/canonical-input.md) completely. The official C4 pages linked there are normative. If live access is available, read the current official pages too. Never redefine a C4 abstraction to fit repository layout, discovery terminology, or a preferred visual style.
 
-This skill does not perform repository discovery. If the user supplies raw repositories or the canonical model is absent/stale, load and run the sibling `gather-architecture` skill first. Its generated `canonical.json` is architecture working memory and the only repository-derived input to this skill. Never hand-edit it or create a competing evidence ledger.
+This skill does not perform repository discovery. If the user supplies raw repositories or the canonical model is absent/stale, load and run the sibling `build-architecture-model` skill first. Its generated `canonical.json` is architecture working memory and the only repository-derived input to this skill. Never hand-edit it or create a competing evidence ledger.
 
 ## Required result
 
@@ -98,15 +98,15 @@ Do not invent pseudo-types such as `External Software System group`, `Container 
 
 ## Workflow
 
-### 0. Validate and select the gathered subject
+### 0. Validate and select the modelled subject
 
 Locate `.architecture-model/canonical.json`, `subject.json`, and `decisions.json`. Validate the canonical model before mapping:
 
 ```bash
-python ../gather-architecture/scripts/architecture_model.py validate <model-dir>
+python ../build-architecture-model/scripts/architecture_model.py validate <model-dir>
 ```
 
-If validation fails, return to `gather-architecture`; do not repair generated data here. Confirm every requested source has the expected revision and scan status. Read canonical gaps and conflicts before deciding that a C4 view is supportable.
+If validation fails, return to `build-architecture-model`; do not repair generated data here. Confirm every requested source has the expected revision and scan status. Read canonical gaps and conflicts before deciding that a C4 view is supportable.
 
 Use the canonical subject as navigation scope, not automatically as a Software System. The public index title, descriptions, systems, diagrams, and links must use subject-specific architectural language. Reject generic repository or skill-process boilerplate.
 
@@ -114,7 +114,7 @@ Use the canonical subject as navigation scope, not automatically as a Software S
 
 Read `canonical.systemBoundaries`. Preserve every confirmed decision exactly. Do not reopen it, change member identity, or ask the user to reconfirm unless the user explicitly requests remodelling or new gathered evidence creates a recorded conflict.
 
-When no confirmed boundary exists, assess candidates using user value, ownership, responsibility, implementation visibility, and independent delivery evidence from the canonical model. Present competing domain-specific boundaries in plain language once and store the resulting decision in `.architecture-model/decisions.json`; then rerun the gather compiler. Until a boundary is confirmed, use a System Landscape or stop core diagram generation rather than inventing a scope.
+When no confirmed boundary exists, assess candidates using user value, ownership, responsibility, implementation visibility, and independent delivery evidence from the canonical model. Present competing subject-specific boundaries in plain language once and store the resulting decision in `.architecture-model/decisions.json`; then rerun the model compiler. Until a boundary is confirmed, use a System Landscape or stop core diagram generation rather than inventing a scope.
 
 A domain, repository collection, team, library set, or convenient page hierarchy is not a Software System boundary.
 
@@ -289,7 +289,7 @@ architecture/
   systems/<system-id>/containers/<container-id>/components.html # Level 3
   systems/<system-id>/containers/<container-id>/components/<component-id>/code.html # Level 4
   flows/<flow-id>.html              # optional dynamic views
-.architecture-model/                  # gathered canonical working model
+.architecture-model/                  # canonical architecture working model
 .c4-work/                            # private C4 projections, views, and validation
 ```
 
@@ -297,7 +297,7 @@ Use breadcrumbs and links to zoom in/out. The C4 zoom chain is System Context �
 
 When a view becomes crowded, create several filtered views at the same abstraction level, each telling a focused part of the same story. Keep canonical element names, types, and relationship identities consistent across those views. Do not solve scale by mixing abstraction levels or by creating fake grouping elements.
 
-The public `architecture/index.html` is a subject-specific architecture index, not a skill execution report. Its heading and summary must name the modelled domain/system and explain its architectural purpose. It should contain only useful navigation: software systems and their responsibilities, links to Context and Container diagrams, the actual System → Container → Component → Code zoom paths, and optional Dynamic/Deployment views. Do not expose generic repository descriptions, host documentation tooling, a four-level coverage matrix, omitted-view reasoning, evidence ledger, overlap report, validation checklist, repository inventory, corrected-scope narrative, confidence dashboard, or other skill/process metadata. Keep gather artifacts under `.architecture-model/` and C4 projection artifacts under `.c4-work/`; leave both unlinked unless the user explicitly requests an audit report.
+The public `architecture/index.html` is a subject-specific architecture index, not a skill execution report. Its heading and summary must name the modelled domain/system and explain its architectural purpose. It should contain only useful navigation: software systems and their responsibilities, links to Context and Container diagrams, the actual System → Container → Component → Code zoom paths, and optional Dynamic/Deployment views. Do not expose generic repository descriptions, host documentation tooling, a four-level coverage matrix, omitted-view reasoning, evidence ledger, overlap report, validation checklist, repository inventory, corrected-scope narrative, confidence dashboard, or other skill/process metadata. Keep canonical model artifacts under `.architecture-model/` and C4 projection artifacts under `.c4-work/`; leave both unlinked unless the user explicitly requests an audit report.
 
 Repository-to-model mappings, identity reconciliation, and conflicts remain authoritative in `.architecture-model/`; do not duplicate them under `.c4-work/`. Expose only architectural conclusions and relevant uncertainty on the affected diagram page.
 
@@ -339,18 +339,18 @@ If any check cannot be performed, mark validation incomplete. Do not claim the d
 Run the canonical and projection validators before the package validator:
 
 ```bash
-python ../gather-architecture/scripts/architecture_model.py validate <model-dir>
+python ../build-architecture-model/scripts/architecture_model.py validate <model-dir>
 python scripts/validate_canonical_projection.py <model-dir>/canonical.json <view-json-or-directory> [...]
 python scripts/validate_c4_package.py <path-to-architecture-directory>
 ```
 
-A non-zero exit is a hard failure. Fix the owning gather scan/decision, C4 projection, or package as appropriate; never bypass, weaken, or replace a validator with a prose checklist.
+A non-zero exit is a hard failure. Fix the owning model scan/decision, C4 projection, or package as appropriate; never bypass, weaken, or replace a validator with a prose checklist.
 
 Also verify:
 
-- [ ] Every requested repository has a validated gather scan at the intended revision.
+- [ ] Every requested repository has a validated model scan at the intended revision.
 - [ ] Canonical conflicts and gaps affecting required views were resolved or explicitly block completion.
-- [ ] Canonical identity and reconciliation came from the generated gather model, not a second C4-local inventory.
+- [ ] Canonical identity and reconciliation came from the generated architecture model, not a second C4-local inventory.
 - [ ] Every core-view element and relationship retains canonical model IDs.
 - [ ] Every system has System Context and Container diagrams.
 - [ ] Every implemented container was assessed for a Component diagram.
@@ -376,7 +376,7 @@ Also verify:
 
 Run `python evals/run_evals.py` after changing this skill, its renderer, schema, or validation rules. Then apply every reasoning evaluation to the proposed behavior; the executable runner checks suite integrity and deterministic rendering/validation contracts, while the Markdown cases grade architectural reasoning.
 
-- [Canonical gather-model projection](evals/canonical-gather-projection.md)
+- [Canonical model projection](evals/canonical-model-projection.md)
 - [Software-system boundary ambiguity](evals/software-system-boundary-ambiguity.md)
 - [Microservices split across repositories](evals/microservices-repo-per-runtime.md)
 - [Microservice ownership transition](evals/microservices-ownership-transition.md)

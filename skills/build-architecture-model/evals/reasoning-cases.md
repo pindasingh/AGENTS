@@ -1,4 +1,4 @@
-# Gather-architecture reasoning evaluations
+# Build-architecture-model reasoning evaluations
 
 Apply every case to changes in gathering instructions and to representative agent runs. Any fail condition is a regression.
 

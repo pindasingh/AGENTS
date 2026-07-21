@@ -1,4 +1,4 @@
-# Evaluation: canonical gather-model projection
+# Evaluation: canonical architecture-model projection
 
 ## Official sources
 
@@ -9,7 +9,7 @@
 
 ## Prompt
 
-A validated gather-architecture canonical model contains an Orders MFE, API, worker, logical SQL schema, message channel, versioned interfaces, directed relationships, one compatible event path, one conflicting old event consumer, and a confirmed Orders Software System boundary. The user asks for C4 diagrams and also supplies the raw repositories.
+A validated build-architecture-model canonical model contains an Orders MFE, API, worker, logical SQL schema, message channel, versioned interfaces, directed relationships, one compatible event path, one conflicting old event consumer, and a confirmed Orders Software System boundary. The user asks for C4 diagrams and also supplies the raw repositories.
 
 ## Required outcome
 

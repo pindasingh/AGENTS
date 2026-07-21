@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that C4 view JSON remains traceable to a gathered canonical model."""
+"""Validate that C4 view JSON remains traceable to a canonical architecture model."""
 
 from __future__ import annotations
 

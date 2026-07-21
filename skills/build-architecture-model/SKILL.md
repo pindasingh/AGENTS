@@ -1,12 +1,12 @@
 ---
-name: gather-architecture
-description: Scans one or many code repositories incrementally and compiles an evidence-backed, C4-neutral canonical architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use before architecture mapping, C4 generation, cross-repository dependency analysis, domain discovery, or architecture impact analysis.
+name: build-architecture-model
+description: Scans one or many code repositories incrementally and builds an evidence-backed, C4-neutral canonical architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use before architecture mapping, C4 generation, cross-repository dependency analysis, system discovery, or architecture impact analysis.
 compatibility: Requires repository read access and Python 3. The bundled model compiler and validators use only Python's standard library.
 ---
 
-# Gather Architecture
+# Build Architecture Model
 
-Discover the architecture of a user-named domain one repository at a time. Produce accurate repository-local findings first; compile them deterministically into a canonical working model after every repository. Do not draw C4 diagrams in this skill and do not assign C4 abstraction types while gathering.
+Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and compile them deterministically into a canonical working model after every repository. Do not draw C4 diagrams in this skill or assign C4 abstraction types during discovery.
 
 Before scanning, read [references/model-spec.md](references/model-spec.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
@@ -30,7 +30,7 @@ Create a model directory containing:
 Use the bundled standard-library tool:
 
 ```bash
-python scripts/architecture_model.py init <model-dir> --domain <name> --source <repo> [--source <repo> ...]
+python scripts/architecture_model.py init <model-dir> --subject <name> --source <repo> [--source <repo> ...]
 python scripts/architecture_model.py validate-scan <model-dir>/scans/<source-id>.json
 python scripts/architecture_model.py compile <model-dir>
 python scripts/architecture_model.py validate <model-dir>
@@ -40,7 +40,7 @@ Use [assets/scan-template.json](assets/scan-template.json) as the agent-authorin
 
 ## Scope authority
 
-The user's named domain selects the subject, but `domain` is business scope rather than a preselected C4 Software System. Record the name, description, aliases, supplied roots, and exclusions in `subject.json`. Do not search only for the domain words; broadly inventory every supplied repository so wiring with unrelated terminology is not missed.
+The user's named subject selects the scope without determining its architecture type. Record its name, description, aliases, supplied roots, and exclusions in `subject.json`. Do not assume the subject is a DDD domain, bounded context, or C4 Software System. Do not search only for subject-name words; broadly inventory every supplied repository so wiring with unrelated terminology is not missed.
 
 Repository structure is evidence, not architecture truth. One repository can contain several runtime units, and one runtime can be assembled from several repositories. A shared package is not a running service. A Docker image is deployment evidence, not a C4 classification.
 
@@ -61,7 +61,7 @@ For each source, complete this bounded cycle before opening the next source:
 
 Do not defer reconciliation until every repository has been scanned. Do not copy findings from one scan into another. Re-scanning a source replaces its repository-local observations and then regenerates the canonical model.
 
-## Gather facts, not C4 guesses
+## Record facts, not C4 guesses
 
 Repository scan files use discovery kinds such as `runtime`, `store`, `channel`, `library`, `external`, and `person`. Runtime subtypes can include API, worker, MFE, scheduler, function, browser application, or another observed form. These are factual discovery classifications, not C4 types.
 

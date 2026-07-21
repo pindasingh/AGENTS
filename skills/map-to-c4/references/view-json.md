@@ -2,7 +2,7 @@
 
 Use one JSON file per C4 diagram. Keep these source views in the private `.c4-work/views/` directory and render static SVG/HTML into the public architecture site.
 
-When projecting a gathered canonical model, read [canonical-input.md](canonical-input.md). System Context, Container, and Dynamic view scopes require `modelBoundaryId`; their elements require `modelElementId`; and their relationships require `modelRelationshipIds`. These provenance fields are retained in source JSON but do not add visual clutter.
+When projecting a canonical architecture model, read [canonical-input.md](canonical-input.md). System Context, Container, and Dynamic view scopes require `modelBoundaryId`; their elements require `modelElementId`; and their relationships require `modelRelationshipIds`. These provenance fields are retained in source JSON but do not add visual clutter.
 
 ## Required top-level fields
 

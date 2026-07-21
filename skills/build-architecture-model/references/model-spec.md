@@ -28,7 +28,7 @@ Repository scan documents are deliberately self-contained. Evidence is embedded 
 }
 ```
 
-The subject is business scope. It is not automatically a C4 Software System.
+The subject is the user-selected architecture scope. It can be a system, product, platform, service estate, business domain, or another named scope. It is not automatically a DDD domain or C4 Software System.
 
 ## decisions.json
 
@@ -47,7 +47,7 @@ The subject is business scope. It is not automatically a C4 Software System.
       "responsibility": "Coordinates fulfilment",
       "status": "confirmed",
       "members": ["runtime.orders-api.abc123", "store.orders.def456"],
-      "evidence": ["Confirmed by the domain owner"]
+      "evidence": ["Confirmed by the architecture owner"]
     }
   }
 }

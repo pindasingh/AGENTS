@@ -794,16 +794,16 @@ def validate_canonical(model: dict[str, Any]) -> list[str]:
     return failures
 
 
-def init_model(model_dir: Path, domain: str, sources: list[str]) -> None:
+def init_model(model_dir: Path, subject_name: str, sources: list[str]) -> None:
     if model_dir.exists() and any(model_dir.iterdir()):
         raise ModelError(f"model directory is not empty: {model_dir}")
     (model_dir / "scans").mkdir(parents=True, exist_ok=True)
     subject = {
         "schemaVersion": SCHEMA_VERSION,
         "subject": {
-            "id": slug(domain),
-            "name": domain,
-            "description": f"Architecture discovery model for {domain}",
+            "id": slug(subject_name),
+            "name": subject_name,
+            "description": f"Architecture discovery model for {subject_name}",
             "requestedSources": sources,
         },
     }
@@ -835,7 +835,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     init_parser = subparsers.add_parser("init", help="initialize a model directory")
     init_parser.add_argument("model_dir", type=Path)
-    init_parser.add_argument("--domain", required=True)
+    init_parser.add_argument("--subject", required=True)
     init_parser.add_argument("--source", action="append", default=[])
     scan_parser = subparsers.add_parser("validate-scan", help="validate one repository scan")
     scan_parser.add_argument("scan", type=Path)
@@ -846,7 +846,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.command == "init":
-            init_model(args.model_dir, args.domain, args.source)
+            init_model(args.model_dir, args.subject, args.source)
             print(f"Initialized {args.model_dir}")
         elif args.command == "validate-scan":
             failures = validate_scan(load_json(args.scan), args.scan.name)

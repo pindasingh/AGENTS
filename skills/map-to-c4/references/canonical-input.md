@@ -1,6 +1,6 @@
 # Canonical architecture input contract
 
-`map-to-c4` consumes the generated `canonical.json` produced by the sibling `gather-architecture` skill. Read that skill's `references/model-spec.md` for the complete discovery schema.
+`map-to-c4` consumes the generated `canonical.json` produced by the sibling `build-architecture-model` skill. Read that skill's `references/model-spec.md` for the complete discovery schema.
 
 ## Authority and mutability
 
@@ -12,10 +12,10 @@
 Validate the model before mapping:
 
 ```bash
-python ../gather-architecture/scripts/architecture_model.py validate <model-dir>
+python ../build-architecture-model/scripts/architecture_model.py validate <model-dir>
 ```
 
-If raw repositories were supplied without a model, run `gather-architecture` first. Do not recreate a second evidence ledger or overlap model inside `map-to-c4`.
+If raw repositories were supplied without a model, run `build-architecture-model` first. Do not recreate a second evidence ledger or overlap model inside `map-to-c4`.
 
 ## Mapping rules
 
@@ -34,7 +34,7 @@ The discovery model is intentionally C4-neutral:
 | flow | Candidate Dynamic diagram interactions |
 | confirmed system boundary | Permitted core System Context/Container scope |
 
-A domain subject is not automatically a Software System. Only boundaries with `status: confirmed` can anchor core System Context and Container diagrams. Preserve candidate, rejected, and conflicting boundaries privately.
+The selected subject—whether a system, product, platform, service estate, or business domain—is not automatically a C4 Software System. Only boundaries with `status: confirmed` can anchor core System Context and Container diagrams. Preserve candidate, rejected, and conflicting boundaries privately.
 
 ## Projection traceability
 
