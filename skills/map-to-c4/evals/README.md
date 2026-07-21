@@ -1,6 +1,6 @@
 # Map-to-C4 evaluations
 
-These evaluations use the live official pages at [c4model.com](https://c4model.com/) as the normative source. They cover:
+These evaluations use the live official pages at [c4model.com](https://c4model.com/) as the normative source and the gather-architecture canonical model as repository-derived input. They cover:
 
 - Software System boundary uncertainty and repository overlap;
 - Containers, web process boundaries, managed data stores, microservices, queues, and topics;
@@ -8,7 +8,7 @@ These evaluations use the live official pages at [c4model.com](https://c4model.c
 - evidence thresholds and optional lower-level views;
 - notation and the official review checklist;
 - System Landscape, Dynamic, and Deployment views;
-- canonical modelling, filtered views, scale, terminology, and C4's scope limits.
+- canonical gather-model traceability, filtered views, scale, terminology, and C4's scope limits.
 
 Each Markdown file is a reasoning eval with a prompt, required result, and explicit fail conditions. A response fails if it matches any fail condition, even if other parts are correct. Official URLs in each file identify the grading authority.
 

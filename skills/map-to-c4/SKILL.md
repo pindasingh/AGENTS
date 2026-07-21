@@ -1,14 +1,16 @@
 ---
 name: map-to-c4
-description: Maps one or many code repositories into a navigable C4 architecture model and diagrams at System Context, Container, Component, and Code levels. Use for architecture discovery, repository overlap reconciliation, system mapping, C4 documentation generation, or validating existing C4 diagrams against code and configuration.
-compatibility: Requires repository read access and Python 3. Uses a bundled standard-library SVG renderer; no paid product, external renderer, package installation, network service, model provider, or agent-specific feature is required.
+description: Projects a validated canonical architecture discovery model into navigable C4 System Context, Container, Component, Code, and supporting diagrams. Use after gather-architecture for C4 boundary mapping, architecture documentation generation, filtered views, or validating C4 diagrams against gathered repository evidence.
+compatibility: Requires a gather-architecture canonical model and Python 3. Uses bundled standard-library validation and SVG rendering; no paid product, external renderer, package installation, network service, model provider, or agent-specific feature is required.
 ---
 
 # Map to C4
 
-Turn one repository or a set of repositories into an evidence-backed, navigable C4 model.
+Project an evidence-backed canonical architecture model into a navigable C4 model and rendered views.
 
-Before doing any work, read [references/c4-source-of-truth.md](references/c4-source-of-truth.md) completely. The official C4 pages linked there are normative. If live access is available, read the current official pages too. Never redefine a C4 abstraction to fit repository layout or a preferred visual style.
+Before doing any work, read [references/c4-source-of-truth.md](references/c4-source-of-truth.md) and [references/canonical-input.md](references/canonical-input.md) completely. The official C4 pages linked there are normative. If live access is available, read the current official pages too. Never redefine a C4 abstraction to fit repository layout, discovery terminology, or a preferred visual style.
+
+This skill does not perform repository discovery. If the user supplies raw repositories or the canonical model is absent/stale, load and run the sibling `gather-architecture` skill first. Its generated `canonical.json` is architecture working memory and the only repository-derived input to this skill. Never hand-edit it or create a competing evidence ledger.
 
 ## Required result
 
@@ -96,111 +98,59 @@ Do not invent pseudo-types such as `External Software System group`, `Container 
 
 ## Workflow
 
-### 0. Select the architecture subject
+### 0. Validate and select the gathered subject
 
-Identify what the user asked to model before inventorying runtime elements. A repository can be:
+Locate `.architecture-model/canonical.json`, `subject.json`, and `decisions.json`. Validate the canonical model before mapping:
 
-- the implementation of the target software;
-- a monorepo containing several target systems;
-- an architecture/knowledge repository that documents other software;
-- a mixture of implementation, documentation, generated output, and helper tooling.
+```bash
+python ../gather-architecture/scripts/architecture_model.py validate <model-dir>
+```
 
-When the repository documents another domain or system, model the documented subject—not the documentation repository, Markdown store, backup scripts, report generators, image utilities, or other host tooling—unless the user explicitly asks for the repository’s own architecture. Treat an explicit domain/system named by the user as the subject-selection authority.
+If validation fails, return to `gather-architecture`; do not repair generated data here. Confirm every requested source has the expected revision and scan status. Read canonical gaps and conflicts before deciding that a C4 view is supportable.
 
-Record the selected subject, canonical boundary decision, stable element IDs/types, and excluded host tooling privately under `.c4-work/subject.json`. Read this file before every regeneration. The public index title, descriptions, systems, diagrams, and links must use subject-specific architectural language. Reject generic boilerplate such as `Navigate through the repository`, `Domain Knowledge Base`, or helper-tool containers when those are not the requested subject.
+Use the canonical subject as navigation scope, not automatically as a Software System. The public index title, descriptions, systems, diagrams, and links must use subject-specific architectural language. Reject generic repository or skill-process boilerplate.
 
-If `.c4-work/subject.json` marks a boundary decision as `confirmed`, preserve it exactly. Do not reopen the Software System-versus-Container decision, propose alternative model packages, change stable element types, or ask the user to reconfirm during regeneration. Alternatives are created only when the user explicitly asks to remodel the boundary.
+### 1. Resolve C4 Software System boundaries
 
-If no prior decision exists and the subject is clear but its software-system boundary is not, do not silently switch to modelling the host repository. Present the competing domain-specific boundaries once and request confirmation, or use a System Landscape until a System Context scope is confirmed.
+Read `canonical.systemBoundaries`. Preserve every confirmed decision exactly. Do not reopen it, change member identity, or ask the user to reconfirm unless the user explicitly requests remodelling or new gathered evidence creates a recorded conflict.
 
-### 1. Establish scope without changing repositories
+When no confirmed boundary exists, assess candidates using user value, ownership, responsibility, implementation visibility, and independent delivery evidence from the canonical model. Present competing domain-specific boundaries in plain language once and store the resulting decision in `.architecture-model/decisions.json`; then rerun the gather compiler. Until a boundary is confirmed, use a System Landscape or stop core diagram generation rather than inventing a scope.
 
-For every supplied repository or source root, inventory:
+A domain, repository collection, team, library set, or convenient page hierarchy is not a Software System boundary.
 
-- repository identity, path, revision, branch, and worktree when available;
-- build manifests, workspace/solution files, executable entry points, and deployment descriptors;
-- applications, background workers, functions, scripts, and data stores;
-- public APIs, event consumers/producers, commands, jobs, and file interfaces;
-- configuration describing ports, routes, queues, topics, databases, remote endpoints, and service names;
-- ownership or team metadata when present;
-- generated, vendored, copied, archived, test-only, and example code.
+### 2. Project canonical discovery nodes
 
-Inspect each repository independently before merging any conclusions.
+Create C4 identities from canonical nodes without rescanning repositories:
 
-### 2. Create an evidence ledger
+- confirmed boundary -> one scoped Software System;
+- member `runtime` -> normally an Application Container;
+- member logical `store` -> normally a Data Store Container;
+- `channel` -> owned Data Store Container only when C4 queue/topic guidance supports it, otherwise communication detail on a relationship;
+- `library` -> supporting evidence, not a runtime Container;
+- separately owned/confirmed external machine dependency -> external Software System;
+- human actor -> Person.
 
-Assign stable evidence references to findings. Record:
+One canonical node keeps one identity across every view. Use canonical node IDs as `modelElementId`; view-local IDs are presentation IDs only. Do not duplicate a shared logical database per service or merge separate schemas because they share a server.
 
-- source repository and revision;
-- file/path and symbol or configuration key;
-- observation;
-- inferred C4 implication;
-- confidence: observed, corroborated, inferred, conflicting, or unknown.
+For optional Component and Code views, use only evidenced cohesive interfaces/code identities. The current gathering model primarily guarantees runtime, store, interface, contract, relationship, and flow evidence; omit lower levels when that evidence does not establish them.
 
-Keep evidence separate from the rendered diagram and public architecture index. Store provenance in the private working model; expose or link an audit appendix only when the user explicitly requests one.
+### 3. Project canonical relationships and flows
 
-### 3. Reconcile repository overlap
+Every C4 connector must derive from one or more canonical relationship IDs and preserve source-to-destination direction. Put those IDs in `modelRelationshipIds` in the view JSON.
 
-A multi-repository input can contain duplicate snapshots, split implementations, shared libraries, generated clients, mirrored contracts, migrations, forks, or conflicting versions. Build an overlap matrix before creating C4 elements.
+Aggregate endpoint relationships only when projected source, destination, direction, technology, and purpose are compatible. Preserve materially different API/event versions; never hide a contract conflict through aggregation. For event paths, a publisher-to-consumer connector can condense publisher -> channel -> consumer only when compatible contracts corroborate the complete directed path; retain both model relationship IDs and name the channel/protocol.
 
-Compare candidates using stronger identity signals first:
+Use canonical flows for selected Dynamic diagrams. Include boundary-crossing steps and only architecturally meaningful internal rules. Generate visual sequence numbers from the selected ordered flow; do not invent missing operation order.
 
-1. deployment/runtime identity;
-2. executable or build artifact identity;
-3. owned hostname, route base, queue/topic subscription, function name, or database/schema;
-4. solution/workspace membership and dependency direction;
-5. public contract and implementation identity;
-6. namespace/package/folder/name similarity;
-7. copied code or textual similarity.
+### 4. Build explicit filtered view definitions
 
-Treat names and textual similarity as weak evidence. They do not prove shared identity.
+Create renderer view JSON only after the C4 projection is established. System Context, Container, and Dynamic scopes require `modelBoundaryId`; elements require `modelElementId`; relationships require `modelRelationshipIds`. Validate projection traceability before rendering:
 
-Classify overlap explicitly:
+```bash
+python scripts/validate_canonical_projection.py <model-dir>/canonical.json <view-json-or-directory> [...]
+```
 
-- **Duplicate evidence:** the same repository, revision, snapshot, or generated output.
-- **Version overlap:** older/newer snapshots of the same element.
-- **Partial implementation:** multiple repositories jointly implement one system or container.
-- **Shared code:** a library used by multiple containers; not itself a container unless it runs independently.
-- **Contract mirror:** schemas or generated clients representing another owner’s interface.
-- **Fork/divergence:** related sources with conflicting behavior or ownership.
-- **Incidental similarity:** similar names or structures without identity evidence.
-
-Create one canonical C4 element per established architectural identity and attach all supporting repository evidence to it. Preserve version or behavioral conflicts; never silently union incompatible snapshots. If identity remains ambiguous, keep separate candidates and record the unresolved question.
-
-### 4. Build a canonical model before drawing
-
-Use stable IDs independent of repository paths. Model at least:
-
-- people;
-- software systems;
-- containers;
-- components;
-- selected code elements;
-- unidirectional relationships;
-- technologies/protocols;
-- ownership and scope;
-- evidence references;
-- confidence and conflicts.
-
-Each element needs:
-
-- stable ID;
-- name;
-- C4 type;
-- parent boundary where applicable;
-- short responsibility description;
-- technology, or explicitly `Unknown` where required;
-- evidence and confidence.
-
-Each relationship needs:
-
-- source ID;
-- destination ID;
-- specific directional description;
-- technology/protocol when it crosses container/process boundaries;
-- evidence and confidence.
-
-Do not draw first and infer the model from the picture later.
+Keep the canonical model separate from views. Views filter and aggregate the model; they never redefine names, types, direction, ownership, versions, or identities. Do not draw first and infer the model from the picture later.
 
 ### 5. Identify software systems
 
@@ -339,16 +289,17 @@ architecture/
   systems/<system-id>/containers/<container-id>/components.html # Level 3
   systems/<system-id>/containers/<container-id>/components/<component-id>/code.html # Level 4
   flows/<flow-id>.html              # optional dynamic views
-.c4-work/                            # private model, evidence, overlap, validation
+.architecture-model/                  # gathered canonical working model
+.c4-work/                            # private C4 projections, views, and validation
 ```
 
 Use breadcrumbs and links to zoom in/out. The C4 zoom chain is System Context → Container, selected Container → Component, and selected Component → Code. Component and Code views remain optional: create and link them only where they add value. When a lower-level view exists, provide an obvious ordinary page link outside the static SVG that names both the target scope and level (for example, `Level 3 — Zoom into <container> components`). Diagram elements themselves do not need to be clickable. Each diagram page must have one scope and one abstraction level. Provide indexes rather than duplicating diagrams.
 
 When a view becomes crowded, create several filtered views at the same abstraction level, each telling a focused part of the same story. Keep canonical element names, types, and relationship identities consistent across those views. Do not solve scale by mixing abstraction levels or by creating fake grouping elements.
 
-The public `architecture/index.html` is a subject-specific architecture index, not a skill execution report. Its heading and summary must name the modelled domain/system and explain its architectural purpose. It should contain only useful navigation: software systems and their responsibilities, links to Context and Container diagrams, the actual System → Container → Component → Code zoom paths, and optional Dynamic/Deployment views. Do not expose generic repository descriptions, host documentation tooling, a four-level coverage matrix, omitted-view reasoning, evidence ledger, overlap report, validation checklist, repository inventory, corrected-scope narrative, confidence dashboard, or other skill/process metadata. Keep those artifacts under `.c4-work/` and unlinked unless the user explicitly requests an audit report.
+The public `architecture/index.html` is a subject-specific architecture index, not a skill execution report. Its heading and summary must name the modelled domain/system and explain its architectural purpose. It should contain only useful navigation: software systems and their responsibilities, links to Context and Container diagrams, the actual System → Container → Component → Code zoom paths, and optional Dynamic/Deployment views. Do not expose generic repository descriptions, host documentation tooling, a four-level coverage matrix, omitted-view reasoning, evidence ledger, overlap report, validation checklist, repository inventory, corrected-scope narrative, confidence dashboard, or other skill/process metadata. Keep gather artifacts under `.architecture-model/` and C4 projection artifacts under `.c4-work/`; leave both unlinked unless the user explicitly requests an audit report.
 
-For many repositories, maintain repository-to-model mappings and overlap decisions privately under `.c4-work/`; expose only architectural conclusions and relevant uncertainty on the affected diagram page.
+Repository-to-model mappings, identity reconciliation, and conflicts remain authoritative in `.architecture-model/`; do not duplicate them under `.c4-work/`. Expose only architectural conclusions and relevant uncertainty on the affected diagram page.
 
 Keep element descriptions short. Put detailed interfaces, operations, and state mutations in adjacent architecture tables or linked detail pages rather than bloating diagram boxes. Keep raw evidence and skill compliance out of the public site.
 
@@ -385,19 +336,22 @@ For each view, compare its view definition with the rendered artifact:
 
 If any check cannot be performed, mark validation incomplete. Do not claim the diagram passes.
 
-Run the bundled validator from the skill directory before completion:
+Run the canonical and projection validators before the package validator:
 
 ```bash
+python ../gather-architecture/scripts/architecture_model.py validate <model-dir>
+python scripts/validate_canonical_projection.py <model-dir>/canonical.json <view-json-or-directory> [...]
 python scripts/validate_c4_package.py <path-to-architecture-directory>
 ```
 
-A non-zero exit is a hard failure. Fix the package or report the blocker; never bypass, weaken, or replace the validator with a prose checklist.
+A non-zero exit is a hard failure. Fix the owning gather scan/decision, C4 projection, or package as appropriate; never bypass, weaken, or replace a validator with a prose checklist.
 
 Also verify:
 
-- [ ] Every repository was inventoried independently.
-- [ ] Repository overlap was classified before elements were merged.
-- [ ] Canonical element identity is independent of repository path.
+- [ ] Every requested repository has a validated gather scan at the intended revision.
+- [ ] Canonical conflicts and gaps affecting required views were resolved or explicitly block completion.
+- [ ] Canonical identity and reconciliation came from the generated gather model, not a second C4-local inventory.
+- [ ] Every core-view element and relationship retains canonical model IDs.
 - [ ] Every system has System Context and Container diagrams.
 - [ ] Every implemented container was assessed for a Component diagram.
 - [ ] Important/complex components were assessed for a Code diagram.
@@ -422,6 +376,7 @@ Also verify:
 
 Run `python evals/run_evals.py` after changing this skill, its renderer, schema, or validation rules. Then apply every reasoning evaluation to the proposed behavior; the executable runner checks suite integrity and deterministic rendering/validation contracts, while the Markdown cases grade architectural reasoning.
 
+- [Canonical gather-model projection](evals/canonical-gather-projection.md)
 - [Software-system boundary ambiguity](evals/software-system-boundary-ambiguity.md)
 - [Microservices split across repositories](evals/microservices-repo-per-runtime.md)
 - [Microservice ownership transition](evals/microservices-ownership-transition.md)

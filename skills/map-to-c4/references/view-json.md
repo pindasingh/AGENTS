@@ -2,6 +2,8 @@
 
 Use one JSON file per C4 diagram. Keep these source views in the private `.c4-work/views/` directory and render static SVG/HTML into the public architecture site.
 
+When projecting a gathered canonical model, read [canonical-input.md](canonical-input.md). System Context, Container, and Dynamic view scopes require `modelBoundaryId`; their elements require `modelElementId`; and their relationships require `modelRelationshipIds`. These provenance fields are retained in source JSON but do not add visual clutter.
+
 ## Required top-level fields
 
 ```json
@@ -10,7 +12,7 @@ Use one JSON file per C4 diagram. Keep these source views in the private `.c4-wo
   "title": "Container diagram — System Name",
   "diagramType": "Container",
   "description": "One sentence describing this view.",
-  "scope": {},
+  "scope": {"modelBoundaryId": "system.confirmed-boundary-id"},
   "elements": [],
   "relationships": [],
   "navigation": [],
@@ -50,7 +52,8 @@ The System Context scope is rendered as the central element. Other scope types a
   "type": "Container",
   "description": "Short responsibility.",
   "technology": "Technology or Unknown",
-  "insideScope": true
+  "insideScope": true,
+  "modelElementId": "runtime.canonical-element-id"
 }
 ```
 
@@ -79,7 +82,8 @@ Optional explicit placement is supported when automatic layout is insufficient:
   "source": "source-element-id",
   "destination": "destination-element-id",
   "description": "Specific directional intent",
-  "technology": "Protocol/technology or Unknown"
+  "technology": "Protocol/technology or Unknown",
+  "modelRelationshipIds": ["rel.canonical-relationship-id"]
 }
 ```
 

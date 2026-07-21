@@ -23,6 +23,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from render_c4 import html_page, render, validate  # noqa: E402
 from validate_c4_package import validate_diagram_page, validate_index  # noqa: E402
+from validate_canonical_projection import validate_view as validate_canonical_view  # noqa: E402
 
 REQUIRED_SOURCES = {
     "https://c4model.com/introduction",
@@ -193,6 +194,71 @@ class RendererSemanticsTests(unittest.TestCase):
         svg = render(dynamic)
         self.assertIn(">1. Places orders [HTTPS]<", svg)
         self.assertIn('data-order="1"', svg)
+
+
+class CanonicalProjectionTests(unittest.TestCase):
+    def canonical_model(self) -> dict:
+        return {
+            "nodes": {
+                "person-customer": {"name": "Customer", "kind": "person"},
+                "container-web": {"name": "Web Application", "kind": "runtime"},
+                "container-db": {"name": "Orders Database", "kind": "store"},
+                "channel-orders": {"name": "Orders topic", "kind": "channel"},
+                "container-worker": {"name": "Orders Worker", "kind": "runtime"},
+            },
+            "relationships": {
+                "model-customer-web": {"from": "person-customer", "to": "container-web"},
+                "model-web-channel": {"from": "container-web", "to": "channel-orders"},
+                "model-channel-worker": {"from": "channel-orders", "to": "container-worker"},
+            },
+            "systemBoundaries": {
+                "system-orders": {
+                    "status": "confirmed",
+                    "members": ["container-web", "container-db", "container-worker"],
+                }
+            },
+        }
+
+    def canonical_view(self, name: str) -> dict:
+        view = deepcopy(base_views()[name])
+        view["scope"]["modelBoundaryId"] = "system-orders"
+        for element in view["elements"]:
+            element["modelElementId"] = element["id"]
+        view["relationships"][0]["modelRelationshipIds"] = ["model-customer-web"]
+        return view
+
+    def test_context_and_container_trace_to_confirmed_model(self) -> None:
+        self.assertEqual([], validate_canonical_view(self.canonical_model(), self.canonical_view("context"), "context"))
+        self.assertEqual([], validate_canonical_view(self.canonical_model(), self.canonical_view("containers"), "containers"))
+
+    def test_unconfirmed_boundary_and_reverse_direction_fail(self) -> None:
+        model = self.canonical_model()
+        model["systemBoundaries"]["system-orders"]["status"] = "candidate"
+        failures = validate_canonical_view(model, self.canonical_view("containers"), "containers")
+        self.assertTrue(any("not confirmed" in failure for failure in failures))
+        model["systemBoundaries"]["system-orders"]["status"] = "confirmed"
+        model["relationships"]["model-customer-web"] = {"from": "container-web", "to": "person-customer"}
+        failures = validate_canonical_view(model, self.canonical_view("containers"), "containers")
+        self.assertTrue(any("do not support the rendered direction" in failure for failure in failures))
+
+    def test_library_cannot_project_as_container(self) -> None:
+        model = self.canonical_model()
+        model["nodes"]["container-web"]["kind"] = "library"
+        failures = validate_canonical_view(model, self.canonical_view("containers"), "containers")
+        self.assertTrue(any("cannot be an in-scope Container" in failure for failure in failures))
+
+    def test_condensed_event_path_can_retain_both_model_edges(self) -> None:
+        view = deepcopy(base_views()["containers"])
+        view["scope"]["modelBoundaryId"] = "system-orders"
+        view["elements"] = [
+            {"id": "container-web", "modelElementId": "container-web", "name": "Web", "type": "Container: Application", "description": "Publishes orders.", "technology": "Python", "insideScope": True},
+            {"id": "container-worker", "modelElementId": "container-worker", "name": "Worker", "type": "Container: Application", "description": "Consumes orders.", "technology": "Python", "insideScope": True},
+        ]
+        view["relationships"] = [{
+            "id": "view-web-worker", "source": "container-web", "destination": "container-worker",
+            "description": "Publishes orders", "technology": "Topic", "modelRelationshipIds": ["model-web-channel", "model-channel-worker"],
+        }]
+        self.assertEqual([], validate_canonical_view(self.canonical_model(), view, "condensed"))
 
 
 class PackageValidationTests(unittest.TestCase):
