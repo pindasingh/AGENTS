@@ -12,6 +12,19 @@ Before doing any work, read [references/c4-source-of-truth.md](references/c4-sou
 
 This skill does not perform repository discovery. If the user supplies raw repositories or the canonical model is absent/stale, load and run the sibling `build-architecture-model` skill first. Its generated `canonical.json` is architecture working memory and the only repository-derived input to this skill. Never hand-edit it or create a competing evidence ledger.
 
+## Harness portability
+
+This skill follows the Agent Skills directory format: the skill root is this directory, `SKILL.md` is the required entrypoint, and bundled files are addressed with paths relative to this skill root. It is safe to install as a personal, project, or plugin skill in any harness that supports Agent Skills.
+
+Do not assume the agent's shell working directory is the skill root. When running bundled scripts or reading bundled assets from another repository, first resolve the absolute path to this skill directory, then use that path. For example:
+
+```bash
+SKILL_DIR="<absolute path to the map-to-c4 skill directory>"
+python "$SKILL_DIR/scripts/render_c4.py" "$SKILL_DIR/assets/preflight-view.json" --svg <temporary-path>/preflight.svg --html <temporary-path>/preflight.html
+```
+
+If `build-architecture-model` is installed as a sibling Agent Skill, resolve its own skill directory separately before running its bundled validator. Do not rely on `../build-architecture-model` unless the local installation layout proves that sibling path exists.
+
 ## Required result
 
 Use the four-level C4 hierarchy without forcing all four diagrams:
@@ -43,7 +56,7 @@ A relationship table or ordered list may supplement a diagram, but it NEVER subs
 Use the bundled dependency-free renderer by default:
 
 ```bash
-python scripts/render_c4.py assets/preflight-view.json --svg <temporary-path>/preflight.svg --html <temporary-path>/preflight.html
+python "$SKILL_DIR/scripts/render_c4.py" "$SKILL_DIR/assets/preflight-view.json" --svg <temporary-path>/preflight.svg --html <temporary-path>/preflight.html
 ```
 
 It writes native static SVG using only Python’s standard library. It requires no account, licence, download, package installation, network access, or external renderer. Structurizr, C4-PlantUML, Mermaid, and Graphviz are optional alternatives only when already available or explicitly requested.
@@ -53,7 +66,7 @@ Before creating or replacing any public architecture page, run the bundled prefl
 Create each project view as JSON using `assets/preflight-view.json` as the minimal example and [references/view-json.md](references/view-json.md) as the schema, then render it with:
 
 ```bash
-python scripts/render_c4.py <view.json> --svg <diagram.svg> --html <diagram.html>
+python "$SKILL_DIR/scripts/render_c4.py" <view.json> --svg <diagram.svg> --html <diagram.html>
 ```
 
 Generated diagrams are static. Do not add clickable diagram elements, JavaScript zooming, tooltips, canvas interaction, or other “diagram magic.” Ordinary breadcrumbs and index-page links outside the SVG are sufficient. Preserve browser-native page zoom and pinch zoom: use SVG viewboxes, responsive full-width images, and never disable scaling with viewport settings such as `user-scalable=no`.
@@ -103,7 +116,7 @@ Do not invent pseudo-types such as `External Software System group`, `Container 
 Locate `.architecture-model/canonical.json`, `subject.json`, and `decisions.json`. Validate the canonical model before mapping:
 
 ```bash
-python ../build-architecture-model/scripts/architecture_model.py validate <model-dir>
+python "$BUILD_ARCHITECTURE_MODEL_SKILL_DIR/scripts/architecture_model.py" validate <model-dir>
 ```
 
 If validation fails, return to `build-architecture-model`; do not repair generated data here. Confirm every requested source has the expected revision and scan status. Read canonical gaps and conflicts before deciding that a C4 view is supportable.
@@ -147,7 +160,7 @@ Use canonical flows for selected Dynamic diagrams. Include boundary-crossing ste
 Create renderer view JSON only after the C4 projection is established. System Context, Container, and Dynamic scopes require `modelBoundaryId`; elements require `modelElementId`; relationships require `modelRelationshipIds`. Validate projection traceability before rendering:
 
 ```bash
-python scripts/validate_canonical_projection.py <model-dir>/canonical.json <view-json-or-directory> [...]
+python "$SKILL_DIR/scripts/validate_canonical_projection.py" <model-dir>/canonical.json <view-json-or-directory> [...]
 ```
 
 Keep the canonical model separate from views. Views filter and aggregate the model; they never redefine names, types, direction, ownership, versions, or identities. Do not draw first and infer the model from the picture later.
@@ -339,9 +352,9 @@ If any check cannot be performed, mark validation incomplete. Do not claim the d
 Run the canonical and projection validators before the package validator:
 
 ```bash
-python ../build-architecture-model/scripts/architecture_model.py validate <model-dir>
-python scripts/validate_canonical_projection.py <model-dir>/canonical.json <view-json-or-directory> [...]
-python scripts/validate_c4_package.py <path-to-architecture-directory>
+python "$BUILD_ARCHITECTURE_MODEL_SKILL_DIR/scripts/architecture_model.py" validate <model-dir>
+python "$SKILL_DIR/scripts/validate_canonical_projection.py" <model-dir>/canonical.json <view-json-or-directory> [...]
+python "$SKILL_DIR/scripts/validate_c4_package.py" <path-to-architecture-directory>
 ```
 
 A non-zero exit is a hard failure. Fix the owning model scan/decision, C4 projection, or package as appropriate; never bypass, weaken, or replace a validator with a prose checklist.
@@ -374,7 +387,7 @@ Also verify:
 
 ## Skill evaluations
 
-Run `python evals/run_evals.py` after changing this skill, its renderer, schema, or validation rules. Then apply every reasoning evaluation to the proposed behavior; the executable runner checks suite integrity and deterministic rendering/validation contracts, while the Markdown cases grade architectural reasoning.
+Run `python "$SKILL_DIR/evals/run_evals.py"` after changing this skill, its renderer, schema, or validation rules. Then apply every reasoning evaluation to the proposed behavior; the executable runner checks suite integrity and deterministic rendering/validation contracts, while the Markdown cases grade architectural reasoning.
 
 - [Canonical model projection](evals/canonical-model-projection.md)
 - [Software-system boundary ambiguity](evals/software-system-boundary-ambiguity.md)

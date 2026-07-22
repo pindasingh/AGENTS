@@ -10,6 +10,19 @@ Discover the architecture of a user-named subject one repository at a time. The 
 
 Before scanning, read [references/model-spec.md](references/model-spec.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
+## Harness portability
+
+This skill follows the Agent Skills directory format: the skill root is this directory, `SKILL.md` is the required entrypoint, and bundled files are addressed with paths relative to this skill root. It is safe to install as a personal, project, or plugin skill in any harness that supports Agent Skills.
+
+Do not assume the agent's shell working directory is the skill root. When running a bundled script or reading a bundled asset from another repository, first resolve the absolute path to this skill directory, then use that path. For example:
+
+```bash
+SKILL_DIR="<absolute path to the build-architecture-model skill directory>"
+python "$SKILL_DIR/scripts/architecture_model.py" init <model-dir> --subject <name> --source <repo>
+```
+
+Keep generated `.architecture-model/` output in the target repository or user-selected workspace, not inside the skill directory.
+
 ## Required result
 
 Create a model directory containing:
@@ -30,10 +43,10 @@ Create a model directory containing:
 Use the bundled standard-library tool:
 
 ```bash
-python scripts/architecture_model.py init <model-dir> --subject <name> --source <repo> [--source <repo> ...]
-python scripts/architecture_model.py validate-scan <model-dir>/scans/<source-id>.json
-python scripts/architecture_model.py compile <model-dir>
-python scripts/architecture_model.py validate <model-dir>
+python "$SKILL_DIR/scripts/architecture_model.py" init <model-dir> --subject <name> --source <repo> [--source <repo> ...]
+python "$SKILL_DIR/scripts/architecture_model.py" validate-scan <model-dir>/scans/<source-id>.json
+python "$SKILL_DIR/scripts/architecture_model.py" compile <model-dir>
+python "$SKILL_DIR/scripts/architecture_model.py" validate <model-dir>
 ```
 
 Use [assets/scan-template.json](assets/scan-template.json) as the agent-authoring template; replace its example values rather than inventing a different shape. A non-zero result is a hard failure. Never bypass validation or edit `canonical.json` to make it pass.
@@ -163,7 +176,7 @@ Do not report gathering complete until:
 Run the executable evaluation suite before changing or completing this skill:
 
 ```bash
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest discover -s "$SKILL_DIR/tests" -p "test_*.py" -v
 ```
 
 The tests are deterministic tooling checks. Apply [evals/reasoning-cases.md](evals/reasoning-cases.md) to agent behavior; matching a fail condition is a regression even when the executable tests pass.
