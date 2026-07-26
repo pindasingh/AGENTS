@@ -171,7 +171,7 @@ def main() -> int:
         if not development_path.exists():
             fail(f"metadata development path does not exist: {relative}")
 
-    if evals.get("skill_name") != "review-owasp-broken-access-control":
+    if evals.get("skill_name") != "owasp-review-broken-access-control":
         fail("eval skill_name does not match SKILL.md")
     if evals.get("skill_contract_version") != bac.SCHEMA_VERSION:
         fail("eval skill_contract_version does not match the assessment schema")

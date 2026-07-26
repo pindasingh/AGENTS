@@ -19,7 +19,7 @@ python -B -m unittest discover -s tests -p "test_*.py" -v
 Behavioral runs belong in a sibling workspace outside the distributable skill, for example:
 
 ```text
-review-owasp-broken-access-control-eval-workspace/
+owasp-review-broken-access-control-eval-workspace/
   iteration-1/
     <eval-id>/
       with_skill/

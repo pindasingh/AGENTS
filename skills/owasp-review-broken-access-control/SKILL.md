@@ -1,5 +1,5 @@
 ---
-name: review-owasp-broken-access-control
+name: owasp-review-broken-access-control
 description: Finds and documents OWASP A01:2025 Broken Access Control vulnerabilities in application source, configuration, APIs, tests, and explicitly authorized running systems. Use whenever a user requests an OWASP access-control review, BAC assessment, authorization audit, IDOR/BOLA/BFLA/BOPLA or privilege-escalation analysis, tenant-isolation review, force-browsing check, or evidence-backed security findings—even if they only say "check permissions" or "can one user access another user's data?"
 compatibility: Requires read access to the assessment subject and Python 3 for the bundled dependency-free validator and Markdown/standalone-HTML report renderer. Live requests require explicit user authorization and scope; no package installation or external scanner is required.
 ---
@@ -25,7 +25,7 @@ Before reviewing, read these files completely:
 Resolve the absolute path to this skill directory before reading assets or running scripts; do not assume the shell starts here.
 
 ```bash
-SKILL_DIR="<absolute path to review-owasp-broken-access-control>"
+SKILL_DIR="<absolute path to owasp-review-broken-access-control>"
 python "$SKILL_DIR/scripts/bac_assessment.py" validate <assessment.json>
 python "$SKILL_DIR/scripts/bac_assessment.py" render <assessment.json> --format html --output <report.html>
 python "$SKILL_DIR/scripts/bac_assessment.py" render <assessment.json> --format markdown --output <report.md>
