@@ -1,0 +1,21 @@
+type Invoice {
+  id: ID!
+  ownerId: ID!
+  tenantId: ID!
+  total: Float!
+  paymentCardLastFour: String
+}
+
+type Refund {
+  id: ID!
+  tenantId: ID!
+  status: String!
+}
+
+type Query {
+  invoice(id: ID!): Invoice
+}
+
+type Mutation {
+  approveRefund(id: ID!): Refund
+}

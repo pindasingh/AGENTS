@@ -1,0 +1,17 @@
+routes:
+  - name: api
+    public_path: /api
+    upstream: http://application:3000
+    authorization:
+      require_authenticated: true
+    request_transform:
+      honor_headers:
+        - X-Original-URL
+        - X-HTTP-Method-Override
+  - name: graphql
+    public_path: /graphql
+    upstream: http://application:3000/graphql
+    authorization:
+      require_authenticated: true
+# The gateway authenticates callers but delegates role, object, field, and
+# business-state authorization to the application.

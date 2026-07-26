@@ -1,0 +1,280 @@
+{
+  "skill_name": "review-owasp-broken-access-control",
+  "skill_contract_version": "1.3",
+  "eval_suite_version": "1.5.0",
+  "source_profile": {
+    "owasp_top10": "A01:2025",
+    "asvs": "5.0.0 V8",
+    "api_security": "2023",
+    "canonical_source": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/"
+  },
+  "evals": [
+    {
+      "id": "owasp-a01-scenario-1-account-idor",
+      "provenance": {
+        "source": "OWASP A01:2025 example attack scenario #1",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Paraphrased as a static source review task; no live target."
+      },
+      "prompt": "Perform an OWASP A01:2025 source review of this account endpoint. An authenticated request supplies acct as a query parameter. The handler builds an account lookup using that value and returns the matching account, but the shown path does not compare the account with the authenticated user or an authorized relationship. Document the result and safe regression tests. Do not make live requests.",
+      "expected_output": "An evidence-qualified IDOR/object-level authorization finding based on OWASP's first A01 example, identifying the caller-controlled account key and absent data-specific policy, with A01:2025, ASVS 5.0.0-8.2.2, ASVS 4.0.3-4.2.1 when legacy mappings are requested, WSTG v4.2-ATHZ-04, API1:2023 when it is an API, and a specific CWE such as CWE-639 or CWE-566. It should recommend authorized-scope retrieval and include owner-allowed and peer-denied tests.",
+      "files": [],
+      "assertions": [
+        "Identifies the missing data-specific authorization rather than treating the issue only as SQL injection.",
+        "Traces the caller-controlled account identifier to unauthorized account disclosure.",
+        "Uses focused mappings and does not attach all 40 A01 CWEs to the finding.",
+        "Provides an allowed owner case and denied non-owner case without performing live testing."
+      ]
+    },
+    {
+      "id": "owasp-a01-scenario-2-force-browsing",
+      "provenance": {
+        "source": "OWASP A01:2025 example attack scenario #2",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Paraphrased to require anonymous and lower-role route analysis."
+      },
+      "prompt": "Review an application containing /app/getappInfo and /app/admin_getappInfo. The second route is intended for administrators. Determine what must be inspected and how to document the result if an anonymous user can reach either protected route or an ordinary authenticated user can reach the administrator route. This is source-only review; propose tests instead of sending requests.",
+      "expected_output": "A force-browsing and function-level authorization analysis based on OWASP's second A01 example. It should distinguish anonymous from ordinary-user access, trace route and fallback policy enforcement, map A01-CV-05/A01-CV-08 and applicable ASVS/WSTG/API5/CWE identifiers, and propose non-destructive negative route tests.",
+      "files": [],
+      "assertions": [
+        "Checks both anonymous access to protected functionality and vertical access to the administrator function.",
+        "Inspects route, middleware, fallback/default policy, alternate methods, and direct backend exposure before confirming a finding.",
+        "Maps force browsing and function-level authorization precisely.",
+        "Proposes safe allowed and denied tests rather than claiming unperformed execution."
+      ]
+    },
+    {
+      "id": "owasp-a01-scenario-3-client-only-control",
+      "provenance": {
+        "source": "OWASP A01:2025 example attack scenario #3",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Paraphrased as a repository trace from browser control to server endpoint."
+      },
+      "prompt": "Assess an admin information feature where JavaScript prevents ordinary users from navigating to the admin action, but the server endpoint can be invoked directly. The supplied server path has no demonstrated trusted authorization check. Explain the evidence needed, classify the issue appropriately, and document remediation and tests without calling the endpoint.",
+      "expected_output": "A trusted-enforcement analysis based on OWASP's third A01 example. It should reject client-side JavaScript as authorization, search for server/gateway/service-layer controls, report confirmed or likely only when the direct path is supported, map ASVS 5.0.0-8.3.1 and applicable force-browsing/function-level references, and place unresolved global controls in gaps.",
+      "files": [],
+      "assertions": [
+        "States that client-side JavaScript is not a trusted authorization boundary.",
+        "Searches for gateway, middleware, service, and data-layer enforcement before final classification.",
+        "Separates a supported direct access path from unresolved global-control assumptions.",
+        "Recommends trusted server-side policy and negative direct-endpoint tests."
+      ]
+    },
+    {
+      "id": "realistic-multitenant-invoice-bola",
+      "provenance": {
+        "source": "Derived real-application variant",
+        "url": "https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/",
+        "adaptation": "Adds tenant boundaries and ORM behavior to the official object-authorization pattern."
+      },
+      "prompt": "Review our multi-tenant invoice API for OWASP broken access control. Authentication is global. GET /api/invoices/{invoiceId} calls Invoice.findByPk(req.params.invoiceId) and returns the model. The handler never references req.user or tenantId, while Invoice has ownerId and tenantId columns. Document the issue and the tests we should add, but do not make requests to a running service.",
+      "expected_output": "An evidence-qualified IDOR/BOLA finding that identifies peer and cross-tenant attack paths, recommends trusted owner/tenant-constrained retrieval, includes allowed and denied regression cases with side-effect checks, and accounts for all 19 A01 coverage branches without claiming A02-A10 coverage.",
+      "files": [],
+      "assertions": [
+        "Distinguishes authentication from object authorization and identifies the missing owner/tenant constraint.",
+        "Provides a concrete actor-to-impact path with precise OWASP and CWE mappings.",
+        "Includes owner-allowed, peer-denied, and cross-tenant-denied regression coverage.",
+        "Does not perform or claim live testing and explicitly limits the assessment to A01:2025."
+      ]
+    },
+    {
+      "id": "ambiguous-layered-admin-enforcement",
+      "provenance": {
+        "source": "False-positive resistance case derived from OWASP A01 scenarios #2 and #3",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Introduces potentially valid gateway and domain-policy enforcement absent from the snippet."
+      },
+      "prompt": "Please do an A01 review of this admin feature. React only renders /admin/refunds when user.isAdmin is true. The POST /v2/refunds/{id}/approve controller has no local authorization annotation, but the repository also has gateway middleware and a RefundApprovalPolicy service. Find and document vulnerabilities with file evidence. You can read the whole repo; don't assume the endpoint is exposed just from this snippet.",
+      "expected_output": "A fail-closed review that treats the client check and missing local annotation as signals, traces gateway, middleware, policy service, route registration, object/state rules, and alternate methods before deciding whether a confirmed or likely vertical/function-level finding exists, and records unresolved deployment facts as gaps.",
+      "files": [],
+      "assertions": [
+        "Does not call the React route guard an authorization control.",
+        "Searches for global and service-layer enforcement before assigning finding status.",
+        "Checks vertical privilege, function permission, refund ownership/state, and alternate paths.",
+        "Uses confirmed, likely, needs-validation, or gap status consistently with the evidence."
+      ]
+    },
+    {
+      "id": "intentional-public-catalogue-no-finding",
+      "provenance": {
+        "source": "Negative control derived from OWASP A01 deny-by-default guidance",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Tests whether intentionally public resources are distinguished from missing authorization."
+      },
+      "prompt": "Audit this read-only public catalogue service for OWASP A01. It intentionally permits anonymous GETs, has no user accounts, mutations, admin API, cookies, tokens, CORS credentials, tenant data, or private records. You only have the source repository and deployment manifest. Produce an honest assessment rather than forcing a finding.",
+      "expected_output": "An A01-only assessment that models the intentionally public policy, verifies route/static/deployment behavior with evidence, uses reviewed-no-finding or not-applicable where justified, uses not-assessed and gaps where runtime facts remain unavailable, accounts for all 8 vulnerability and 11 prevention branches, and does not fabricate a CORS or missing-authorization finding.",
+      "files": [],
+      "assertions": [
+        "Does not equate intentional anonymous public access with broken access control.",
+        "Accounts explicitly for all 19 required A01 branches using evidence-backed statuses.",
+        "Treats broad non-credentialed CORS according to protected browser impact rather than as an automatic vulnerability.",
+        "Separates source conclusions from unverified runtime or deployment gaps."
+      ]
+    },
+    {
+      "id": "file-backed-mixed-node-application",
+      "provenance": {
+        "source": "Composite fixture derived from selected WSTG v4.2 A01 procedures",
+        "url": "https://owasp.org/www-project-web-security-testing-guide/v42/",
+        "adaptation": "Combines REST, gateway, CORS, logout, GraphQL, and missing negative-test evidence in a small repository fixture."
+      },
+      "prompt": "Perform a source-only OWASP A01:2025 assessment of the supplied mixed Node application. Trace gateway and application behavior, REST and GraphQL paths, object/function/field authorization, CORS, method overrides, logout, and test coverage. Produce the validated assessment and report contract; do not run the application or invent missing store/authentication behavior.",
+      "expected_output": "An evidence-backed multi-path assessment that identifies unscoped invoice object access and refund function/state authorization failures, evaluates REST and GraphQL paths separately, treats reflected credentialed CORS and non-revoked logout according to supported confidence, inventories method override and direct gateway/application enforcement, records unknown authentication/store/runtime facts as gaps, and supplies focused remediation and negative tests.",
+      "files": [
+        "evals/fixtures/mixed-node-app/gateway.yaml",
+        "evals/fixtures/mixed-node-app/server.js",
+        "evals/fixtures/mixed-node-app/schema.graphql",
+        "evals/fixtures/mixed-node-app/resolvers.js",
+        "evals/fixtures/mixed-node-app/authorization.test.js"
+      ],
+      "assertions": [
+        "Creates distinct access-path entries for REST invoice, REST refund, logout, and GraphQL operations with gateway-to-store enforcement chains.",
+        "Finds the owner/tenant-unscoped invoice reads and lower-role refund approval without claiming unknown runtime details as facts.",
+        "Evaluates reflected credentialed CORS, method overrides, stale sessions, GraphQL fields/batching, and absent negative tests with appropriate finding or gap status.",
+        "Maps findings to selected WSTG procedures beyond ATHZ where relevant and proposes response-and-side-effect regression assertions.",
+        "Completes a validator-passing assessment JSON and the requested Markdown or standalone HTML report without duplicating evidence excessively.",
+        "The human report has a linked table of contents, a deterministic PASS/FAIL/REVIEW dashboard, a compact per-category findings register, and category-then-component detail grouping.",
+        "Each issue identifies its classification and affected implementation, and uses concise pseudocode for the expected rule, a plain-language unauthorized scenario with actor/resource/action and expected versus evidenced result, failure proof, impact, remedy, and allowed/denied verification."
+      ]
+    },
+    {
+      "id": "file-backed-secure-dotnet-negative-control",
+      "provenance": {
+        "source": "False-positive resistance fixture derived from ASVS 5.0 V8 and WSTG v4.2",
+        "url": "https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x17-V8-Authorization.md",
+        "adaptation": "Represents fallback authentication, trusted policy, tenant/owner-scoped retrieval, constrained CORS, revocation, and negative tests."
+      },
+      "prompt": "Review the supplied ASP.NET application for OWASP A01:2025. Treat framework and policy names as evidence to verify, not automatic proof, but do not force a vulnerability where the shown enforcement chain closes the path. Produce explicit coverage and gaps for anything the small fixture cannot establish.",
+      "expected_output": "A false-positive-resistant assessment that traces fallback policy, endpoint policy, subject-derived tenant/owner query constraints, domain authorization, fixed-origin CORS, server-side revocation, and negative tests. It should record reviewed-no-finding where source evidence is complete, and gaps for deployment, policy implementation, or omitted routes rather than inventing an IDOR or missing endpoint authorization finding.",
+      "files": [
+        "evals/fixtures/secure-dotnet-app/Program.cs",
+        "evals/fixtures/secure-dotnet-app/InvoiceService.cs",
+        "evals/fixtures/secure-dotnet-app/AuthorizationTests.cs"
+      ],
+      "assertions": [
+        "Recognizes the fallback and endpoint policies while still tracing the complete trusted enforcement chain.",
+        "Recognizes tenant-and-owner-constrained retrieval and does not report an IDOR from the route identifier alone.",
+        "Uses reviewed-no-finding only with exact fixture evidence and records unshown policy/deployment surfaces as gaps.",
+        "Accounts for all 19 A01 branches and does not claim comprehensive real-environment coverage from the small fixture."
+      ]
+    },
+    {
+      "id": "wstg-parser-and-method-policy-mismatch",
+      "provenance": {
+        "source": "Derived from WSTG-CONF-06, WSTG-INPV-04, and WSTG-ATHZ-02 v4.2",
+        "url": "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods",
+        "adaptation": "Combines duplicate-parameter and method-override interpretation across gateway and application tiers."
+      },
+      "prompt": "Assess this static request path: the gateway authorizes GET /accounts/export by checking the first accountId value and blocks DELETE. The application framework uses the last duplicate accountId value. It also honors X-HTTP-Method-Override after gateway authorization. The export handler loads the selected account without a second policy check. Document the supported BAC paths, required evidence, and regression matrix; do not send requests.",
+      "expected_output": "A parser/enforcement mismatch assessment that traces policy and operation consuming different duplicate values and methods, identifies the possible peer export and method-override bypass, maps relevant WSTG-CONF-06/WSTG-INPV-04/WSTG-ATHZ-02 plus precise A01/CWE controls, and recommends canonical parsing and authorization after final route/method/resource resolution.",
+      "files": [],
+      "assertions": [
+        "Models gateway and application as separate enforcement/parser tiers and identifies which occurrence and method each consumes.",
+        "Does not report duplicate parameters or method override as a vulnerability without connecting them to a protected operation or resource.",
+        "Requires authorization after canonical method, route, subject, and resource resolution.",
+        "Adds first/last duplicate, override-header, unknown-method, owner, and peer negative regression cases with side-effect checks."
+      ]
+    },
+    {
+      "id": "wstg-business-workflow-and-replay",
+      "provenance": {
+        "source": "Derived from WSTG-BUSL-03, WSTG-BUSL-05, and WSTG-BUSL-06 v4.2",
+        "url": "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/",
+        "adaptation": "Exercises state-dependent field authorization, one-time limits, replay, skipped steps, and concurrency."
+      },
+      "prompt": "Review a refund workflow where the browser hides approvedBy and status, but POST /refunds/{id} binds both fields from JSON. Any authenticated tenant user can call it. The UI requires manager approval once and only after review, but the service accepts draft -> approved directly and two concurrent approvals each issue store credit. Document only supported A01 issues and tests.",
+      "expected_output": "A field/function/business-policy authorization assessment identifying caller-controlled privileged fields, missing manager permission, skipped state prerequisite, and non-atomic one-time credit enforcement. It should state intended policies, distinguish root causes where remediation differs, map API3/API5/API6 and WSTG business-logic procedures as applicable, and add lower-role, forbidden-field, skipped-state, replay, rollback, and concurrent negative tests.",
+      "files": [],
+      "assertions": [
+        "Identifies field-level, function-level, workflow-state, and one-time/concurrency boundaries rather than describing generic input validation.",
+        "Names the unauthorized actor, protected refund/credit actions, intended manager/state policy, and observable impact.",
+        "Separates or consolidates findings according to root cause, enforcement point, and remediation.",
+        "Includes atomicity, replay, skipped-step, forbidden-field, and no-side-effect regression checks."
+      ]
+    },
+    {
+      "id": "wstg-cors-csrf-distinction",
+      "provenance": {
+        "source": "Derived from WSTG-CLNT-07, WSTG-SESS-02, and WSTG-SESS-05 v4.2",
+        "url": "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing",
+        "adaptation": "Tests whether response-reading and unwanted state-changing browser requests are analyzed separately."
+      },
+      "prompt": "Perform an A01 analysis of two browser APIs. /catalog is intentionally public and returns Access-Control-Allow-Origin: *. /profile reflects any Origin, allows credentials, and returns private profile data using a session cookie. POST /profile/email also uses the cookie, accepts a simple form POST, and has no origin or anti-forgery validation. Explain separate findings or non-findings and safe tests.",
+      "expected_output": "A precise analysis that does not flag the public wildcard catalogue, identifies credentialed origin reflection as protected-response CORS exposure when browser behavior permits it, separately identifies the victim-authorized email change as CSRF, checks SameSite and preflight assumptions, and maps WSTG-CLNT-07/WSTG-SESS-05 and CWE-352/CWE-1275 only where supported.",
+      "files": [],
+      "assertions": [
+        "Does not report the intentional public wildcard endpoint as broken access control.",
+        "Separates CORS response readability from CSRF state-changing request authority.",
+        "States browser, credential, SameSite, origin-validation, content-type, and preflight assumptions that affect exploitability.",
+        "Proposes safe malicious-origin read and unwanted-action tests using synthetic accounts without conflating their expected results."
+      ]
+    },
+    {
+      "id": "enterprise-apim-bff-application-identity-loss",
+      "provenance": {
+        "source": "Enterprise layered-authorization fixture derived from OWASP A01 trusted-enforcement and delegated-identity guidance",
+        "url": "https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x17-V8-Authorization.md",
+        "adaptation": "Combines Azure APIM policy scopes, a subscription key, BFF client-credentials exchange, a custom application policy, and an unscoped data query."
+      },
+      "prompt": "Perform a source-only end-to-end A01 review of the supplied enterprise path: browser -> BFF -> Azure APIM -> Orders API -> data query. Evaluate the browser user, BFF application token, APIM subscription key and inherited policies, application role policy, supplier assignment, tenant, and order scope. Produce a validated assessment and HTML report without treating any one valid credential as complete authorization.",
+      "expected_output": "An architecture-neutral but APIM-aware trace that proves the effective service/product/API policy chain from supplied files, records the browser-to-application identity replacement, distinguishes the subscription from user/resource authority, and identifies the application-role and unscoped-order confused-deputy path. The report should link the finding to a complete tiered access path and show security outcome separately from trace completeness.",
+      "files": [
+        "evals/fixtures/layered-enterprise/apim/service-policy.xml",
+        "evals/fixtures/layered-enterprise/apim/product-policy.xml",
+        "evals/fixtures/layered-enterprise/apim/orders-api.bicep",
+        "evals/fixtures/layered-enterprise/apim/orders-policy.xml",
+        "evals/fixtures/layered-enterprise/bff/OrdersProxy.cs",
+        "evals/fixtures/layered-enterprise/api/Program.cs",
+        "evals/fixtures/layered-enterprise/api/OrdersController.cs",
+        "evals/fixtures/layered-enterprise/api/AuthorizationTests.cs"
+      ],
+      "assertions": [
+        "Builds ordered BFF, APIM, API policy, and data tiers with entering/leaving identity, credentials, policies, resource context, decisions, exact evidence, and complete trace status.",
+        "Distinguishes APIM subscription/application authority from originating-user, supplier-assignment, tenant, and order authorization.",
+        "Traces the BFF replacement of browser-user authority with an application-only token through the role-only API policy to the unscoped order query.",
+        "Uses category then component issue grouping and includes the end-to-end authorization path, concise proof, remedy, and cross-tier negative tests.",
+        "Does not report missing inherited APIM policy because the fixture supplies service, product, API, and backend evidence."
+      ]
+    },
+    {
+      "id": "enterprise-missing-effective-gateway-policy-checkpoint",
+      "provenance": {
+        "source": "Enterprise evidence-gap fixture derived from OWASP evidence-qualified authorization testing",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html",
+        "adaptation": "Omits inherited APIM service/product policies from a base-inheriting API policy to require a precise user checkpoint."
+      },
+      "prompt": "Start an end-to-end A01 review of these BFF, APIM API-policy, and backend files. The APIM policy uses <base />, but the effective service and product policies and deployed revision are not supplied. Do all discovery possible, then follow the evidence-acquisition gate. Do not assume inherited controls are permissive or protective and do not finalize an end-to-end report without my direction.",
+      "expected_output": "A precise pause after available-code discovery that requests the effective service/product/deployed APIM policies, explains why they can change route and identity conclusions, lists what was searched and affected paths, and offers supply/access/evidence/exclusion options. It should mark the path blocked and await user direction rather than silently treating it as complete or producing an unqualified pass/fail conclusion for the unresolved path.",
+      "files": [
+        "evals/fixtures/layered-enterprise/apim/orders-api.bicep",
+        "evals/fixtures/layered-enterprise/apim/orders-policy.xml",
+        "evals/fixtures/layered-enterprise/bff/OrdersProxy.cs",
+        "evals/fixtures/layered-enterprise/api/Program.cs",
+        "evals/fixtures/layered-enterprise/api/OrdersController.cs"
+      ],
+      "assertions": [
+        "Inspects every supplied BFF, APIM, application-policy, and data artifact before asking the user.",
+        "Identifies <base /> and deployed-policy state as material missing evidence rather than guessing effective APIM behavior.",
+        "States the missing artifacts, why they matter, searches performed, affected paths/coverage, blocked conclusions, and acceptable continuation options.",
+        "Stops for user direction and does not call the path complete or the assessment final."
+      ]
+    },
+    {
+      "id": "architecture-neutral-event-driven-delegation",
+      "provenance": {
+        "source": "Architecture-neutral variant derived from ASVS 5.0.0 originating-subject authorization requirements",
+        "url": "https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x17-V8-Authorization.md",
+        "adaptation": "Exercises a non-APIM asynchronous path with a gateway, function, queue, and worker."
+      },
+      "prompt": "Review this architecture without assuming APIM or a BFF: an API gateway authenticates a user JWT, a serverless export function checks Exporter scope and writes {tenantId, exportId} from the request to a queue, and a worker uses its workload identity to export all rows for the message tenant. Trace user and workload authority, tenant/resource context, replay and side effects. Ask for missing consumer or gateway configuration only after searching supplied repositories.",
+      "expected_output": "A product-neutral end-to-end trace across gateway, function, queue, worker, and data tiers that distinguishes user scope from workload transport authority, identifies caller-controlled tenant/delegation risk only when supported, and applies the same material-evidence checkpoint if gateway or consumer code is unavailable.",
+      "files": [],
+      "assertions": [
+        "Uses generic tier and identity-transition concepts rather than forcing APIM, BFF, or HTTP-controller terminology.",
+        "Distinguishes originating-user export authority from the worker workload identity and message tenant context.",
+        "Checks tenant binding, queue integrity, replay, stale authority, idempotency, and export side effects.",
+        "Requests material missing artifacts precisely instead of inventing gateway or consumer behavior."
+      ]
+    }
+  ]
+}

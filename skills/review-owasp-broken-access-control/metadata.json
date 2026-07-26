@@ -1,0 +1,24 @@
+{
+  "skillVersion": "0.5.1",
+  "assessmentSchemaVersion": "1.3",
+  "evalSuiteVersion": "1.5.0",
+  "sourceProfile": {
+    "owaspTop10": "A01:2025",
+    "asvsCurrent": "5.0.0",
+    "asvsLegacy": "4.0.3",
+    "wstg": "4.2",
+    "wstgTagCommit": "dd33419e10edb22b78d89325a6c2aad9f184e3a2",
+    "apiSecurityTop10": "2023"
+  },
+  "runtime": [
+    "SKILL.md",
+    "metadata.json",
+    "assets/assessment-template.json",
+    "references/",
+    "scripts/"
+  ],
+  "development": [
+    "evals/",
+    "tests/"
+  ]
+}

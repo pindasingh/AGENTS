@@ -1,0 +1,11 @@
+<policies>
+  <inbound>
+    <base />
+    <check-header name="X-Partner-Channel" failed-check-httpcode="403" failed-check-error-message="Partner channel required" ignore-case="true">
+      <value>orders-bff</value>
+    </check-header>
+  </inbound>
+  <backend><base /></backend>
+  <outbound><base /></outbound>
+  <on-error><base /></on-error>
+</policies>

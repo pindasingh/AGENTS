@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.3",
+  "assessment": {
+    "title": "OWASP A01:2025 Broken Access Control Assessment",
+    "subject": "Replace with the reviewed application or service",
+    "revision": "unknown",
+    "environment": "source review",
+    "assessmentDate": "YYYY-MM-DD",
+    "profile": "OWASP A01:2025",
+    "authorizationMode": "static-only",
+    "authorizedTargets": [],
+    "scope": [],
+    "exclusions": [],
+    "limitations": [
+      "Starter template: replace all placeholder content before reporting completion."
+    ],
+    "summary": "Assessment has not started."
+  },
+  "authorizationModel": {
+    "actors": [],
+    "resources": [],
+    "actions": [],
+    "contexts": [],
+    "enforcementPoints": [],
+    "policyStatements": [],
+    "accessPaths": []
+  },
+  "coverage": [
+    {"id": "A01-CV-01", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-02", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-03", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-04", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-05", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-06", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-07", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-CV-08", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-01", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-02", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-03", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-04", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-05", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-06", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-07", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-08", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-09", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-10", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []},
+    {"id": "A01-PR-11", "status": "not-assessed", "rationale": "Not reviewed yet.", "evidence": [], "findingIds": []}
+  ],
+  "findings": [],
+  "gaps": [
+    {
+      "id": "GAP-001",
+      "title": "Assessment not yet performed",
+      "whyItMatters": "No A01 coverage conclusion can be made from the starter template.",
+      "searched": [
+        "Starter template only; no repositories, deployment configuration, routes, or authorization controls have been inspected."
+      ],
+      "requestedArtifacts": [
+        "Repositories, revisions, deployment and gateway configuration, identity/policy configuration, and tests for the intended scope."
+      ],
+      "blockedConclusions": [
+        "All end-to-end authorization paths and A01 coverage conclusions."
+      ],
+      "requestStatus": "awaiting-user",
+      "userDecision": "Awaiting user direction and assessment scope.",
+      "nextStep": "Obtain the assessment scope and evidence, then execute discovery and every required coverage branch.",
+      "accessPathIds": [],
+      "coverageIds": [
+        "A01-CV-01", "A01-CV-02", "A01-CV-03", "A01-CV-04", "A01-CV-05", "A01-CV-06", "A01-CV-07", "A01-CV-08",
+        "A01-PR-01", "A01-PR-02", "A01-PR-03", "A01-PR-04", "A01-PR-05", "A01-PR-06", "A01-PR-07", "A01-PR-08", "A01-PR-09", "A01-PR-10", "A01-PR-11"
+      ]
+    }
+  ]
+}
