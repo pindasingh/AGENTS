@@ -29,6 +29,8 @@ Classify each subject:
 
 Usually exclude intentionally public static marketing/docs sites, presentational component libraries, client-only SPAs/MFEs without BFF/serverless/edge code, generated clients, undeployed samples, and unrelated tooling. A client route guard or hidden button is not trusted enforcement; retain only route/input handoff evidence for the owning backend.
 
+When the user explicitly supplies a synthetic security corpus, training lab, policy library, or benchmark, classify it as an evaluation candidate even though it is not deployed. Review only its stated authorization policies, follow any blind protocol without consulting answer keys or verdict-revealing probes before freezing the result, and do not imply production exposure.
+
 Do not exclude merely because something is not an API: server-rendered actions, workers, gateways, policy libraries, object stores, and message consumers can be eligible. Do not activate API, GraphQL, browser, APIM, serverless, storage, or session checks without evidence that the surface exists.
 
 For multiple repositories, output a compact selection table: subject, observed role, classification, evidence, applicable A01 surface, decision. Deep-review candidates only; consult supporting repositories only along selected paths. Excluded siblings are not evidence gaps. If all subjects are excluded, stop after triage and suggest the concrete backend/gateway/policy/worker/data repository needed next.
@@ -39,19 +41,17 @@ Choose once after triage and state it.
 
 ### Triage
 
-Use when the user asks what is eligible, no candidate remains, or scope is still undetermined. Output only the selection decision and next target. Do not build findings, a 19-branch matrix, assessment JSON, or full report.
+Use when the user asks what is eligible, no candidate remains, or scope is still undetermined. Record only the selection decision and next target in the canonical assessment JSON. Leave paths, coverage, findings, and gaps empty; do not build a 19-branch matrix or full assessment.
 
 ### Focused — default
 
-Use for ordinary requests to check permissions, review a repository, inspect an endpoint/feature, investigate IDOR/BOLA, or assess a bounded authorization concern. Review only selected sensitive operations and applicable concern areas. Do not create a 19-branch matrix or `assessment.json` unless the user explicitly asks for comprehensive coverage or structured assessment output.
-
-Produce a concise Markdown report by default. HTML is generated only when explicitly requested.
+Use for ordinary requests to check permissions, review a repository, inspect an endpoint/feature, investigate IDOR/BOLA, or assess a bounded authorization concern. Review only selected sensitive operations and applicable concern areas. Populate only selected paths and applicable coverage in the canonical assessment JSON; do not create a 19-branch matrix.
 
 ### Comprehensive — explicit only
 
-Use only when the user explicitly asks for a **full/comprehensive A01 assessment**, **all 19 branches**, **complete A01 coverage**, or the structured **assessment JSON/report contract**. Comprehensive mode produces `assessment.json` plus a Markdown report by default; produce standalone HTML only when explicitly requested.
+Use only when the user explicitly asks for a **full/comprehensive A01 assessment**, **all 19 branches**, or **complete A01 coverage**. Populate all 19 coverage branches and the complete canonical assessment JSON.
 
-Do not silently upgrade focused work to comprehensive because a candidate has many files or tiers.
+Do not silently upgrade focused work to comprehensive because a candidate has many files or tiers. A requested presentation format does not change the mode or output contract; rendering and translation belong to downstream agents.
 
 ## 3. Load references progressively
 
@@ -68,7 +68,7 @@ Before eligibility is decided, load none of the references below. In focused mod
 
 Load [end-to-end-authorization-tracing.md](references/end-to-end-authorization-tracing.md) only when a selected path crosses material tiers/identity transformations or needs an evidence checkpoint. Load [asvs-wstg-cheatsheet-crosswalk.md](references/asvs-wstg-cheatsheet-crosswalk.md) only when standards mappings are requested. Load [wstg-v42-a01-selection.md](references/wstg-v42-a01-selection.md) only for detailed applicable web test procedures. Load [owasp-a01-source-of-truth.md](references/owasp-a01-source-of-truth.md) only for comprehensive coverage or source/mapping verification.
 
-In comprehensive mode, follow [coverage/comprehensive.md](references/coverage/comprehensive.md), then load [report-contract.md](references/report-contract.md) and the raw templates it names.
+In comprehensive mode, follow [coverage/comprehensive.md](references/coverage/comprehensive.md), then load [report-contract.md](references/report-contract.md) and the raw templates it names. `A01-CV-*` and `A01-PR-*` are skill-local traceability IDs derived from the official A01:2025 vulnerability and prevention bullets, not identifiers assigned by OWASP.
 
 ## 4. Review selected paths
 
@@ -97,23 +97,16 @@ Static review is the default. Before network requests, data changes, test identi
 
 Without confirmation, inspect supplied source/configuration/tests/evidence and propose safe verification steps only. Never imply unperformed execution, access another person's real data, or use destructive production checks. Stop on ambiguous ownership, availability/integrity risk, or unexpected sensitive data; retain minimal redacted evidence.
 
-## 6. Output for the selected mode
+## 6. Output one canonical JSON assessment
 
-### Focused report
+All modes produce one JSON artifact compatible with [report-contract.md](references/report-contract.md), with top-level `schemaVersion`, `scopeSelection`, `assessment`, `authorizationModel`, `coverage`, `findings`, and `gaps` fields. Do not produce Markdown, HTML, SARIF, or a second presentation artifact; a downstream agent can translate the canonical data without changing this skill's security conclusions.
 
-Write concise Markdown unless HTML was explicitly requested:
+Use [assets/assessment-template.json](assets/assessment-template.json), [assets/access-path-template.json](assets/access-path-template.json), and [assets/finding-template.json](assets/finding-template.json). Set `assessment.mode` to `triage`, `focused`, or `comprehensive` and populate only the evidence required by that mode:
 
-1. mode and selected scope/exclusions;
-2. actor–resource–action–context rule;
-3. selected paths and trusted enforcement points;
-4. findings grouped by category/component, each with status, exact evidence, unauthorized path, impact, focused mappings when requested, trusted-layer remediation, and allowed/denied regression tests;
-5. needs-validation items and material gaps;
-6. concise conclusion and next steps.
+- **triage** — scope selection, scope/exclusions, summary, and next-target decision; leave authorization model, coverage, findings, and gaps empty without loading the full contract or templates;
+- **focused** — selected authorization rules, paths, applicable coverage records, findings (including needs-validation items), material gaps, and assessment summary;
+- **comprehensive** — all 19 coverage records plus every material path, finding, and gap required by the contract.
 
-Do not duplicate full source or evidence narratives. Consolidate only instances sharing one root cause, policy, enforcement point, and fix.
+Keep evidence concise and do not duplicate full source narratives. Consolidate only instances sharing one root cause, policy, enforcement point, and fix. Self-check valid JSON, unique IDs, statuses, reciprocal path/gap references, finding/coverage references, and mode-appropriate coverage before completion.
 
-### Comprehensive artifacts
-
-Use [assets/assessment-template.json](assets/assessment-template.json), [assets/access-path-template.json](assets/access-path-template.json), and [assets/finding-template.json](assets/finding-template.json). Apply [report-contract.md](references/report-contract.md), self-check all IDs/statuses/cross-references, and author matching JSON and Markdown directly through the harness. HTML remains opt-in.
-
-This skill is raw guidance and data. Do not run or create helper scripts, invoke Python/shell tooling, install packages, or expect an executable validator/renderer. Keep artifacts outside the installed skill directory. If the harness cannot create files, return equivalent content through its supported artifact/response channel and state the limitation.
+This skill is raw guidance and data. Do not run or create helper scripts, invoke Python/shell tooling, install packages, or expect an executable validator/renderer. Keep the assessment outside the installed skill directory. If the harness cannot create files, return the same JSON through its supported artifact/response channel and state the limitation.
