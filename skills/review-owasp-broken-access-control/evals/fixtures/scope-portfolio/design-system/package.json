@@ -1,0 +1,5 @@
+{
+  "name": "company-design-system",
+  "private": true,
+  "description": "Presentational React components and design tokens; no network clients or runtime service"
+}

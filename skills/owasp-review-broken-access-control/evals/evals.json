@@ -1,7 +1,7 @@
 {
   "skill_name": "owasp-review-broken-access-control",
   "skill_contract_version": "1.3",
-  "eval_suite_version": "1.5.0",
+  "eval_suite_version": "1.6.0",
   "source_profile": {
     "owasp_top10": "A01:2025",
     "asvs": "5.0.0 V8",
@@ -9,6 +9,76 @@
     "canonical_source": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/"
   },
   "evals": [
+    {
+      "id": "scope-excluded-static-public-site",
+      "provenance": {
+        "source": "Scope-efficiency negative control derived from OWASP A01 protected-resource boundaries",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Represents an intentionally public static repository with no identity, private resource, server action, or trusted authorization decision."
+      },
+      "prompt": "I have a folder containing the supplied public marketing-site repository and several other company repos. Start by deciding whether this repository is even eligible for an OWASP A01 review. Do not recursively scan it just because it is available. If its structure establishes that it only builds intentionally public static pages with no accounts, private state, API, server function, or admin surface, stop efficiently and tell me what kind of repository would be relevant instead.",
+      "expected_output": "A concise triage-only result that uses the root manifest, README, and representative entry point to classify the repository as excluded from deep A01 analysis. It should explain that intentional anonymous publication without a protected resource or trusted authorization boundary is not a broken-access-control target, avoid loading API/browser/gateway profiles or producing a 19-branch assessment, and suggest a backend, gateway, policy, worker, protected storage, or server-side application repository if one exists.",
+      "files": [
+        "evals/fixtures/static-public-site/README.md",
+        "evals/fixtures/static-public-site/package.json",
+        "evals/fixtures/static-public-site/src/App.tsx"
+      ],
+      "assertions": [
+        "Performs a bounded structure-first eligibility decision rather than a recursive source, test, dependency, asset, or build-output scan.",
+        "Classifies the intentionally public static site as excluded with evidence and does not fabricate an authorization or CORS finding.",
+        "Stops without a full assessment JSON, report, access-path inventory, or 19-branch matrix.",
+        "Names concrete candidate repository types that would contain a protected resource or trusted authorization decision."
+      ]
+    },
+    {
+      "id": "scope-client-only-mfe-supporting-not-enforcement",
+      "provenance": {
+        "source": "Scope-efficiency negative control derived from OWASP trusted server-side enforcement guidance",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html",
+        "adaptation": "Represents a client-only micro-frontend that reveals protected operations but cannot prove backend authorization behavior."
+      },
+      "prompt": "Review the supplied orders micro-frontend for OWASP broken access control, but first classify what this repo actually is. It is one repo among many, so do not explore unrelated codebases or perform a full scan if this is only browser code. Tell me what is eligible here, what is excluded, and which repository should receive the deep A01 review.",
+      "expected_output": "A bounded triage that classifies the MFE as supporting evidence rather than a trusted enforcement candidate. It may record the order-read and approval routes, identifiers, token use, and client-only admin visibility as handoff information, but must not call the route guard a vulnerability or infer whether the backend allows access. It should select the referenced orders-api/BFF/gateway as the deep-review target and stop this repository without a complete A01 report or a material-evidence checkpoint.",
+      "files": [
+        "evals/fixtures/client-only-orders-mfe/README.md",
+        "evals/fixtures/client-only-orders-mfe/package.json",
+        "evals/fixtures/client-only-orders-mfe/src/routes.tsx",
+        "evals/fixtures/client-only-orders-mfe/src/ordersClient.ts"
+      ],
+      "assertions": [
+        "Recognizes the repository as a client-only MFE with no trusted server, policy, data, gateway, BFF, or worker enforcement surface.",
+        "Uses only the minimum client files needed to identify backend routes, caller-controlled order IDs, and the candidate orders-api handoff.",
+        "Does not report hidden navigation, displayed roles, or bearer-token use alone as a confirmed or likely BAC vulnerability.",
+        "Does not deep-scan the MFE, activate unrelated API implementation profiles, produce the full report contract, or treat the absent backend as a blocker for this excluded repository."
+      ]
+    },
+    {
+      "id": "scope-mixed-portfolio-selective-deep-review",
+      "provenance": {
+        "source": "Multi-repository scope-selection regression derived from OWASP A01 trusted-enforcement and object/function authorization guidance",
+        "url": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+        "adaptation": "Combines public docs, a component library, a client MFE, gateway routes, and an API to test selective repository expansion."
+      },
+      "prompt": "Our workspace catalogue lists five repositories. Scope an OWASP A01 source review across them without burning time on every codebase. Use structure first, show the selection decision, then inspect only repositories that can make or mediate access decisions. Do not apply GraphQL, APIM, serverless, or browser-session checks unless the supplied structure supports them.",
+      "expected_output": "A selection table that excludes the public docs and design system, treats the orders MFE as limited supporting route/input evidence, and selects the gateway policy and orders API for deep review. The subsequent analysis should follow GET and approval paths from gateway authentication to API object/function enforcement, identify the unscoped order lookup and approval as supported candidates/findings at an evidence-qualified status, and avoid scanning or creating coverage gaps for unrelated repositories and absent architecture profiles.",
+      "files": [
+        "evals/fixtures/scope-portfolio/repositories.json",
+        "evals/fixtures/static-public-site/README.md",
+        "evals/fixtures/scope-portfolio/design-system/package.json",
+        "evals/fixtures/client-only-orders-mfe/README.md",
+        "evals/fixtures/client-only-orders-mfe/src/ordersClient.ts",
+        "evals/fixtures/scope-portfolio/edge-routes/routes.yaml",
+        "evals/fixtures/scope-portfolio/orders-api/package.json",
+        "evals/fixtures/scope-portfolio/orders-api/server.js"
+      ],
+      "assertions": [
+        "Produces an evidence-backed candidate/supporting/excluded selection before deep source analysis.",
+        "Deep-reviews only edge-routes and orders-api, uses the MFE only for material route/input context, and does not recursively inspect public docs or the design system.",
+        "Traces gateway JWT authentication separately from API object and approval authorization rather than crediting authentication as sufficient authority.",
+        "Does not activate or create gaps for GraphQL, APIM, serverless, browser-session, or other unsupported architecture profiles.",
+        "Applies the full A01 coverage/report contract only to the selected candidate scope, not once per repository."
+      ]
+    },
     {
       "id": "owasp-a01-scenario-1-account-idor",
       "provenance": {

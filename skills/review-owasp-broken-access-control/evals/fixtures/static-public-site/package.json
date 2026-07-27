@@ -1,0 +1,11 @@
+{
+  "name": "acme-public-site",
+  "private": true,
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "already-managed-by-workspace",
+    "vite": "already-managed-by-workspace"
+  }
+}

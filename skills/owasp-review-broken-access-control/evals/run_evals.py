@@ -131,11 +131,20 @@ def main() -> int:
         if required_report_term.lower() not in skill.lower() or required_report_term.lower() not in contract.lower():
             fail(f"skill and report contract must document human-report behavior: {required_report_term}")
 
+    for required_scope_term in (
+        "Scope eligibility gate", "Bounded structure-first pass", "candidate", "supporting evidence",
+        "excluded", "undetermined", "client-only SPA/MFE", "do not enumerate every file",
+        "do not generate a full assessment", "Deep-review candidates only",
+    ):
+        if required_scope_term.lower() not in skill.lower():
+            fail(f"skill omits scope-efficiency behavior: {required_scope_term}")
     for required_trace_term in (
         "heavy-lifting discovery", "entryIdentity", "exitIdentity", "awaiting-user", "wait for user direction",
     ):
         if required_trace_term.lower() not in end_to_end.lower() and required_trace_term.lower() not in skill.lower():
             fail(f"end-to-end tracing guidance omits required behavior: {required_trace_term}")
+    if "selected candidate scope" not in end_to_end.lower() or "excluded repositories" not in end_to_end.lower():
+        fail("end-to-end discovery must remain bounded to selected candidates and material supporting paths")
     for required_profile_term in (
         "architecture-neutral", "Azure API Management", "BFF", "API and subscription keys",
         "Microservices", "Serverless and event-driven",
@@ -193,6 +202,13 @@ def main() -> int:
     }
     if not official_scenarios.issubset(set(ids)):
         fail("behavioral evals must include all three official A01:2025 attack scenarios")
+    scope_scenarios = {
+        "scope-excluded-static-public-site",
+        "scope-client-only-mfe-supporting-not-enforcement",
+        "scope-mixed-portfolio-selective-deep-review",
+    }
+    if not scope_scenarios.issubset(set(ids)):
+        fail("behavioral evals must cover excluded static, supporting MFE, and selective portfolio triage")
     enterprise_scenarios = {
         "enterprise-apim-bff-application-identity-loss",
         "enterprise-missing-effective-gateway-policy-checkpoint",
@@ -249,6 +265,7 @@ def main() -> int:
         f"eval suite {metadata['evalSuiteVersion']} metadata agree"
     )
     print("PASS: skill links all required resources")
+    print("PASS: bounded eligibility triage excludes irrelevant repositories before deep discovery")
     print("PASS: end-to-end evidence gate, architecture-neutral profiles, and tiered templates are documented")
     print("PASS: all 8 vulnerability and 11 prevention branches are documented")
     print("PASS: source and playbook account for exactly all 40 A01:2025 CWEs")
@@ -269,6 +286,7 @@ def main() -> int:
         f"including {len(file_backed_cases)} file-backed cases"
     )
     print("PASS: all three official A01 attack scenarios are canonical behavioral evals")
+    print("PASS: scope evals cover static exclusion, MFE handoff, and selective multi-repository expansion")
     print("PASS: enterprise evals cover APIM/BFF, evidence checkpoints, and architecture-neutral delegation")
     print("PASS: ASVS 4.0.3, ASVS 5.0.0, WSTG 4.2, and Cheat Sheet crosswalk is present")
     return 0

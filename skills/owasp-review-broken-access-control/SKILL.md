@@ -10,15 +10,49 @@ Find and document evidence-backed access-control weaknesses using OWASP A01:2025
 
 This version covers A01 only. Do not imply that it assesses OWASP A02–A10.
 
-Before reviewing, read these files completely:
+## Scope eligibility gate
 
-1. [references/owasp-a01-source-of-truth.md](references/owasp-a01-source-of-truth.md) — normative sources, all official A01 issue/prevention statements, and all 40 mapped CWEs.
-2. [references/asvs-wstg-cheatsheet-crosswalk.md](references/asvs-wstg-cheatsheet-crosswalk.md) — pinned ASVS 5.0/4.0, WSTG 4.2, and Authorization Cheat Sheet mappings.
-3. [references/wstg-v42-a01-selection.md](references/wstg-v42-a01-selection.md) — cherry-picked WSTG 4.2 procedures that improve A01 attack-surface discovery and testing.
-4. [references/end-to-end-authorization-tracing.md](references/end-to-end-authorization-tracing.md) — architecture-neutral tier tracing, identity transitions, trace completeness, and mandatory evidence-acquisition checkpoint.
-5. [references/architecture-profiles.md](references/architecture-profiles.md) — conditional profiles for custom policies, APIM and other gateways, BFFs, microservices, serverless/event-driven paths, and credential combinations.
-6. [references/review-playbook.md](references/review-playbook.md) — required coverage branches and evidence heuristics.
-7. [references/report-contract.md](references/report-contract.md) — finding threshold, statuses, severity, and output contract.
+Run this gate **before loading the long references or recursively exploring source**. A01 can apply to many architectures, but that does not make every repository an authorization enforcement target. The purpose of triage is to spend review effort only where the repository can expose a protected resource, perform a protected action, or make/mediate a trusted authorization decision.
+
+### Bounded structure-first pass
+
+For each supplied repository or workspace member, inspect only enough structure to identify its role:
+
+1. repository instructions and the root directory listing;
+2. root README/architecture summary and workspace, solution, or service catalogue;
+3. package/build manifests and deployment/runtime declarations;
+4. top-level application directories and named entry points;
+5. at most a small representative route, client, policy, or entry-point file when the role remains ambiguous.
+
+Do not start with recursive source reads, repository-wide content searches, tests, lockfiles, generated output, vendored dependencies, assets, or build artifacts. Do not enumerate every file merely because it is available. Expand discovery only inside a selected candidate and only along evidence-backed authorization paths.
+
+Classify every repository or independently deployable package:
+
+- **candidate** — contains or configures a reachable server, API, BFF, gateway/ingress policy, server-side web action, resolver/RPC service, worker/consumer, authorization library/policy engine, protected file/object/data access, identity delegation, or infrastructure permission boundary;
+- **supporting evidence** — exposes routes/contracts or calls a candidate but does not itself make the trusted decision, such as a client-only MFE, mobile client, generated SDK, or shared DTO package; inspect only the files needed to identify candidate targets and caller-controlled inputs;
+- **excluded** — has no credible protected resource, protected action, or trusted enforcement surface for A01 in the requested scope;
+- **undetermined** — structure gives conflicting signals; inspect one additional targeted artifact or ask one precise question rather than scanning the repository.
+
+Common exclusions from deep A01 review include an intentionally public static marketing/docs site with no accounts or private state, a presentational component/design-token library, a client-only SPA/MFE with no BFF/serverless/edge runtime, generated clients, sample/demo content outside deployment, and unrelated tooling. These repositories may have other security concerns, but that does not make them eligible for this A01 skill. A client route guard or hidden admin button is not trusted enforcement: record the referenced backend as a candidate handoff when known, but do not deep-scan the MFE or report the client check alone as a BAC vulnerability.
+
+Do not exclude a repository merely because it is “not an API.” Server-rendered actions, gateways, workers, policy libraries, object stores, deployment permissions, and message consumers can enforce or bypass authorization. Conversely, do not activate API, GraphQL, browser, APIM, serverless, or other profile-specific checks without structural evidence that the profile exists.
+
+For a multi-repository request, return a short selection table with repository/package, observed role, classification, evidence, applicable A01 surfaces, and decision. Deep-review candidates only. Consult supporting repositories only when a selected path requires them. Do not follow every sibling or dependency, and do not turn excluded repositories into material-evidence gaps. If every subject is excluded, stop after the triage result and suggest the concrete backend, gateway, policy, worker, or data repository that would be useful next; do not generate a full assessment, 19-branch matrix, or vulnerability report.
+
+### Reference loading after selection
+
+Once at least one candidate is selected, read these core files completely:
+
+1. [references/owasp-a01-source-of-truth.md](references/owasp-a01-source-of-truth.md) — normative A01 source and mapped CWEs.
+2. [references/end-to-end-authorization-tracing.md](references/end-to-end-authorization-tracing.md) — tier tracing and evidence acquisition for selected paths.
+3. [references/review-playbook.md](references/review-playbook.md) — required coverage branches and evidence heuristics.
+4. [references/report-contract.md](references/report-contract.md) — finding threshold, statuses, severity, and output contract.
+
+Load the remaining guidance only when the selected surface needs it:
+
+- [references/asvs-wstg-cheatsheet-crosswalk.md](references/asvs-wstg-cheatsheet-crosswalk.md) when assigning standards mappings;
+- [references/wstg-v42-a01-selection.md](references/wstg-v42-a01-selection.md) for applicable web/API/browser procedures, not for a non-web policy library or worker by default;
+- only the relevant sections of [references/architecture-profiles.md](references/architecture-profiles.md) for architectures actually discovered (for example APIM, BFF, GraphQL, microservices, serverless/event-driven, or object storage).
 
 ## Harness portability
 
@@ -49,7 +83,9 @@ Stop active verification when scope or ownership is ambiguous, a check could aff
 
 ## Required result
 
-Produce both:
+This section applies after the eligibility gate selects at least one candidate. A triage-only result where all subjects are excluded uses the concise selection table described above and stops.
+
+For a full review, produce both:
 
 1. `assessment.json`, conforming to the bundled template and validator.
 2. A human report rendered from that validated JSON as standalone HTML or Markdown.
@@ -76,17 +112,19 @@ The report must contain:
 - negative authorization regression tests;
 - coverage gaps and safe next steps.
 
-A focused review is still required to account for every coverage branch. Use `not-applicable` or `not-assessed` with a concrete rationale instead of silently omitting a branch.
+A focused review of the selected candidate scope is still required to account for every coverage branch. Use `not-applicable` or `not-assessed` with a concrete rationale instead of silently omitting a branch. Do not create branch matrices for repositories excluded by the eligibility gate.
 
 Keep the assessment usable and finishable. Reference the same access-path or evidence anchor instead of repeating its full explanation, use the smallest evidence set that proves each conclusion, and consolidate only true shared root causes. For a small application, the JSON and report should be concise enough for an engineer to review in one sitting.
 
 ## Workflow
 
-### 1. Establish the assessment subject
+### 1. Establish the selected assessment subject
 
-Identify repositories, revisions, services, APIs, clients, infrastructure, identity systems, policy/control planes, data/downstream systems, and environments in scope. Read repository instructions. Perform the heavy-lifting discovery pass in `references/end-to-end-authorization-tracing.md`: inspect architecture documents, manifests, deployment pipelines, IaC, gateway/proxy policies, routes, application policies, data controls, downstream references, and tests before asking the user to explain or locate missing material. Record exclusions and whether evidence is static, supplied dynamic evidence, or explicitly authorized live testing.
+Carry forward the eligibility selection table. Identify revisions, selected services, applicable clients/infrastructure, identity systems, policy/control planes, data/downstream systems, and environments in candidate scope. Record supporting and excluded repositories explicitly so they are not repeatedly rediscovered.
 
-Use conditional profiles from `references/architecture-profiles.md` only when evidence supports them. APIM, BFF, custom attributes, subscription keys, and other products or credentials are first-class profiles, not assumptions that narrow the architecture-neutral review.
+Perform the heavy-lifting discovery pass in `references/end-to-end-authorization-tracing.md` **within selected candidates and material supporting paths only**: inspect architecture documents, manifests, deployment pipelines, IaC, gateway/proxy policies, routes, application policies, data controls, downstream references, and tests before asking the user to explain or locate missing material. Follow a cross-repository reference only when it is plausibly part of a selected authorization path; do not fan out through every repository, workspace package, or dependency. Record exclusions and whether evidence is static, supplied dynamic evidence, or explicitly authorized live testing.
+
+Use conditional profiles from `references/architecture-profiles.md` only when evidence supports them. APIM, BFF, custom attributes, subscription keys, and other products or credentials are first-class profiles when present, not assumptions or universal checklists.
 
 Do not equate authentication with authorization. A valid identity proves who the caller is; it does not prove that the caller may perform this action on this resource or field in this context.
 
@@ -126,7 +164,7 @@ A UI-hidden button, route guard, valid subscription/API key, trusted network, va
 
 ### 3a. Stop for material missing evidence
 
-After exhausting available repositories and configuration, apply the material evidence gate in `references/end-to-end-authorization-tracing.md`. Batch related missing code, policy exports, inherited/generated configuration, deployed revisions, identity setup, downstream implementations, or runtime evidence into a precise request that states why it matters, what was searched, affected paths/coverage, blocked conclusions, and ways to continue. Mark affected paths `blocked`, create reciprocal gaps with `requestStatus: awaiting-user`, ask the user, and wait.
+After exhausting the selected candidates and material supporting configuration, apply the material evidence gate in `references/end-to-end-authorization-tracing.md`. Batch related missing code, policy exports, inherited/generated configuration, deployed revisions, identity setup, downstream implementations, or runtime evidence into a precise request that states why it matters, what was searched, affected paths/coverage, blocked conclusions, and ways to continue. Mark affected paths `blocked`, create reciprocal gaps with `requestStatus: awaiting-user`, ask the user, and wait. A repository excluded during triage is not missing evidence unless a selected path demonstrably depends on its trusted behavior.
 
 If the user supplies evidence, resume and update the tiers. If the user explicitly excludes it or confirms it unavailable, record that decision and continue with `partial` paths. Silence does not authorize exclusion. Do not call a report final or claim end-to-end completion while a material gap awaits user direction.
 
@@ -194,7 +232,7 @@ Validation errors are hard failures; fix the assessment rather than weakening th
 
 ## Completion gate
 
-Do not call the A01 review complete until:
+Apply this gate to the selected candidate scope, not to repositories excluded during triage. Do not call the A01 review complete until:
 
 - [ ] Scope, revision/environment, authorization mode, exclusions, and limitations are explicit.
 - [ ] Actors, resources, actions, context, and trusted enforcement points are modelled.
@@ -226,4 +264,4 @@ python "$SKILL_DIR/evals/run_evals.py"
 python -m unittest discover -s "$SKILL_DIR/tests" -p "test_*.py" -v
 ```
 
-Use [evals/evals.json](evals/evals.json) for behavioral evaluation. A response fails if it omits required A01 coverage, reports a pattern without an unauthorized path as confirmed, performs unapproved live testing, credits a role/key/token/gateway with authority it does not prove, calls an unverified path complete, fails to stop for material missing evidence, or produces findings without linked tiered paths, category/component organization, concise supporting pseudocode, actionable evidence, and allowed/denied regression tests.
+Use [evals/evals.json](evals/evals.json) for behavioral evaluation. A response fails if it recursively explores repositories before eligibility triage, deep-scans excluded static/client/component repositories, applies API or architecture profiles without evidence, turns excluded siblings into gaps, omits required A01 coverage for selected candidates, reports a pattern without an unauthorized path as confirmed, performs unapproved live testing, credits a role/key/token/gateway with authority it does not prove, calls an unverified path complete, fails to stop for material missing evidence, or produces findings without linked tiered paths, category/component organization, concise supporting pseudocode, actionable evidence, and allowed/denied regression tests.
