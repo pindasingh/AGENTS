@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Trace the authoritative subject, policy, resource, action, and context through every material tier that can admit, transform, authorize, select, mutate, or delegate a protected operation. Apply this model regardless of product, language, protocol, deployment style, or repository layout.
+After the SKILL.md eligibility gate selects candidate repositories or packages, trace the authoritative subject, policy, resource, action, and context through every material tier that can admit, transform, authorize, select, mutate, or delegate a protected operation. Apply this model regardless of product, language, protocol, deployment style, or repository layout.
 
-Do the discovery work before asking the user for architecture details. An absent local controller annotation is not proof of exposure, and a gateway allow decision is not proof of object or tenant authorization.
+Do the discovery work inside selected candidates and their material supporting paths before asking the user for architecture details. Do not use this heavy pass to reopen excluded repositories or fan out through unrelated siblings. An absent local controller annotation is not proof of exposure, and a gateway allow decision is not proof of object or tenant authorization.
 
 ## Architecture-neutral trace
 
@@ -25,7 +25,7 @@ Common tiers include identity providers, clients, CDNs/WAFs, gateways, ingress o
 
 ## Heavy-lifting discovery pass
 
-Before asking the user, inspect all available scope for:
+Before asking the user, inspect the selected candidate scope and only material supporting artifacts for:
 
 1. repository instructions, solution/workspace manifests, service catalogues, architecture documents, threat models, and ownership metadata;
 2. deployment pipelines, environment overlays, IaC, API specifications, route manifests, gateway/proxy policies, container/orchestration files, and generated configuration;

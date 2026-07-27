@@ -1,0 +1,5 @@
+{
+  "name": "orders-api",
+  "private": true,
+  "description": "HTTP API owning protected order records and approval operations"
+}

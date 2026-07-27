@@ -1,0 +1,5 @@
+routes:
+  - path: /v2/refunds/*/approve
+    methods: [POST]
+    authentication: jwt-required
+    backend: refunds-api

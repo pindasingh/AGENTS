@@ -1,0 +1,9 @@
+{
+  "repositories": [
+    {"name": "company-handbook", "kind": "public-docs", "path": "../static-public-site"},
+    {"name": "design-system", "kind": "client-component-library", "path": "design-system"},
+    {"name": "orders-mfe", "kind": "client-micro-frontend", "path": "../client-only-orders-mfe"},
+    {"name": "edge-routes", "kind": "gateway-policy", "path": "edge-routes"},
+    {"name": "orders-api", "kind": "server-api", "path": "orders-api"}
+  ]
+}

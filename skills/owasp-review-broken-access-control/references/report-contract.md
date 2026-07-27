@@ -1,4 +1,4 @@
-# A01 assessment report contract
+# Canonical A01 assessment JSON contract
 
 ## Assessment versus finding
 
@@ -14,20 +14,23 @@ Use this decision rule:
 
 If any element is unknown, use `likely`, `needs-validation`, or a coverage gap according to the remaining evidence. Do not convert checklist nonconformance directly into a vulnerability.
 
-## Machine-readable source
+## Canonical output
 
-Use `assets/assessment-template.json` for the assessment, `assets/access-path-template.json` for each end-to-end path, and `assets/finding-template.json` for each issue. The fragments must be populated before insertion because placeholder tiers, evidence, affected implementation, and cross-references are intentionally incomplete. The completed assessment is the source for both Markdown and standalone HTML reports. Do not hand-edit rendered output; correct the assessment JSON and render it again.
+Use `assets/assessment-template.json` for the assessment, `assets/access-path-template.json` for each end-to-end path, and `assets/finding-template.json` for each issue. Populate fragments before insertion because placeholder tiers, evidence, affected implementation, and cross-references are intentionally incomplete. The completed JSON is the skill's only output artifact; Markdown, HTML, SARIF, and other presentations are downstream concerns.
 
 Required top-level sections are:
 
 - `schemaVersion`
+- `scopeSelection`
 - `assessment`
 - `authorizationModel`
 - `coverage`
 - `findings`
 - `gaps`
 
-Schema version `1.3` makes end-to-end authorization tiers and evidence-gap decisions first-class while retaining structured issue presentation. Every finding records its primary category and component, affected implementation, linked access paths, and concise supporting pseudocode. The bundled validator enforces structural and cross-reference invariants. Unknown extra fields are permitted so future A02–A10 profiles can extend the format, but existing meanings must not be changed.
+`assessment.mode` is `triage`, `focused`, or `comprehensive`. Triage uses only scope selection and assessment metadata. Focused mode includes only selected paths and applicable coverage records. Comprehensive mode includes all 19 coverage records.
+
+Schema version `1.4` adds mode and repository-selection data to the existing end-to-end authorization and evidence-gap contract. Every finding records its primary category and component, affected implementation, linked access paths, and concise supporting pseudocode. The harness must check structural and cross-reference invariants using the self-check in `SKILL.md`; no executable validator is required. Unknown extra fields are permitted so future A02–A10 profiles can extend the format, but existing meanings must not be changed.
 
 ## Access-path records
 
@@ -63,7 +66,9 @@ Keep evidence compact: normally one to three strongest anchors per access path, 
 
 ## Coverage statuses
 
-Every required branch appears exactly once:
+In comprehensive mode every required branch appears exactly once. Focused mode includes each applicable selected branch once and does not add irrelevant branches merely to mark them unassessed. Triage has no coverage records.
+
+Use:
 
 - `finding` requires at least one referenced finding with status `confirmed` or `likely`;
 - `reviewed-no-finding` requires evidence and a rationale describing what was inspected;
@@ -115,16 +120,16 @@ Each finding records:
 
 - `classification`: the precise issue type, such as horizontal privilege escalation or missing function-level authorization;
 - `affectedImplementation.controllers`, `classes`, `methods`, `endpoints`, and `filesOrArtifacts`; arrays may be empty when genuinely inapplicable, but at least one location must be identified overall;
-- `expectedAccessRule`, `exercise`, `failureProof`, `impact`, and `remediation` objects, each containing a short plain-language `summary`, a renderer language, and `pseudocode`;
-- one or more known `accessPathIds`, which the renderer turns into the end-to-end identity/credential/policy/decision panel;
-- structured allowed and denied `regressionTests`, which the renderer turns into the verification pseudocode block;
-- exact evidence anchors, mappings, attack path, severity rationale, and limitations as technical detail.
+- `expectedAccessRule`, `exercise`, `failureProof`, `impact`, and `remediation` objects, each containing a short plain-language `summary`, a presentation language, and `pseudocode`;
+- one or more known `accessPathIds` containing the end-to-end identity, credential, policy, resource, and decision trace;
+- structured allowed and denied `regressionTests`;
+- exact evidence anchors, mappings, attack path, severity rationale, and limitations.
 
-The report renderer derives the classification and affected-implementation code panels from structured finding fields. It renders the five authored issue blocks verbatim after escaping them and derives the verification panel from regression tests. The renderer must not invent pseudocode from source files or replace exact evidence anchors with generated prose.
+Populate structured fields directly from evidence. Do not invent pseudocode from source files or replace exact evidence anchors with generated prose.
 
 Keep each pseudocode block focused: normally three to eight lines and never more than twelve non-blank lines or 1,600 characters. Distill only the policy, caller-controlled flow, safe request shape, impact, or trusted-layer fix needed for that section. Do not paste full methods, classes, payloads, responses, stack traces, or repeated source excerpts. Clearly treat these blocks as normalized pseudocode; exact source truth remains in the evidence anchors.
 
-The `exercise` block is rendered as **Unauthorized scenario**. Make it self-contained: name the unauthorized actor and starting privilege, protected resource, attempted action, decisive caller-controlled input or context, expected denial, and evidenced result. Prefer the actual interface shape when one exists. For libraries, policy engines, and synthetic corpora, express the business scenario and relevant field values before naming an internal method or fixture. Do not use opaque prose such as “exercise the denied probe” or rely on unexplained case IDs. Say `code result` or `static result` for source proof and reserve `observed` for supplied or authorized execution evidence.
+The `exercise` block is presented as **Unauthorized scenario**. Make it self-contained: name the unauthorized actor and starting privilege, protected resource, attempted action, decisive caller-controlled input or context, expected denial, and evidenced result. Prefer the actual interface shape when one exists. For libraries, policy engines, and synthetic corpora, express the business scenario and relevant field values before naming an internal method or fixture. Do not use opaque prose such as “exercise the denied probe” or rely on unexplained case IDs. Say `code result` or `static result` for source proof and reserve `observed` for supplied or authorized execution evidence.
 
 ## Attack path
 
@@ -172,38 +177,17 @@ Before recording a material gap, search available repositories, references, depl
 - `requestStatus`: `awaiting-user`, `excluded-by-user`, or `confirmed-unavailable`;
 - exact `userDecision` and safe next step.
 
-`awaiting-user` means the reviewer must ask and wait; affected paths remain blocked. The CLI refuses final rendering while such a gap exists. `--allow-blocked` is reserved for an interim checkpoint report explicitly requested by the user and does not change the visible BLOCKED status. If the user supplies the artifact, inspect it and remove or update the gap. `excluded-by-user` or `confirmed-unavailable` permits a partial path but never complete trace status. Do not hide limitations in prose while marking branches `reviewed-no-finding`, and do not treat silence as permission to exclude.
+`awaiting-user` means the reviewer must ask and wait; affected paths remain blocked, so the assessment must not be marked final. An explicitly requested interim checkpoint remains visibly blocked. If the user supplies the artifact, inspect it and remove or update the gap. `excluded-by-user` or `confirmed-unavailable` permits a partial path but never complete trace status. Do not hide limitations while marking branches `reviewed-no-finding`, and do not treat silence as permission to exclude.
 
-## Human report structure
+## Assessment outcome invariants
 
-The Markdown and standalone HTML renderers present the same validated assessment with format-appropriate navigation. The report emits:
+When the selected mode includes security conclusions, record deterministic `assessment.securityOutcome` and independent `assessment.traceCompleteness` values:
 
-1. title and linked table of contents;
-2. an executive dashboard with separate visible security outcome (`PASS`, `FAIL`, or `REVIEW`) and trace completeness (`COMPLETE`, `PARTIAL`, or `BLOCKED`) plus concise finding/path/coverage counts—not the full branch matrix;
-3. scope and authority;
-4. a compact findings register containing one short issue table per category, whose IDs link to full explanations; keep classification, confidence, component ownership, and other technical metadata out of this initial register;
-5. detailed findings grouped by category → component → issue;
-6. each issue's first layer showing concise code panels for `Classification`, `Affected implementation`, `End-to-end authorization path`, `Expected access rule`, `Unauthorized scenario`, `Why the check fails`, `What could happen`, `Recommended resolution`, and `How to verify the fix`;
-7. expected access rules and a linked access-path inventory;
-8. A01 coverage matrix with branch-level PASS/FAIL/NOT ASSESSED/N/A conclusions and finding links;
-9. gaps, limitations, and safe next steps;
-10. source framework statement.
+- security outcome is `FAIL` when any finding is `confirmed` or `likely`;
+- security outcome is `REVIEW` when no supported finding exists but a finding needs validation or an assessed branch is `not-assessed`;
+- security outcome is `PASS` when there is no supported finding, no finding needs validation, and no assessed branch is `not-assessed`;
+- trace completeness is `BLOCKED` when any path is blocked or any gap awaits user direction;
+- trace completeness is `PARTIAL` when no path is blocked but a path is partial or an assessed branch remains not assessed after explicit direction;
+- trace completeness is `COMPLETE` when every recorded path is complete and no assessed branch is not assessed.
 
-Security outcome is deterministic:
-
-- `FAIL` when at least one finding is `confirmed` or `likely`;
-- `REVIEW` when no supported finding exists but a finding needs validation or any branch is `not-assessed`;
-- `PASS` when there is no supported finding, no finding needs validation, and no branch is `not-assessed`;
-- `not-applicable` branches do not count against the security outcome.
-
-Trace completeness is independent:
-
-- `BLOCKED` when any path is blocked or any gap awaits user direction;
-- `PARTIAL` when no path is blocked but a path is partial or a branch remains not assessed after explicit direction;
-- `COMPLETE` when every recorded path is complete and no branch is not assessed.
-
-A FAIL report can be PARTIAL or BLOCKED; findings do not hide missing tiers. An unqualified PASS requires COMPLETE tracing. Do not describe an awaiting-user assessment as final.
-
-The security outcome and trace completeness summarize this A01 assessment only; neither is automatically a release gate, ASVS certification, or statement about A02–A10. `Expected access rule` states the policy used to judge the code; it is not remediation. `Recommended resolution` states the change needed at the trusted enforcement point. HTML remains the preferred default report and renders pseudocode as escaped `<pre><code>` panels; Markdown uses equivalent fenced blocks and the same grouping.
-
-Keep the first reading layer understandable without OWASP expertise. Write the executive summary in ordinary language: what was reviewed, what failed, what passed, and what the environment means for actual risk. Avoid terms such as “authorization predicate,” “source-to-sink,” or framework identifiers there unless immediately explained. In HTML, collapse access-path internals, evidence metadata, standards mappings, severity rationale, branch evidence, and other specialist material until the reader opens it. Preserve internal links so a leader can understand the decision and an engineer can progressively reveal the proof without searching a long document.
+Triage uses `NOT_ASSESSED` for both values. A `FAIL` assessment can be partial or blocked; findings do not hide missing tiers. An unqualified `PASS` requires complete tracing. These values summarize A01 only and are not automatically a release gate, ASVS certification, or statement about A02–A10.

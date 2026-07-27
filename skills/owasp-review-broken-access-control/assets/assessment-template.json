@@ -1,6 +1,17 @@
 {
-  "schemaVersion": "1.3",
+  "schemaVersion": "1.4",
+  "scopeSelection": [
+    {
+      "subject": "Replace with the repository, package, service, or corpus",
+      "observedRole": "Replace with the structure-supported role",
+      "classification": "undetermined",
+      "evidence": [],
+      "applicableA01Surface": [],
+      "decision": "Inspect one additional targeted artifact or request precise evidence."
+    }
+  ],
   "assessment": {
+    "mode": "triage",
     "title": "OWASP A01:2025 Broken Access Control Assessment",
     "subject": "Replace with the reviewed application or service",
     "revision": "unknown",
@@ -14,6 +25,8 @@
     "limitations": [
       "Starter template: replace all placeholder content before reporting completion."
     ],
+    "securityOutcome": "NOT_ASSESSED",
+    "traceCompleteness": "NOT_ASSESSED",
     "summary": "Assessment has not started."
   },
   "authorizationModel": {
