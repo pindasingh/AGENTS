@@ -6,254 +6,114 @@ compatibility: Requires only harness-native read and output capabilities. Do not
 
 # Review OWASP Broken Access Control
 
-Find and document evidence-backed access-control weaknesses using OWASP A01:2025 as the risk taxonomy. Use ASVS 5.0.0 V8 for current verifiable requirements, ASVS 4.0.3 V4 when a legacy cross-reference is requested, WSTG 4.2 authorization tests for reproducible test design, the Authorization Cheat Sheet for implementation guidance, and the API Security Top 10:2023 when APIs are present.
+Review OWASP A01:2025 only. Do not imply coverage of A02–A10. Treat authentication as identity evidence, not proof that the caller may perform an action on a resource.
 
-This version covers A01 only. Do not imply that it assesses OWASP A02–A10.
+## 1. Run eligibility triage before deep review
 
-## Scope eligibility gate
+Do not load long references or recursively explore source yet. For each repository or deployable package, inspect only enough structure to identify its role:
 
-Run this gate **before loading the long references or recursively exploring source**. A01 can apply to many architectures, but that does not make every repository an authorization enforcement target. The purpose of triage is to spend review effort only where the repository can expose a protected resource, perform a protected action, or make/mediate a trusted authorization decision.
-
-### Bounded structure-first pass
-
-For each supplied repository or workspace member, inspect only enough structure to identify its role:
-
-1. repository instructions and the root directory listing;
-2. root README/architecture summary and workspace, solution, or service catalogue;
+1. repository instructions and root listing;
+2. root README/architecture summary and workspace/service catalogue;
 3. package/build manifests and deployment/runtime declarations;
 4. top-level application directories and named entry points;
-5. at most a small representative route, client, policy, or entry-point file when the role remains ambiguous.
+5. one small representative route, client, policy, or entry-point file only if still ambiguous.
 
-Do not start with recursive source reads, repository-wide content searches, tests, lockfiles, generated output, vendored dependencies, assets, or build artifacts. Do not enumerate every file merely because it is available. Expand discovery only inside a selected candidate and only along evidence-backed authorization paths.
+Do not begin with repository-wide searches, tests, lockfiles, generated output, dependencies, assets, build artifacts, or an exhaustive file listing.
 
-Classify every repository or independently deployable package:
+Classify each subject:
 
-- **candidate** — contains or configures a reachable server, API, BFF, gateway/ingress policy, server-side web action, resolver/RPC service, worker/consumer, authorization library/policy engine, protected file/object/data access, identity delegation, or infrastructure permission boundary;
-- **supporting evidence** — exposes routes/contracts or calls a candidate but does not itself make the trusted decision, such as a client-only MFE, mobile client, generated SDK, or shared DTO package; inspect only the files needed to identify candidate targets and caller-controlled inputs;
-- **excluded** — has no credible protected resource, protected action, or trusted enforcement surface for A01 in the requested scope;
-- **undetermined** — structure gives conflicting signals; inspect one additional targeted artifact or ask one precise question rather than scanning the repository.
+- **candidate** — contains/configures a reachable server, API, BFF, gateway, server action, resolver/RPC service, worker/consumer, policy engine, protected data/file access, identity delegation, or infrastructure permission boundary;
+- **supporting** — exposes routes/contracts or calls a candidate but does not make the trusted decision, such as a client-only MFE, mobile client, generated SDK, or DTO package;
+- **excluded** — has no credible protected resource, protected action, or trusted A01 enforcement surface;
+- **undetermined** — inspect one additional targeted artifact or ask one precise question instead of scanning.
 
-Common exclusions from deep A01 review include an intentionally public static marketing/docs site with no accounts or private state, a presentational component/design-token library, a client-only SPA/MFE with no BFF/serverless/edge runtime, generated clients, sample/demo content outside deployment, and unrelated tooling. These repositories may have other security concerns, but that does not make them eligible for this A01 skill. A client route guard or hidden admin button is not trusted enforcement: record the referenced backend as a candidate handoff when known, but do not deep-scan the MFE or report the client check alone as a BAC vulnerability.
+Usually exclude intentionally public static marketing/docs sites, presentational component libraries, client-only SPAs/MFEs without BFF/serverless/edge code, generated clients, undeployed samples, and unrelated tooling. A client route guard or hidden button is not trusted enforcement; retain only route/input handoff evidence for the owning backend.
 
-Do not exclude a repository merely because it is “not an API.” Server-rendered actions, gateways, workers, policy libraries, object stores, deployment permissions, and message consumers can enforce or bypass authorization. Conversely, do not activate API, GraphQL, browser, APIM, serverless, or other profile-specific checks without structural evidence that the profile exists.
+Do not exclude merely because something is not an API: server-rendered actions, workers, gateways, policy libraries, object stores, and message consumers can be eligible. Do not activate API, GraphQL, browser, APIM, serverless, storage, or session checks without evidence that the surface exists.
 
-For a multi-repository request, return a short selection table with repository/package, observed role, classification, evidence, applicable A01 surfaces, and decision. Deep-review candidates only. Consult supporting repositories only when a selected path requires them. Do not follow every sibling or dependency, and do not turn excluded repositories into material-evidence gaps. If every subject is excluded, stop after the triage result and suggest the concrete backend, gateway, policy, worker, or data repository that would be useful next; do not generate a full assessment, 19-branch matrix, or vulnerability report.
+For multiple repositories, output a compact selection table: subject, observed role, classification, evidence, applicable A01 surface, decision. Deep-review candidates only; consult supporting repositories only along selected paths. Excluded siblings are not evidence gaps. If all subjects are excluded, stop after triage and suggest the concrete backend/gateway/policy/worker/data repository needed next.
 
-### Reference loading after selection
+## 2. Choose the smallest review mode
 
-Once at least one candidate is selected, read these core files completely:
+Choose once after triage and state it.
 
-1. [references/owasp-a01-source-of-truth.md](references/owasp-a01-source-of-truth.md) — normative A01 source and mapped CWEs.
-2. [references/end-to-end-authorization-tracing.md](references/end-to-end-authorization-tracing.md) — tier tracing and evidence acquisition for selected paths.
-3. [references/review-playbook.md](references/review-playbook.md) — required coverage branches and evidence heuristics.
-4. [references/report-contract.md](references/report-contract.md) — finding threshold, statuses, severity, and output contract.
+### Triage
 
-Load the remaining guidance only when the selected surface needs it:
+Use when the user asks what is eligible, no candidate remains, or scope is still undetermined. Output only the selection decision and next target. Do not build findings, a 19-branch matrix, assessment JSON, or full report.
 
-- [references/asvs-wstg-cheatsheet-crosswalk.md](references/asvs-wstg-cheatsheet-crosswalk.md) when assigning standards mappings;
-- [references/wstg-v42-a01-selection.md](references/wstg-v42-a01-selection.md) for applicable web/API/browser procedures, not for a non-web policy library or worker by default;
-- only the relevant sections of [references/architecture-profiles.md](references/architecture-profiles.md) for architectures actually discovered (for example APIM, BFF, GraphQL, microservices, serverless/event-driven, or object storage).
+### Focused — default
 
-## Harness-native operation
+Use for ordinary requests to check permissions, review a repository, inspect an endpoint/feature, investigate IDOR/BOLA, or assess a bounded authorization concern. Review only selected sensitive operations and applicable concern areas. Do not create a 19-branch matrix or `assessment.json` unless the user explicitly asks for comprehensive coverage or structured assessment output.
 
-This skill is raw guidance and data templates. Use the host harness's native file/content reading and artifact-writing capabilities. Do not run or create helper scripts, invoke Python or a shell as a prerequisite, install tools, or expect an executable validator or renderer.
+Produce a concise Markdown report by default. HTML is generated only when explicitly requested.
 
-Resolve linked resources relative to this `SKILL.md` using the harness. Use [assets/assessment-template.json](assets/assessment-template.json) as the assessment starting point, [assets/access-path-template.json](assets/access-path-template.json) for each end-to-end path, and [assets/finding-template.json](assets/finding-template.json) for each issue record. The fragments are intentionally incomplete until their tiers, affected implementation, evidence, and cross-references are replaced.
+### Comprehensive — explicit only
 
-Write the completed assessment and human report directly through the harness. Keep outputs in the reviewed project, a user-selected workspace, or the harness's artifact facility—never in the installed skill directory. If the harness cannot create files, return the same structured assessment and report content through its supported response/artifact channel and state that limitation.
+Use only when the user explicitly asks for a **full/comprehensive A01 assessment**, **all 19 branches**, **complete A01 coverage**, or the structured **assessment JSON/report contract**. Comprehensive mode produces `assessment.json` plus a Markdown report by default; produce standalone HTML only when explicitly requested.
 
-## Safety and authority
+Do not silently upgrade focused work to comprehensive because a candidate has many files or tiers.
 
-Static review of user-provided repositories is the default. Before making network requests, changing data, creating test identities, bypassing controls, or exercising a running system, obtain explicit confirmation that the user is authorized and record the allowed targets, identities, methods, time window, data constraints, and stop conditions.
+## 3. Load references progressively
 
-Without that confirmation:
+Before eligibility is decided, load none of the references below. In focused mode, load only concern files supported by selected-path evidence:
 
-- inspect source, configuration, infrastructure definitions, tests, and supplied request/response samples only;
-- propose safe verification steps rather than executing them;
-- do not claim a source hypothesis was dynamically confirmed;
-- do not access another person's or tenant's real data;
-- prefer synthetic fixtures and non-destructive read checks in authorized test environments.
+| Observed concern | Load |
+|---|---|
+| records, functions, fields, roles, tenants, methods, GraphQL/RPC | [coverage/object-function-tenant.md](references/coverage/object-function-tenant.md) |
+| protected browser cookies/cross-origin behavior | [coverage/browser-cors-csrf.md](references/coverage/browser-cors-csrf.md) |
+| sessions, tokens, logout, stale roles/ownership, signed links | [coverage/sessions-revocation.md](references/coverage/sessions-revocation.md) |
+| deployed files, downloads, object stores, CDNs, caches, backups | [coverage/files-object-storage.md](references/coverage/files-object-storage.md) |
+| gateways, APIM, BFFs, policy engines, services, delegation, events | [coverage/gateways-delegation.md](references/coverage/gateways-delegation.md) |
+| approvals, state transitions, one-time limits, replay, races, quotas | [coverage/business-workflows.md](references/coverage/business-workflows.md) |
 
-Stop active verification when scope or ownership is ambiguous, a check could affect availability or integrity, or unexpected sensitive data appears. Preserve only the minimum evidence needed to document the issue and redact secrets and personal data.
+Load [end-to-end-authorization-tracing.md](references/end-to-end-authorization-tracing.md) only when a selected path crosses material tiers/identity transformations or needs an evidence checkpoint. Load [asvs-wstg-cheatsheet-crosswalk.md](references/asvs-wstg-cheatsheet-crosswalk.md) only when standards mappings are requested. Load [wstg-v42-a01-selection.md](references/wstg-v42-a01-selection.md) only for detailed applicable web test procedures. Load [owasp-a01-source-of-truth.md](references/owasp-a01-source-of-truth.md) only for comprehensive coverage or source/mapping verification.
 
-## Required result
+In comprehensive mode, follow [coverage/comprehensive.md](references/coverage/comprehensive.md), then load [report-contract.md](references/report-contract.md) and the raw templates it names.
 
-This section applies after the eligibility gate selects at least one candidate. A triage-only result where all subjects are excluded uses the concise selection table described above and stops.
+## 4. Review selected paths
 
-For a full review, produce both through the harness:
+For each selected operation:
 
-1. `assessment.json`, conforming to the bundled template and report contract.
-2. A human report derived from the same assessment content as standalone HTML or Markdown.
+1. State the policy as actor–resource–action–context and identify an actor outside it.
+2. Trace reachable entry point → identity → policy decisions → selected resource/fields → protected action → side effects.
+3. Record caller-controlled identifiers, tenant/role/state/field inputs and every material identity transition.
+4. Search for controls that can close the apparent path: fallback/global policy, generated configuration, service/domain checks, scoped queries, deployment policy, and downstream enforcement.
+5. Follow cross-repository references only when plausibly part of that selected path; do not fan out through every sibling or dependency.
+6. Reuse the smallest exact evidence set: file/line/symbol, configuration key, test, or redacted supplied runtime artifact.
 
-Honor the user's requested format. If they do not specify one, prefer standalone HTML because its navigation, visual decision status, and internal links make a long security assessment easier to use. Produce both human formats only when requested. Author the output directly; no formatter or renderer is required.
+A finding requires an intended policy, an unauthorized actor, a reachable path, a missing/incorrect trusted decision, and impact. Use:
 
-The report must contain:
+- `confirmed` — complete static proof, supplied reliable execution evidence, or authorized safe reproduction;
+- `likely` — a credible path with one material runtime/configuration fact unresolved;
+- `needs-validation` — a security-relevant signal without enough evidence for a vulnerability claim.
 
-- a table of contents with internal links to summaries, each finding, coverage, and gaps;
-- a high-level `PASS`, `FAIL`, or `REVIEW` security outcome plus separate `COMPLETE`, `PARTIAL`, or `BLOCKED` end-to-end trace completeness and visible decision rules;
-- a concise dashboard showing finding, path-completeness, and coverage counts without expanding the full branch matrix;
-- an executive summary written for a non-security reader: what was reviewed, what failed, what passed, and what the real-world context means;
-- a compact linked findings register with one short table per category, followed by detailed findings grouped as category → component → issue;
-- concise issue code panels for `Classification`, `Affected implementation`, `End-to-end authorization path`, `Expected access rule`, `Unauthorized scenario`, `Why the check fails`, `What could happen`, `Recommended resolution`, and `How to verify the fix`;
-- short normalized pseudocode instead of full source dumps, paired with exact evidence anchors;
-- collapsed HTML technical detail for evidence metadata, standards mappings, access paths, and branch evidence so the first reading layer stays understandable;
-- scope, revision/environment, authorization mode, exclusions, and limitations;
-- an actor–resource–action–context authorization model;
-- an evidence-backed access-path inventory covering methods, inputs, channels, tiers, and enforcement chains;
-- all 19 A01 coverage branches with explicit status;
-- findings with concrete attack paths and exact evidence anchors;
-- precise OWASP, ASVS, WSTG, API Top 10, and CWE mappings where applicable;
-- remediation at the policy and enforcement point;
-- negative authorization regression tests;
-- coverage gaps and safe next steps.
+A search result or missing local annotation alone is not a finding. UI controls, valid tokens/keys, trusted networks, coarse roles/scopes, UUIDs, and CORS alone are not object/function authorization.
 
-A focused review of the selected candidate scope is still required to account for every coverage branch. Use `not-applicable` or `not-assessed` with a concrete rationale instead of silently omitting a branch. Do not create branch matrices for repositories excluded by the eligibility gate.
+After targeted discovery, pause only for missing evidence that can materially change a selected-path conclusion. State what is missing, why it matters, what was searched, affected conclusions, and ways to continue. Await user direction rather than treating unknown behavior as permissive or protective.
 
-Keep the assessment usable and finishable. Reference the same access-path or evidence anchor instead of repeating its full explanation, use the smallest evidence set that proves each conclusion, and consolidate only true shared root causes. For a small application, the JSON and report should be concise enough for an engineer to review in one sitting.
+## 5. Safety and authority
 
-## Workflow
+Static review is the default. Before network requests, data changes, test identities, bypass attempts, or live-system exercise, confirm authorization and record targets, identities, methods, time window, data constraints, and stop conditions.
 
-### 1. Establish the selected assessment subject
+Without confirmation, inspect supplied source/configuration/tests/evidence and propose safe verification steps only. Never imply unperformed execution, access another person's real data, or use destructive production checks. Stop on ambiguous ownership, availability/integrity risk, or unexpected sensitive data; retain minimal redacted evidence.
 
-Carry forward the eligibility selection table. Identify revisions, selected services, applicable clients/infrastructure, identity systems, policy/control planes, data/downstream systems, and environments in candidate scope. Record supporting and excluded repositories explicitly so they are not repeatedly rediscovered.
+## 6. Output for the selected mode
 
-Perform the heavy-lifting discovery pass in `references/end-to-end-authorization-tracing.md` **within selected candidates and material supporting paths only**: inspect architecture documents, manifests, deployment pipelines, IaC, gateway/proxy policies, routes, application policies, data controls, downstream references, and tests before asking the user to explain or locate missing material. Follow a cross-repository reference only when it is plausibly part of a selected authorization path; do not fan out through every repository, workspace package, or dependency. Record exclusions and whether evidence is static, supplied dynamic evidence, or explicitly authorized live testing.
+### Focused report
 
-Use conditional profiles from `references/architecture-profiles.md` only when evidence supports them. APIM, BFF, custom attributes, subscription keys, and other products or credentials are first-class profiles when present, not assumptions or universal checklists.
+Write concise Markdown unless HTML was explicitly requested:
 
-Do not equate authentication with authorization. A valid identity proves who the caller is; it does not prove that the caller may perform this action on this resource or field in this context.
+1. mode and selected scope/exclusions;
+2. actor–resource–action–context rule;
+3. selected paths and trusted enforcement points;
+4. findings grouped by category/component, each with status, exact evidence, unauthorized path, impact, focused mappings when requested, trusted-layer remediation, and allowed/denied regression tests;
+5. needs-validation items and material gaps;
+6. concise conclusion and next steps.
 
-### 2. Build the authorization model
+Do not duplicate full source or evidence narratives. Consolidate only instances sharing one root cause, policy, enforcement point, and fix.
 
-Inventory:
+### Comprehensive artifacts
 
-- **actors:** anonymous, ordinary user, resource owner, peer/non-owner, privileged user, administrator, service identity, support/operator, and tenant identities;
-- **resources:** records, fields, files, routes, functions, jobs, queues, administrative surfaces, exports, and downstream resources;
-- **actions:** create, read, list, update, delete, approve, execute, impersonate, export, and bulk operations;
-- **context:** tenant, ownership, relationship, role/scope, resource state, time, device, network, delegation, and business limits;
-- **enforcement points:** gateway, middleware, route/controller, resolver, service/domain layer, repository/query, file boundary, message consumer, and downstream service.
+Use [assets/assessment-template.json](assets/assessment-template.json), [assets/access-path-template.json](assets/access-path-template.json), and [assets/finding-template.json](assets/finding-template.json). Apply [report-contract.md](references/report-contract.md), self-check all IDs/statuses/cross-references, and author matching JSON and Markdown directly through the harness. HTML remains opt-in.
 
-Create an actor–resource–action–context matrix before judging individual checks. Repository structure and policy names are evidence, not proof that enforcement is complete.
-
-Create the template's `accessPaths` inventory. For each entry point record method/protocol, channel/version, authentication state, eligible actors, protected resource/actions, caller-controlled inputs, and exact evidence. Record every material tier in order with its concrete component, generic tier type, entering and leaving identity, credentials, policies, resource context, observed decision, exact evidence, and verification status. Assign each path `complete`, `partial`, or `blocked` using the end-to-end contract. Include mobile/partner/staging, direct backend, asynchronous, downstream, or other materially different channels as paths or explicit gaps.
-
-### 3. Trace every access path end to end
-
-For each sensitive operation, trace attacker-controlled input from every reachable entry point to the protected action and resource. Check alternate routes, HTTP methods, arbitrary/unknown verbs, method-override headers, duplicate parameters, rewrite/forward headers, API versions, content types, GraphQL aliases/batches, background consumers, exports, static/files/cloud objects, caches, gateways, and direct backend paths.
-
-At each path answer:
-
-1. Which human, workload, subscription/application, gateway, service, delegated, or impersonated subject enters and leaves each tier?
-2. What does each session, token, key, certificate, role, scope, claim, relationship, network, or contextual input actually prove?
-3. Which resource and fields are selected?
-4. Which function, object, field, tenant, relationship, state, and business policy should apply?
-5. Where is each policy enforced in trusted code or configuration?
-6. Can caller-controlled identifiers, roles, claims, headers, cookies, keys, tenant values, or state alter the decision?
-7. Does the data query itself constrain ownership/tenant, or is filtering performed too late?
-8. Does identity transformation preserve the originating authority without turning an intermediary into a confused deputy?
-9. Are denial, revocation, logging, and tests fail-closed?
-10. Do gateway, framework, controller, data, and downstream tiers parse the same subject, method, path, resource, and duplicate input values?
-11. Do logout, role/tenant/ownership changes, workflow rollback, batching, replay, queues, or concurrent requests preserve the intended decision?
-
-A UI-hidden button, route guard, valid subscription/API key, trusted network, valid token, coarse role/scope, guessed identifier difficulty, CORS policy, or authentication check alone is not object/function authorization. State exactly what each authority input proves. CORS controls browser response sharing; CSRF controls unwanted victim-authorized actions. Evaluate and report them separately.
-
-### 3a. Stop for material missing evidence
-
-After exhausting the selected candidates and material supporting configuration, apply the material evidence gate in `references/end-to-end-authorization-tracing.md`. Batch related missing code, policy exports, inherited/generated configuration, deployed revisions, identity setup, downstream implementations, or runtime evidence into a precise request that states why it matters, what was searched, affected paths/coverage, blocked conclusions, and ways to continue. Mark affected paths `blocked`, create reciprocal gaps with `requestStatus: awaiting-user`, ask the user, and wait. A repository excluded during triage is not missing evidence unless a selected path demonstrably depends on its trusted behavior.
-
-If the user supplies evidence, resume and update the tiers. If the user explicitly excludes it or confirms it unavailable, record that decision and continue with `partial` paths. Silence does not authorize exclusion. Do not call a report final or claim end-to-end completion while a material gap awaits user direction.
-
-### 4. Execute complete A01 coverage
-
-Apply every branch in `references/review-playbook.md`:
-
-- eight official common-vulnerability branches (`A01-CV-01` through `A01-CV-08`);
-- eleven official prevention/assurance branches (`A01-PR-01` through `A01-PR-11`).
-
-The branches collectively cover all 40 CWEs mapped by the official A01:2025 page. Do not attach all 40 CWEs to every finding. Select only the most specific identifiers supported by the actual weakness; record broader coverage through the branch matrix.
-
-For APIs, deepen object-, property-, function-, and sensitive-business-flow authorization using API1, API3, API5, and API6:2023. For GraphQL, inventory queries, mutations, subscriptions, arguments, fields, aliases, batching, resolver checks, and underlying API identity propagation. These mappings supplement A01; they do not replace the A01 coverage branches.
-
-Apply the direct and conditional WSTG procedures selected in `references/wstg-v42-a01-selection.md`. Do not turn adjacent authentication, session, injection, or client findings into A01 unless they enable the documented unauthorized path.
-
-### 5. Separate evidence from hypotheses
-
-Use these finding statuses:
-
-- `confirmed`: the unauthorized path is demonstrated by complete static proof, supplied reliable execution evidence, or authorized safe reproduction;
-- `likely`: evidence shows a credible path but one material runtime/configuration fact remains unresolved;
-- `needs-validation`: a security-relevant signal warrants a specific check but does not yet support a vulnerability claim.
-
-Do not report a code pattern alone as a confirmed vulnerability. Framework defaults, global middleware, generated policy, data-layer scoping, or deployment controls may close an apparent gap. Search for them and record unresolved controls as gaps.
-
-`reviewed-no-finding` means relevant paths and controls were actually inspected. It never means “a search returned no matches.”
-
-### 6. Document actionable findings
-
-Each confirmed or likely finding must identify:
-
-- one or more evidence-backed access-path IDs and show their end-to-end identity, credential, policy, decision, resource, and trace status in the human report;
-- one primary human-readable category based on the authorization boundary and one owning component based on where the fix belongs;
-- a precise classification, such as horizontal privilege escalation, IDOR/BOLA, missing function authorization, or property-level authorization failure;
-- affected controllers, classes, methods, endpoints, files, or artifacts; use empty location arrays only when a location type genuinely does not apply, and identify at least one implementation or endpoint location overall;
-- unauthorized actor and required starting privilege;
-- protected resource, fields, action, and context;
-- intended policy and observed enforcement failure;
-- reproducible source-to-sink or request-to-impact path;
-- exact file/line/symbol, configuration, test, or redacted request/response evidence;
-- impact to confidentiality, integrity, availability, or business constraints;
-- focused mappings and severity rationale;
-- remediation at the trusted enforcement layer;
-- at least one positive and one negative regression test, including a peer/non-owner or lower-privilege case where relevant.
-
-For the issue's first reading layer, write a short summary and normalized pseudocode for the expected rule, unauthorized scenario, failure proof, impact, and remedy. Keep each block normally three to eight lines and never more than twelve non-blank lines or 1,600 characters. Derive classification, affected-implementation, and verification panels from their structured fields when authoring the human report. Do not paste full methods or responses; pair distilled pseudocode with exact evidence anchors and never imply pseudocode is verbatim source.
-
-Make the `exercise` block understandable to someone who has not read the source. Describe the concrete unauthorized actor, starting privilege, resource, action, and decisive input or context, then state the expected denial and the evidenced result. Prefer a representative HTTP/GraphQL/CLI request when the subject exposes one; for a library or in-memory policy, use named business facts rather than opaque fixture IDs or phrases such as “synthetic denied probe.” Mention internal classes or test harnesses only after the scenario is clear. Distinguish static proof (`code result: allow`) from an actually executed observation (`observed: allow`), and never imply live execution occurred when it did not.
-
-Consolidate instances only when they share one root cause, policy, enforcement point, and remediation. Assign the consolidated issue one primary category and component, then list related surfaces within it. Otherwise report separately so ownership and fixes remain clear.
-
-### 7. Self-check and write outputs
-
-Populate the bundled template and perform a harness-native consistency pass before writing outputs:
-
-1. confirm all required top-level sections and all 19 coverage IDs are present exactly once;
-2. confirm IDs are unique and every finding, path, gap, coverage, and evidence cross-reference resolves reciprocally;
-3. confirm complete paths contain only verified tiers and no gap, while partial/blocked paths identify their gaps;
-4. confirm coverage statuses, finding confidence, security outcome, and trace completeness follow [references/report-contract.md](references/report-contract.md);
-5. confirm every confirmed/likely finding has a supported unauthorized path, focused mappings, exact evidence, remediation, and allowed/denied tests;
-6. confirm no placeholders, secrets, personal data, unsupported runtime claims, or overbroad A02–A10 claims remain.
-
-If a material gap is `awaiting-user`, present the precise evidence request and wait instead of issuing a final report. Write an interim checkpoint only when the user explicitly asks for one, and keep its status visibly BLOCKED.
-
-Once the consistency pass succeeds and no direction is pending, write `assessment.json` and directly author the requested Markdown or standalone HTML report from the same data using harness-native output capabilities. Correct inconsistencies in the assessment source and regenerate the affected report content; do not depend on an executable validator, renderer, CLI, or exit code. Preserve both artifacts before optional commentary or further exploration.
-
-## Completion gate
-
-Apply this gate to the selected candidate scope, not to repositories excluded during triage. Do not call the A01 review complete until:
-
-- [ ] Scope, revision/environment, authorization mode, exclusions, and limitations are explicit.
-- [ ] Actors, resources, actions, context, and trusted enforcement points are modelled.
-- [ ] The access-path inventory covers all discovered entry points, methods, inputs, channels, identity transformations, credentials, policies, resource context, tiers, and downstream effects or records explicit gaps.
-- [ ] Same-role peers, vertical roles, tenants, post-logout/stale authority, alternate methods/channels, and business states were represented where applicable.
-- [ ] All 8 official vulnerability patterns and all 11 prevention/assurance branches have statuses and rationales.
-- [ ] The branch mapping accounts for all 40 official A01 CWEs without indiscriminate CWE assignment.
-- [ ] Every finding links known access paths and has one primary category and component, a precise classification, affected implementation/endpoints, a concrete unauthorized path, and exact evidence.
-- [ ] Every material tier has entering/leaving identity, credential/policy semantics, resource context, decision, status, and exact evidence; no role, key, token, network, gateway, or intermediary is credited with authority it does not prove.
-- [ ] Missing material evidence was searched for before a precise user checkpoint; awaiting decisions remain blocked, accepted exclusions remain partial, and no incomplete trace is called end-to-end complete.
-- [ ] Each issue has concise pseudocode for expected rule, exercise, proof, impact, remedy, and derived allowed/denied verification without full source dumps.
-- [ ] Authentication-only checks, UI controls, identifier unpredictability, and CORS are not mistaken for authorization.
-- [ ] Horizontal, vertical, anonymous, object, function/method, field/property, tenant, and business-limit boundaries were considered where applicable.
-- [ ] Alternate paths, methods/overrides, duplicate parameters, rewrite/forward headers, versions, static/file/cloud resources, and downstream delegation were considered.
-- [ ] CSRF and CORS were evaluated as distinct browser trust boundaries.
-- [ ] GraphQL aliases/batching/resolvers and parser differences across tiers were considered when present.
-- [ ] Confidence and severity reflect evidence and impact rather than the A01 ranking.
-- [ ] Remediation and negative authorization tests address the root enforcement failure.
-- [ ] Unverified runtime or deployment assumptions appear as gaps, not facts.
-- [ ] The harness-native consistency pass succeeds and the requested HTML or Markdown report matches the completed assessment JSON.
-- [ ] The report has a linked table of contents, separate PASS/FAIL/REVIEW security outcome and COMPLETE/PARTIAL/BLOCKED trace status, a concise dashboard, a compact per-category findings register, category → component → issue detail grouping, end-to-end issue paths, and links from summary rows to technical detail.
-
-## Skill evaluations
-
-[evals/evals.json](evals/evals.json) and its fixtures are data-only behavioral inputs for the outer evaluation harness. This skill bundles no evaluation runner and requires no executable test tooling.
-
-A response fails if it invokes or creates helper scripts as a prerequisite, recursively explores repositories before eligibility triage, deep-scans excluded static/client/component repositories, applies API or architecture profiles without evidence, turns excluded siblings into gaps, omits required A01 coverage for selected candidates, reports a pattern without an unauthorized path as confirmed, performs unapproved live testing, credits a role/key/token/gateway with authority it does not prove, calls an unverified path complete, fails to stop for material missing evidence, or produces findings without linked tiered paths, category/component organization, concise supporting pseudocode, actionable evidence, and allowed/denied regression tests.
+This skill is raw guidance and data. Do not run or create helper scripts, invoke Python/shell tooling, install packages, or expect an executable validator/renderer. Keep artifacts outside the installed skill directory. If the harness cannot create files, return equivalent content through its supported artifact/response channel and state the limitation.

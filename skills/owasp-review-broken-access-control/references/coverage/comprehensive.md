@@ -1,8 +1,10 @@
-# A01 review playbook
+# Comprehensive A01 review playbook
 
 ## How to use this playbook
 
-Complete all 19 coverage branches. Start from the authorization model and trace real operations; do not replace semantic review with keyword searches. Searches locate candidate enforcement points and sinks, while code/configuration flow establishes whether an unauthorized path exists.
+Load this file only for an explicitly requested comprehensive/full A01 assessment. Focused reviews use only the applicable concern files in this directory and do not create a 19-branch matrix.
+
+Complete all 19 coverage branches. Start from the authorization model and trace real operations; do not replace semantic review with keyword searches. Searches locate candidate enforcement points and sinks, while code/configuration flow establishes whether an unauthorized path exists. When architecture-specific detail is material, load [comprehensive-architecture-profiles.md](comprehensive-architecture-profiles.md); otherwise do not load it merely because comprehensive mode was selected.
 
 For each branch record one status:
 
@@ -158,7 +160,7 @@ Use these groups to ensure each official mapped CWE is considered. Groups guide 
 | User-controlled object keys | CWE-566, CWE-639 | CV-03, PR-04 |
 | Delegation, redirects, and server-side destinations | CWE-441, CWE-601, CWE-918 | CV-02, PR-01 |
 
-The table's union must remain exactly the official 40-CWE list. `evals/run_evals.py` verifies this invariant.
+The table's union must remain exactly the official 40-CWE list.
 
 ## Static-review heuristics
 

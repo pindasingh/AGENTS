@@ -1,8 +1,10 @@
-# Conditional architecture and credential profiles
+# Comprehensive architecture and credential profiles
 
 ## How to use these profiles
 
-Apply the architecture-neutral trace in `end-to-end-authorization-tracing.md` first. Activate only profiles supported by discovered evidence. These profiles improve product-specific discovery; they do not replace end-to-end policy reasoning or authorize live control-plane access.
+Load this file only during comprehensive mode when architecture-specific detail is material. Focused reviews use the smaller concern files selected by `SKILL.md`.
+
+Apply the architecture-neutral trace in `../end-to-end-authorization-tracing.md` first. Activate only profiles supported by discovered evidence. These profiles improve product-specific discovery; they do not replace end-to-end policy reasoning or authorize live control-plane access.
 
 For an unknown product, identify its equivalents for route scope, policy inheritance, identity validation, transformation, backend selection, direct exposure, failure behavior, deployment overlays, and negative tests.
 
