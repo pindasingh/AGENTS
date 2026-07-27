@@ -1,7 +1,7 @@
 ---
 name: owasp-review-broken-access-control
 description: Finds and documents OWASP A01:2025 Broken Access Control vulnerabilities in application source, configuration, APIs, tests, and explicitly authorized running systems. Use whenever a user requests an OWASP access-control review, BAC assessment, authorization audit, IDOR/BOLA/BFLA/BOPLA or privilege-escalation analysis, tenant-isolation review, force-browsing check, or evidence-backed security findings—even if they only say "check permissions" or "can one user access another user's data?"
-compatibility: Requires read access to the assessment subject and Python 3 for the bundled dependency-free validator and Markdown/standalone-HTML report renderer. Live requests require explicit user authorization and scope; no package installation or external scanner is required.
+compatibility: Requires only harness-native read and output capabilities. Do not depend on Python, shell scripts, executable validators/renderers, package installation, or external scanners. Live requests require explicit user authorization and scope.
 ---
 
 # Review OWASP Broken Access Control
@@ -54,18 +54,13 @@ Load the remaining guidance only when the selected surface needs it:
 - [references/wstg-v42-a01-selection.md](references/wstg-v42-a01-selection.md) for applicable web/API/browser procedures, not for a non-web policy library or worker by default;
 - only the relevant sections of [references/architecture-profiles.md](references/architecture-profiles.md) for architectures actually discovered (for example APIM, BFF, GraphQL, microservices, serverless/event-driven, or object storage).
 
-## Harness portability
+## Harness-native operation
 
-Resolve the absolute path to this skill directory before reading assets or running scripts; do not assume the shell starts here.
+This skill is raw guidance and data templates. Use the host harness's native file/content reading and artifact-writing capabilities. Do not run or create helper scripts, invoke Python or a shell as a prerequisite, install tools, or expect an executable validator or renderer.
 
-```bash
-SKILL_DIR="<absolute path to owasp-review-broken-access-control>"
-python "$SKILL_DIR/scripts/bac_assessment.py" validate <assessment.json>
-python "$SKILL_DIR/scripts/bac_assessment.py" render <assessment.json> --format html --output <report.html>
-python "$SKILL_DIR/scripts/bac_assessment.py" render <assessment.json> --format markdown --output <report.md>
-```
+Resolve linked resources relative to this `SKILL.md` using the harness. Use [assets/assessment-template.json](assets/assessment-template.json) as the assessment starting point, [assets/access-path-template.json](assets/access-path-template.json) for each end-to-end path, and [assets/finding-template.json](assets/finding-template.json) for each issue record. The fragments are intentionally incomplete until their tiers, affected implementation, evidence, and cross-references are replaced.
 
-Use [assets/assessment-template.json](assets/assessment-template.json) as the assessment starting point, [assets/access-path-template.json](assets/access-path-template.json) for each end-to-end path, and [assets/finding-template.json](assets/finding-template.json) for each issue record. The fragments are intentionally incomplete until their tiers, affected implementation, evidence, and cross-references are replaced. The CLI delegates presentation to the dependency-free [scripts/report_renderers.py](scripts/report_renderers.py); do not call that internal module directly. Keep generated assessments and reports in the reviewed project or a user-selected workspace, never in the installed skill directory.
+Write the completed assessment and human report directly through the harness. Keep outputs in the reviewed project, a user-selected workspace, or the harness's artifact facility—never in the installed skill directory. If the harness cannot create files, return the same structured assessment and report content through its supported response/artifact channel and state that limitation.
 
 ## Safety and authority
 
@@ -85,12 +80,12 @@ Stop active verification when scope or ownership is ambiguous, a check could aff
 
 This section applies after the eligibility gate selects at least one candidate. A triage-only result where all subjects are excluded uses the concise selection table described above and stops.
 
-For a full review, produce both:
+For a full review, produce both through the harness:
 
-1. `assessment.json`, conforming to the bundled template and validator.
-2. A human report rendered from that validated JSON as standalone HTML or Markdown.
+1. `assessment.json`, conforming to the bundled template and report contract.
+2. A human report derived from the same assessment content as standalone HTML or Markdown.
 
-Honor the user's requested format. If they do not specify one, prefer standalone HTML because its fixed navigation, visual decision status, and internal links make a long security assessment easier to use. Produce both formats only when requested. The renderer can infer format from an `.html` or `.md` output extension, but use `--format` explicitly in automation.
+Honor the user's requested format. If they do not specify one, prefer standalone HTML because its navigation, visual decision status, and internal links make a long security assessment easier to use. Produce both human formats only when requested. Author the output directly; no formatter or renderer is required.
 
 The report must contain:
 
@@ -211,24 +206,26 @@ Each confirmed or likely finding must identify:
 - remediation at the trusted enforcement layer;
 - at least one positive and one negative regression test, including a peer/non-owner or lower-privilege case where relevant.
 
-For the issue's first reading layer, write a short summary and normalized pseudocode for the expected rule, unauthorized scenario, failure proof, impact, and remedy. Keep each block normally three to eight lines and within the validator's twelve-line/1,600-character cap. The renderer derives classification, affected-implementation, and verification panels from their structured fields. Do not paste full methods or responses; pair distilled pseudocode with exact evidence anchors and never imply pseudocode is verbatim source.
+For the issue's first reading layer, write a short summary and normalized pseudocode for the expected rule, unauthorized scenario, failure proof, impact, and remedy. Keep each block normally three to eight lines and never more than twelve non-blank lines or 1,600 characters. Derive classification, affected-implementation, and verification panels from their structured fields when authoring the human report. Do not paste full methods or responses; pair distilled pseudocode with exact evidence anchors and never imply pseudocode is verbatim source.
 
 Make the `exercise` block understandable to someone who has not read the source. Describe the concrete unauthorized actor, starting privilege, resource, action, and decisive input or context, then state the expected denial and the evidenced result. Prefer a representative HTTP/GraphQL/CLI request when the subject exposes one; for a library or in-memory policy, use named business facts rather than opaque fixture IDs or phrases such as “synthetic denied probe.” Mention internal classes or test harnesses only after the scenario is clear. Distinguish static proof (`code result: allow`) from an actually executed observation (`observed: allow`), and never imply live execution occurred when it did not.
 
 Consolidate instances only when they share one root cause, policy, enforcement point, and remediation. Assign the consolidated issue one primary category and component, then list related surfaces within it. Otherwise report separately so ownership and fixes remain clear.
 
-### 7. Validate and render
+### 7. Self-check and write outputs
 
-Populate the bundled template, then run:
+Populate the bundled template and perform a harness-native consistency pass before writing outputs:
 
-```bash
-python "$SKILL_DIR/scripts/bac_assessment.py" validate <assessment.json>
-python "$SKILL_DIR/scripts/bac_assessment.py" render <assessment.json> --format html --output <report.html>
-# Or, when Markdown is requested:
-python "$SKILL_DIR/scripts/bac_assessment.py" render <assessment.json> --format markdown --output <report.md>
-```
+1. confirm all required top-level sections and all 19 coverage IDs are present exactly once;
+2. confirm IDs are unique and every finding, path, gap, coverage, and evidence cross-reference resolves reciprocally;
+3. confirm complete paths contain only verified tiers and no gap, while partial/blocked paths identify their gaps;
+4. confirm coverage statuses, finding confidence, security outcome, and trace completeness follow [references/report-contract.md](references/report-contract.md);
+5. confirm every confirmed/likely finding has a supported unauthorized path, focused mappings, exact evidence, remediation, and allowed/denied tests;
+6. confirm no placeholders, secrets, personal data, unsupported runtime claims, or overbroad A02–A10 claims remain.
 
-Validation errors are hard failures; fix the assessment rather than weakening the validator or hand-editing rendered output. Rendering returns exit code `3` when a material gap is `awaiting-user`: present the precise evidence request and wait instead of rendering a final report. Use `--allow-blocked` only when the user explicitly requests an interim checkpoint report, which remains visibly BLOCKED. Once validation succeeds and no direction is pending, render immediately and preserve the JSON and requested report artifact before optional commentary or further exploration. Do not spend completion time re-running repository housekeeping or expanding already-supported prose.
+If a material gap is `awaiting-user`, present the precise evidence request and wait instead of issuing a final report. Write an interim checkpoint only when the user explicitly asks for one, and keep its status visibly BLOCKED.
+
+Once the consistency pass succeeds and no direction is pending, write `assessment.json` and directly author the requested Markdown or standalone HTML report from the same data using harness-native output capabilities. Correct inconsistencies in the assessment source and regenerate the affected report content; do not depend on an executable validator, renderer, CLI, or exit code. Preserve both artifacts before optional commentary or further exploration.
 
 ## Completion gate
 
@@ -252,16 +249,11 @@ Apply this gate to the selected candidate scope, not to repositories excluded du
 - [ ] Confidence and severity reflect evidence and impact rather than the A01 ranking.
 - [ ] Remediation and negative authorization tests address the root enforcement failure.
 - [ ] Unverified runtime or deployment assumptions appear as gaps, not facts.
-- [ ] The assessment validator passes and the requested HTML or Markdown report is generated from the validated JSON.
+- [ ] The harness-native consistency pass succeeds and the requested HTML or Markdown report matches the completed assessment JSON.
 - [ ] The report has a linked table of contents, separate PASS/FAIL/REVIEW security outcome and COMPLETE/PARTIAL/BLOCKED trace status, a concise dashboard, a compact per-category findings register, category → component → issue detail grouping, end-to-end issue paths, and links from summary rows to technical detail.
 
 ## Skill evaluations
 
-Run the deterministic checks after changing this skill:
+[evals/evals.json](evals/evals.json) and its fixtures are data-only behavioral inputs for the outer evaluation harness. This skill bundles no evaluation runner and requires no executable test tooling.
 
-```bash
-python "$SKILL_DIR/evals/run_evals.py"
-python -m unittest discover -s "$SKILL_DIR/tests" -p "test_*.py" -v
-```
-
-Use [evals/evals.json](evals/evals.json) for behavioral evaluation. A response fails if it recursively explores repositories before eligibility triage, deep-scans excluded static/client/component repositories, applies API or architecture profiles without evidence, turns excluded siblings into gaps, omits required A01 coverage for selected candidates, reports a pattern without an unauthorized path as confirmed, performs unapproved live testing, credits a role/key/token/gateway with authority it does not prove, calls an unverified path complete, fails to stop for material missing evidence, or produces findings without linked tiered paths, category/component organization, concise supporting pseudocode, actionable evidence, and allowed/denied regression tests.
+A response fails if it invokes or creates helper scripts as a prerequisite, recursively explores repositories before eligibility triage, deep-scans excluded static/client/component repositories, applies API or architecture profiles without evidence, turns excluded siblings into gaps, omits required A01 coverage for selected candidates, reports a pattern without an unauthorized path as confirmed, performs unapproved live testing, credits a role/key/token/gateway with authority it does not prove, calls an unverified path complete, fails to stop for material missing evidence, or produces findings without linked tiered paths, category/component organization, concise supporting pseudocode, actionable evidence, and allowed/denied regression tests.

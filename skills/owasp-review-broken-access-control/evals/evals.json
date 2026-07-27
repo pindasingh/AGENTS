@@ -1,7 +1,7 @@
 {
   "skill_name": "owasp-review-broken-access-control",
   "skill_contract_version": "1.3",
-  "eval_suite_version": "1.6.0",
+  "eval_suite_version": "1.7.0",
   "source_profile": {
     "owasp_top10": "A01:2025",
     "asvs": "5.0.0 V8",
@@ -77,6 +77,27 @@
         "Traces gateway JWT authentication separately from API object and approval authorization rather than crediting authentication as sufficient authority.",
         "Does not activate or create gaps for GraphQL, APIM, serverless, browser-session, or other unsupported architecture profiles.",
         "Applies the full A01 coverage/report contract only to the selected candidate scope, not once per repository."
+      ]
+    },
+    {
+      "id": "enterprise-no-script-harness-native-output",
+      "provenance": {
+        "source": "Enterprise execution-policy portability regression",
+        "url": "https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x17-V8-Authorization.md",
+        "adaptation": "Runs a source review in a harness where scripts, subprocesses, shells, package tools, and executable validators/renderers are prohibited."
+      },
+      "prompt": "Review the supplied ASP.NET authorization fixture for OWASP A01:2025. This enterprise harness permits native file reads and artifact writes but prohibits Python, shells, subprocesses, helper scripts, package tools, executable validators, and report renderers. Do not try to run or create any script. Produce the assessment JSON and Markdown report directly through harness capabilities and self-check their consistency.",
+      "expected_output": "A harness-native review that reads the raw skill references/templates, assesses the fallback policy and owner/tenant-scoped flow without forcing a finding, self-checks required sections, coverage IDs, paths, gaps, and cross-references, and writes matching assessment JSON and Markdown content directly. It must not attempt script execution, create helper code, request installation, or claim machine validation/rendering occurred.",
+      "files": [
+        "evals/fixtures/secure-dotnet-app/Program.cs",
+        "evals/fixtures/secure-dotnet-app/InvoiceService.cs",
+        "evals/fixtures/secure-dotnet-app/AuthorizationTests.cs"
+      ],
+      "assertions": [
+        "Does not invoke or create Python, shell, subprocess, helper-script, package-tool, validator, or renderer workflows.",
+        "Uses harness-native reading and output capabilities to produce assessment JSON and Markdown directly.",
+        "Performs and describes the contract consistency checks without claiming executable validation.",
+        "Produces matching security outcome, trace completeness, coverage, paths, findings, and gaps across both outputs."
       ]
     },
     {
@@ -188,7 +209,7 @@
         "url": "https://owasp.org/www-project-web-security-testing-guide/v42/",
         "adaptation": "Combines REST, gateway, CORS, logout, GraphQL, and missing negative-test evidence in a small repository fixture."
       },
-      "prompt": "Perform a source-only OWASP A01:2025 assessment of the supplied mixed Node application. Trace gateway and application behavior, REST and GraphQL paths, object/function/field authorization, CORS, method overrides, logout, and test coverage. Produce the validated assessment and report contract; do not run the application or invent missing store/authentication behavior.",
+      "prompt": "Perform a source-only OWASP A01:2025 assessment of the supplied mixed Node application. Trace gateway and application behavior, REST and GraphQL paths, object/function/field authorization, CORS, method overrides, logout, and test coverage. Produce the assessment JSON and requested report directly through harness-native output capabilities; do not run the application or invent missing store/authentication behavior.",
       "expected_output": "An evidence-backed multi-path assessment that identifies unscoped invoice object access and refund function/state authorization failures, evaluates REST and GraphQL paths separately, treats reflected credentialed CORS and non-revoked logout according to supported confidence, inventories method override and direct gateway/application enforcement, records unknown authentication/store/runtime facts as gaps, and supplies focused remediation and negative tests.",
       "files": [
         "evals/fixtures/mixed-node-app/gateway.yaml",
@@ -202,7 +223,7 @@
         "Finds the owner/tenant-unscoped invoice reads and lower-role refund approval without claiming unknown runtime details as facts.",
         "Evaluates reflected credentialed CORS, method overrides, stale sessions, GraphQL fields/batching, and absent negative tests with appropriate finding or gap status.",
         "Maps findings to selected WSTG procedures beyond ATHZ where relevant and proposes response-and-side-effect regression assertions.",
-        "Completes a validator-passing assessment JSON and the requested Markdown or standalone HTML report without duplicating evidence excessively.",
+        "Completes a contract-conforming assessment JSON and matching Markdown or standalone HTML report without scripts or duplicated evidence.",
         "The human report has a linked table of contents, a deterministic PASS/FAIL/REVIEW dashboard, a compact per-category findings register, and category-then-component detail grouping.",
         "Each issue identifies its classification and affected implementation, and uses concise pseudocode for the expected rule, a plain-language unauthorized scenario with actor/resource/action and expected versus evidenced result, failure proof, impact, remedy, and allowed/denied verification."
       ]
@@ -286,7 +307,7 @@
         "url": "https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x17-V8-Authorization.md",
         "adaptation": "Combines Azure APIM policy scopes, a subscription key, BFF client-credentials exchange, a custom application policy, and an unscoped data query."
       },
-      "prompt": "Perform a source-only end-to-end A01 review of the supplied enterprise path: browser -> BFF -> Azure APIM -> Orders API -> data query. Evaluate the browser user, BFF application token, APIM subscription key and inherited policies, application role policy, supplier assignment, tenant, and order scope. Produce a validated assessment and HTML report without treating any one valid credential as complete authorization.",
+      "prompt": "Perform a source-only end-to-end A01 review of the supplied enterprise path: browser -> BFF -> Azure APIM -> Orders API -> data query. Evaluate the browser user, BFF application token, APIM subscription key and inherited policies, application role policy, supplier assignment, tenant, and order scope. Produce the assessment JSON and HTML report directly through harness-native output capabilities without treating any one valid credential as complete authorization.",
       "expected_output": "An architecture-neutral but APIM-aware trace that proves the effective service/product/API policy chain from supplied files, records the browser-to-application identity replacement, distinguishes the subscription from user/resource authority, and identifies the application-role and unscoped-order confused-deputy path. The report should link the finding to a complete tiered access path and show security outcome separately from trace completeness.",
       "files": [
         "evals/fixtures/layered-enterprise/apim/service-policy.xml",

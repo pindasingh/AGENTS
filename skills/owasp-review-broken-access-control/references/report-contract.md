@@ -16,7 +16,7 @@ If any element is unknown, use `likely`, `needs-validation`, or a coverage gap a
 
 ## Machine-readable source
 
-Use `assets/assessment-template.json` for the assessment, `assets/access-path-template.json` for each end-to-end path, and `assets/finding-template.json` for each issue. The fragments must be populated before insertion because placeholder tiers, evidence, affected implementation, and cross-references are intentionally incomplete. The completed assessment is the source for both Markdown and standalone HTML reports. Do not hand-edit rendered output; correct the assessment JSON and render it again.
+Use `assets/assessment-template.json` for the assessment, `assets/access-path-template.json` for each end-to-end path, and `assets/finding-template.json` for each issue. The fragments must be populated before insertion because placeholder tiers, evidence, affected implementation, and cross-references are intentionally incomplete. The completed assessment is the source for both Markdown and standalone HTML reports. The harness authors those reports directly from the same data; correct the assessment JSON first and then regenerate inconsistent report content.
 
 Required top-level sections are:
 
@@ -27,7 +27,7 @@ Required top-level sections are:
 - `findings`
 - `gaps`
 
-Schema version `1.3` makes end-to-end authorization tiers and evidence-gap decisions first-class while retaining structured issue presentation. Every finding records its primary category and component, affected implementation, linked access paths, and concise supporting pseudocode. The bundled validator enforces structural and cross-reference invariants. Unknown extra fields are permitted so future A02–A10 profiles can extend the format, but existing meanings must not be changed.
+Schema version `1.3` makes end-to-end authorization tiers and evidence-gap decisions first-class while retaining structured issue presentation. Every finding records its primary category and component, affected implementation, linked access paths, and concise supporting pseudocode. The harness must check structural and cross-reference invariants using the self-check in `SKILL.md`; no executable validator is required. Unknown extra fields are permitted so future A02–A10 profiles can extend the format, but existing meanings must not be changed.
 
 ## Access-path records
 
@@ -115,16 +115,16 @@ Each finding records:
 
 - `classification`: the precise issue type, such as horizontal privilege escalation or missing function-level authorization;
 - `affectedImplementation.controllers`, `classes`, `methods`, `endpoints`, and `filesOrArtifacts`; arrays may be empty when genuinely inapplicable, but at least one location must be identified overall;
-- `expectedAccessRule`, `exercise`, `failureProof`, `impact`, and `remediation` objects, each containing a short plain-language `summary`, a renderer language, and `pseudocode`;
-- one or more known `accessPathIds`, which the renderer turns into the end-to-end identity/credential/policy/decision panel;
-- structured allowed and denied `regressionTests`, which the renderer turns into the verification pseudocode block;
+- `expectedAccessRule`, `exercise`, `failureProof`, `impact`, and `remediation` objects, each containing a short plain-language `summary`, a presentation language, and `pseudocode`;
+- one or more known `accessPathIds`, which the human report presents as the end-to-end identity/credential/policy/decision panel;
+- structured allowed and denied `regressionTests`, which the human report presents as the verification pseudocode block;
 - exact evidence anchors, mappings, attack path, severity rationale, and limitations as technical detail.
 
-The report renderer derives the classification and affected-implementation code panels from structured finding fields. It renders the five authored issue blocks verbatim after escaping them and derives the verification panel from regression tests. The renderer must not invent pseudocode from source files or replace exact evidence anchors with generated prose.
+When directly authoring the human report, derive the classification and affected-implementation code panels from structured finding fields. Present the five authored issue blocks faithfully, escaping content where the output format requires it, and derive the verification panel from regression tests. Do not invent pseudocode from source files or replace exact evidence anchors with generated prose.
 
 Keep each pseudocode block focused: normally three to eight lines and never more than twelve non-blank lines or 1,600 characters. Distill only the policy, caller-controlled flow, safe request shape, impact, or trusted-layer fix needed for that section. Do not paste full methods, classes, payloads, responses, stack traces, or repeated source excerpts. Clearly treat these blocks as normalized pseudocode; exact source truth remains in the evidence anchors.
 
-The `exercise` block is rendered as **Unauthorized scenario**. Make it self-contained: name the unauthorized actor and starting privilege, protected resource, attempted action, decisive caller-controlled input or context, expected denial, and evidenced result. Prefer the actual interface shape when one exists. For libraries, policy engines, and synthetic corpora, express the business scenario and relevant field values before naming an internal method or fixture. Do not use opaque prose such as “exercise the denied probe” or rely on unexplained case IDs. Say `code result` or `static result` for source proof and reserve `observed` for supplied or authorized execution evidence.
+The `exercise` block is presented as **Unauthorized scenario**. Make it self-contained: name the unauthorized actor and starting privilege, protected resource, attempted action, decisive caller-controlled input or context, expected denial, and evidenced result. Prefer the actual interface shape when one exists. For libraries, policy engines, and synthetic corpora, express the business scenario and relevant field values before naming an internal method or fixture. Do not use opaque prose such as “exercise the denied probe” or rely on unexplained case IDs. Say `code result` or `static result` for source proof and reserve `observed` for supplied or authorized execution evidence.
 
 ## Attack path
 
@@ -172,11 +172,11 @@ Before recording a material gap, search available repositories, references, depl
 - `requestStatus`: `awaiting-user`, `excluded-by-user`, or `confirmed-unavailable`;
 - exact `userDecision` and safe next step.
 
-`awaiting-user` means the reviewer must ask and wait; affected paths remain blocked. The CLI refuses final rendering while such a gap exists. `--allow-blocked` is reserved for an interim checkpoint report explicitly requested by the user and does not change the visible BLOCKED status. If the user supplies the artifact, inspect it and remove or update the gap. `excluded-by-user` or `confirmed-unavailable` permits a partial path but never complete trace status. Do not hide limitations in prose while marking branches `reviewed-no-finding`, and do not treat silence as permission to exclude.
+`awaiting-user` means the reviewer must ask and wait; affected paths remain blocked, so the harness must not issue a final report. An interim checkpoint report is permitted only when explicitly requested by the user and does not change the visible BLOCKED status. If the user supplies the artifact, inspect it and remove or update the gap. `excluded-by-user` or `confirmed-unavailable` permits a partial path but never complete trace status. Do not hide limitations in prose while marking branches `reviewed-no-finding`, and do not treat silence as permission to exclude.
 
 ## Human report structure
 
-The Markdown and standalone HTML renderers present the same validated assessment with format-appropriate navigation. The report emits:
+The harness-authored Markdown and standalone HTML reports present the same self-checked assessment with format-appropriate navigation. The report contains:
 
 1. title and linked table of contents;
 2. an executive dashboard with separate visible security outcome (`PASS`, `FAIL`, or `REVIEW`) and trace completeness (`COMPLETE`, `PARTIAL`, or `BLOCKED`) plus concise finding/path/coverage counts—not the full branch matrix;
@@ -204,6 +204,6 @@ Trace completeness is independent:
 
 A FAIL report can be PARTIAL or BLOCKED; findings do not hide missing tiers. An unqualified PASS requires COMPLETE tracing. Do not describe an awaiting-user assessment as final.
 
-The security outcome and trace completeness summarize this A01 assessment only; neither is automatically a release gate, ASVS certification, or statement about A02–A10. `Expected access rule` states the policy used to judge the code; it is not remediation. `Recommended resolution` states the change needed at the trusted enforcement point. HTML remains the preferred default report and renders pseudocode as escaped `<pre><code>` panels; Markdown uses equivalent fenced blocks and the same grouping.
+The security outcome and trace completeness summarize this A01 assessment only; neither is automatically a release gate, ASVS certification, or statement about A02–A10. `Expected access rule` states the policy used to judge the code; it is not remediation. `Recommended resolution` states the change needed at the trusted enforcement point. HTML remains the preferred default report and presents pseudocode as escaped `<pre><code>` panels; Markdown uses equivalent fenced blocks and the same grouping.
 
 Keep the first reading layer understandable without OWASP expertise. Write the executive summary in ordinary language: what was reviewed, what failed, what passed, and what the environment means for actual risk. Avoid terms such as “authorization predicate,” “source-to-sink,” or framework identifiers there unless immediately explained. In HTML, collapse access-path internals, evidence metadata, standards mappings, severity rationale, branch evidence, and other specialist material until the reader opens it. Preserve internal links so a leader can understand the decision and an engineer can progressively reveal the proof without searching a long document.
