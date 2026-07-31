@@ -19,7 +19,7 @@ A repository summary says an API probably has “controllers, business logic, se
 - Shared utilities do not automatically become a Component.
 - A Code view requires observed language-level identities and static relationships inside one selected Component.
 - Omit both optional views and record the evidence gap privately rather than fabricating them.
-- When lower-level evidence does exist, require exact `evidenceRefs` for Component/Code scopes, elements, and relationships instead of misusing canonical runtime IDs.
+- When lower-level evidence does exist, require exact `evidenceRefs` for Component/Code scopes, elements, and relationships instead of misusing model runtime IDs.
 - Explain that Component diagrams should add value and long-lived Component/Code views should be automated or generated on demand where practical.
 - Still produce the evidenced System Context and Container views if their boundaries are established.
 

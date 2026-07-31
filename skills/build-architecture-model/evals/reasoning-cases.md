@@ -10,12 +10,12 @@ The user supplies seven repositories. The agent proposes reading all repositorie
 
 ### Required outcome
 
-Initialize the model, scan one repository, write and validate its scan, compile and validate `canonical.json`, review gaps/conflicts, and only then continue. Read the regenerated canonical model before each next scan.
+Initialize the model from the templates, scan one repository, review its scan, reconcile `model.json`, review gaps and conflicts, and only then continue. Read the updated model before each next scan.
 
 ### Fail conditions
 
 - Defers all persisted output until the final repository.
-- Directly edits generated `canonical.json`.
+- Defers reconciliation until all repositories have been scanned.
 - Copies one repository's findings into another repository's scan.
 
 ## API caller and version

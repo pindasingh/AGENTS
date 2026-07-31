@@ -1,182 +1,96 @@
 ---
 name: build-architecture-model
-description: Scans one or many code repositories incrementally and builds an evidence-backed, C4-neutral canonical architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use before architecture mapping, C4 generation, cross-repository dependency analysis, system discovery, or architecture impact analysis.
-compatibility: Requires repository read access and Python 3. The bundled model compiler and validators use only Python's standard library.
+description: Scans one or many code repositories incrementally and builds an evidence-backed reconciled architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use for system discovery, cross-repository dependency analysis, architecture inventories, or architecture impact analysis.
 ---
 
 # Build Architecture Model
 
-Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and compile them deterministically into a canonical working model after every repository. Do not draw C4 diagrams in this skill or assign C4 abstraction types during discovery.
+Discover the architecture of a user-named subject one repository at a time. Produce repository-local findings first, then reconcile them into shared working memory after every repository.
 
 Before scanning, read [references/model-spec.md](references/model-spec.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
-## Harness portability
+## Working files
 
-This skill follows the Agent Skills directory format: the skill root is this directory, `SKILL.md` is the required entrypoint, and bundled files are addressed with paths relative to this skill root. It is safe to install as a personal, project, or plugin skill in any harness that supports Agent Skills.
-
-Do not assume the agent's shell working directory is the skill root. When running a bundled script or reading a bundled asset from another repository, first resolve the absolute path to this skill directory, then use that path. For example:
-
-```bash
-SKILL_DIR="<absolute path to the build-architecture-model skill directory>"
-python "$SKILL_DIR/scripts/architecture_model.py" init <model-dir> --subject <name> --source <repo>
-```
-
-Keep generated `.architecture-model/` output in the target repository or user-selected workspace, not inside the skill directory.
+Use the bundled JSON templates as starting points and replace every example value. Author and reconcile the model artifacts directly; there is no separate generation step. Keep working output in the target repository or user-selected workspace, never in the installed skill directory.
 
 ## Required result
 
-Create a model directory containing:
+Create:
 
 ```text
 .architecture-model/
   subject.json
   decisions.json
   scans/<source-id>.json
-  canonical.json
+  model.json
 ```
 
-- Agents author one bounded scan JSON document per repository.
-- `decisions.json` preserves explicit identity, ownership, and boundary decisions.
-- `canonical.json` is generated, never hand-edited.
-- The generated canonical model is the durable working memory read before scanning the next repository.
+Start from these reusable templates:
 
-Use the bundled standard-library tool:
+- [assets/subject-template.json](assets/subject-template.json)
+- [assets/decisions-template.json](assets/decisions-template.json)
+- [assets/scan-template.json](assets/scan-template.json)
+- [assets/model-template.json](assets/model-template.json)
 
-```bash
-python "$SKILL_DIR/scripts/architecture_model.py" init <model-dir> --subject <name> --source <repo> [--source <repo> ...]
-python "$SKILL_DIR/scripts/architecture_model.py" validate-scan <model-dir>/scans/<source-id>.json
-python "$SKILL_DIR/scripts/architecture_model.py" compile <model-dir>
-python "$SKILL_DIR/scripts/architecture_model.py" validate <model-dir>
-```
+Agents author all four artifact types directly. The output is named `model.json` because the containing `.architecture-model/` directory already supplies its context and the file represents the current reconciled model, not a privileged or permanently final truth. Rebuild its affected entries from scans and confirmed decisions rather than inventing facts. Never use it as a second evidence ledger, and never alter a scan merely to make reconciliation look clean.
 
-Use [assets/scan-template.json](assets/scan-template.json) as the agent-authoring template; replace its example values rather than inventing a different shape. A non-zero result is a hard failure. Never bypass validation or edit `canonical.json` to make it pass.
+## Scope and per-repository transaction
 
-## Scope authority
+The user's named subject selects scope without determining its architecture type. Record its name, description, aliases, supplied roots, and exclusions. Broadly inventory every supplied repository; do not search only for subject-name words.
 
-The user's named subject selects the scope without determining its architecture type. Record its name, description, aliases, supplied roots, and exclusions in `subject.json`. Do not assume the subject is a DDD domain, bounded context, or C4 Software System. Do not search only for subject-name words; broadly inventory every supplied repository so wiring with unrelated terminology is not missed.
+For each source, finish this cycle before opening the next:
 
-Repository structure is evidence, not architecture truth. One repository can contain several runtime units, and one runtime can be assembled from several repositories. A shared package is not a running service. A Docker image is deployment evidence, not a C4 classification.
+1. Read repository instructions and the current subject, decisions, scans, and reconciled model.
+2. Record the exact repository, revision, branch, included paths, exclusions, and limitations.
+3. Inventory workspaces, build outputs, executable entry points, deployments, configuration, generated code, tests, and documentation.
+4. Discover runtimes, stores, channels, libraries, inbound interfaces, outbound dependencies, operations, and evidence gaps.
+5. Write or replace only `scans/<source-id>.json` from the scan template.
+6. Self-check the scan contract below.
+7. Reconcile identities, interfaces, relationships, flows, conflicts, and gaps into `model.json` in stable ID order.
+8. Self-check the whole model and save the checkpoint before scanning another repository.
 
-## Per-repository transaction
+Re-scanning replaces that source's observations and requires removing or updating model claims that no longer have support.
 
-For each source, complete this bounded cycle before opening the next source:
+## Record facts, not presentation choices
 
-1. Read repository instructions.
-2. Identify the exact repository, revision, branch, and scan coverage.
-3. Read the current `subject.json`, `decisions.json`, and generated `canonical.json`.
-4. Inventory solutions/workspaces, build outputs, executable entry points, deployment descriptors, configuration, generated code, tests, and documentation.
-5. Discover all runtime units, stores, channels, shared libraries, inbound interfaces, outbound dependencies, and architecturally meaningful operations.
-6. Write or replace only `scans/<source-id>.json`.
-7. Validate that scan.
-8. Compile and validate the canonical model.
-9. Review newly resolved identities, contract conflicts, candidate external targets, and gaps.
-10. Save the checkpoint before scanning another repository.
+Use discovery kinds `runtime`, `store`, `channel`, `library`, `external`, and `person`. Runtime subtypes such as API, worker, MFE, scheduler, function, or browser application describe observed behavior. A repository can contain several runtimes; a runtime can span repositories; a library is not a running service; a Docker image is deployment evidence, not an architecture boundary.
 
-Do not defer reconciliation until every repository has been scanned. Do not copy findings from one scan into another. Re-scanning a source replaces its repository-local observations and then regenerates the canonical model.
-
-## Record facts, not C4 guesses
-
-Repository scan files use discovery kinds such as `runtime`, `store`, `channel`, `library`, `external`, and `person`. Runtime subtypes can include API, worker, MFE, scheduler, function, browser application, or another observed form. These are factual discovery classifications, not C4 types.
-
-For each unit, capture:
-
-- name, responsibility, discovery kind/subtype, and technology;
-- deployment or logical identity signals;
-- inbound interfaces;
-- outbound dependencies;
-- ownership only when evidenced;
-- exact source anchors and observations.
-
-For every inbound interface, capture what is observed and architecturally useful:
-
-- HTTP/gRPC method, path/service, and API version;
-- event/message channel, subscription or consumer group, and event version;
-- scheduled-job trigger;
-- request, response, event, or command contract identity;
-- schema location or fingerprint and only key correlation/routing/security fields;
-- authentication, routing rules, and filters when they affect callers or architectural paths.
-
-For every outbound dependency, capture:
-
-- source and intended target identity;
-- dependency kind and explicit purpose;
-- technology/protocol;
-- API, event, or contract version;
-- destination route, service, store/schema, queue/topic, package, or remote identity;
-- rules that affect whether or where the dependency is invoked;
-- evidence.
-
-`from` and `to` in the generated relationship define runtime direction. Do not replace direction with a vague `dependsOn`. Keep compile/package dependencies distinct from runtime requests, message flow, data access, and UI composition.
-
-## Right level of detail
-
-Enumerate every public inbound interface and every outbound architectural dependency so relationship coverage can be evaluated. Do not copy full payloads or reproduce ordinary implementation detail.
-
-Capture a payload schema reference, version, fingerprint, and key fields when useful for matching or architecture. Do not copy every DTO property.
-
-Capture rules that change:
-
-- authorization or accepted callers;
-- routing, partitioning, or filtering;
-- whether a downstream call/message occurs;
-- ownership or state progression;
-- retry, outbox, idempotency, or compensation behavior when architecturally significant.
-
-Do not capture every field validator, object mapping, logging statement, MediatR pipeline behavior, helper method, or framework call.
-
-MediatR, CQS, MassTransit, MobX, and design systems are mechanisms or shared artifacts unless evidence establishes a separately running boundary. Use framework-specific wiring to trace operations, not to manufacture nodes.
+For every unit, interface, outbound dependency, and meaningful operation step, record the fields defined by the model specification and exact evidence anchors. Inventory every public inbound interface and architectural outbound dependency, but omit ordinary implementation noise. Preserve direction with `from` and `to`; distinguish requests, events, messages, data access, UI loading, and compile/package dependencies.
 
 ## Identity and reconciliation
 
-Use strong identity signals before names:
+Use identity signals in this order:
 
-1. explicit confirmed override in `decisions.json`;
+1. confirmed override in `decisions.json`;
 2. deployment/runtime identity;
-3. exact database/catalog/schema, bucket, index, queue, or topic identity;
-4. exact configured service address and compatible interface;
+3. exact store or channel identity;
+4. exact configured address plus compatible interface;
 5. compatible contract name, version, and fingerprint;
-6. generated client/server origin or integration test evidence;
+6. generated client/server origin or integration evidence;
 7. package identity;
-8. names and textual similarity only as candidate evidence.
+8. names only as candidate evidence.
 
-Never merge incompatible API or event versions silently. Never infer an inbound caller merely because an endpoint exists. The compiler derives callers from outbound findings and matching inbound interfaces. Leave unmatched targets as candidates or gaps.
+Never silently merge incompatible versions. Never infer a caller merely because an endpoint exists. Match an outbound observation to an inbound interface only when destination and contract evidence are compatible; otherwise preserve a candidate, conflict, or gap. Reuse one model node for one supported identity and attach every supporting source finding. Keep database server, logical database/schema, and access relationship distinct.
 
-A shared physical database host and a shared logical data store are different facts. Distinguish server/cluster, database/catalog, schema, index, and migration ownership. Several services using one logical store produce several directional relationships to one canonical store identity; they do not produce duplicate databases.
+Certainty is one of `observed`, `corroborated`, `inferred`, `conflicting`, or `unknown`. Explain inferred matches and conflicts. Unknown is preferable to a polished guess. Use `decisions.json` only for explicit identity, target, ownership, or system-boundary decisions; preserve confirmed decisions across rescans.
 
-Use `decisions.json` for explicit identity/target overrides and candidate/confirmed/rejected system boundaries. Preserve confirmed decisions across rescans. Do not encode uncertain guesses as decisions.
+## Operations
 
-## Operations and flows
+Record an operation only when a concrete inbound interface has architectural value. Keep steps short and ordered. A step executes at a local unit or uses an outbound dependency. Add branching only when evidenced and architecturally meaningful. Do not turn every handler or method into a flow.
 
-Record one operation for a concrete inbound interface when it adds architectural value. Use a short ordered step list. A step either executes at a local unit or uses one of the owner's outbound dependencies. Add `next` only for an evidenced branch, parallel continuation, failure, or retry that materially changes the architectural story.
+## Completion check
 
-Do not build a detailed causal/event-sourcing model. Keep local implementation steps only when they explain a meaningful rule or boundary crossing. The compiler maps local dependency references to canonical relationships; downstream tools can turn selected flows into Dynamic diagrams.
+Before reporting completion, review each JSON artifact and check all of the following:
 
-## Fail-closed accuracy
+- [ ] Every file is one parseable JSON object with `schemaVersion: 1`; every copied placeholder was replaced or intentionally removed.
+- [ ] Subject sources and scan source IDs are unique; each supplied source has one scan at the intended revision and an honest `complete`, `partial`, or `blocked` status.
+- [ ] Every unit, interface, dependency, and operation step has a repository-relative evidence path and concrete observation.
+- [ ] Local `unitId`, operation owner/trigger/`uses`, decision override, model source-finding, and relationship endpoint references resolve.
+- [ ] Every runtime and logical store is represented or explicitly excluded; shared packages and generated clients are not mistaken for runtimes.
+- [ ] Every relationship has `from`, `to`, kind, purpose, technology, certainty, supporting findings, and evidence.
+- [ ] Versions and incompatible contracts are not silently merged; unresolved callers, targets, ownership, and external configuration remain gaps or conflicts.
+- [ ] Model IDs are stable and collections are ordered lexically by ID so a repeat review produces a reviewable diff independent of scan order.
+- [ ] Every model claim is supported by a scan or confirmed decision, and stale claims from replaced scans were removed.
+- [ ] `model.json` contains observed architecture facts rather than presentation-specific classifications.
 
-Use certainty values only in the generated model: `observed`, `corroborated`, `inferred`, `conflicting`, or `unknown`. Repository scan documents contain observations and explicit gaps; deterministic reconciliation determines corroboration.
-
-Record a gap when configuration is injected externally, a target cannot be resolved, a caller is absent from supplied roots, generated code hides an origin, reflection prevents tracing, or ownership cannot be established. Record concrete searches and architectural impact. Unknown is preferable to a polished guess.
-
-## Completion gate
-
-Do not report gathering complete until:
-
-- [ ] Every supplied source has one validated scan with an exact revision and coverage status.
-- [ ] Every detected executable/runtime and logical store is represented or explicitly excluded.
-- [ ] Every discovered inbound interface is inventoried with version/contract details when observed.
-- [ ] Every outbound architectural dependency has direction, purpose, technology, target identity, and evidence.
-- [ ] Every operation selected for Dynamic/Component analysis maps to an inbound interface and evidenced steps; other public interfaces remain inventoried without forced flow detail.
-- [ ] Shared packages, generated clients, contracts, migrations, and design systems are not mistaken for runtimes.
-- [ ] API/event versions and incompatible contracts have not been silently merged.
-- [ ] Database server, logical database/schema, and data access are distinguished.
-- [ ] Candidate callers and targets remain gaps rather than fabricated relationships.
-- [ ] Compilation and canonical validation pass after the final scan.
-- [ ] Recompilation is deterministic and does not depend on repository scan order.
-
-Run the executable evaluation suite before changing or completing this skill:
-
-```bash
-python -m unittest discover -s "$SKILL_DIR/tests" -p "test_*.py" -v
-```
-
-The tests are deterministic tooling checks. Apply [evals/reasoning-cases.md](evals/reasoning-cases.md) to agent behavior; matching a fail condition is a regression even when the executable tests pass.
+Apply [evals/reasoning-cases.md](evals/reasoning-cases.md) as a behavior checklist. Matching a fail condition is a regression.

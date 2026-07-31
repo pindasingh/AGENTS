@@ -2,15 +2,15 @@
 
 ## Design contract
 
-The model separates agent-authored repository observations from deterministic reconciliation:
+The model separates repository observations from reconciliation:
 
 ```text
-subject.json + decisions.json + scans/*.json -> canonical.json
+subject.json + decisions.json + scans/*.json -> model.json
 ```
 
-Agents write `subject.json`, `decisions.json`, and one scan file at a time. Only `architecture_model.py compile` writes `canonical.json`. All files are strict UTF-8 JSON with `schemaVersion: 1`.
+Agents write `subject.json`, `decisions.json`, one scan file at a time, and the reconciled `model.json` directly. All files are strict UTF-8 JSON with `schemaVersion: 1`. Start from the templates under `assets/` and check references after every edit.
 
-Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The generated canonical model uses stable references because it is compiler-owned and validated.
+Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The reconciled model uses stable references and is reviewed against its supporting scans and confirmed decisions after every update.
 
 ## subject.json
 
@@ -28,7 +28,7 @@ Repository scan documents are deliberately self-contained. Evidence is embedded 
 }
 ```
 
-The subject is the user-selected architecture scope. It can be a system, product, platform, service estate, business domain, or another named scope. It is not automatically a DDD domain or C4 Software System.
+The subject is the user-selected architecture scope. It can be a system, product, platform, service estate, business domain, or another named scope. Its name does not by itself establish a particular architecture boundary or decomposition.
 
 ## decisions.json
 
@@ -53,7 +53,7 @@ The subject is the user-selected architecture scope. It can be a system, product
 }
 ```
 
-Use overrides only for explicit identity decisions. System boundary status is `candidate`, `confirmed`, `rejected`, or `conflicting`. A C4 mapper must not use a candidate boundary as a confirmed System Context scope.
+Use overrides only for explicit identity decisions. System boundary status is `candidate`, `confirmed`, `rejected`, or `conflicting`. Consumers must not treat a candidate boundary as confirmed.
 
 ## Repository scan
 
@@ -127,7 +127,7 @@ Allowed `kind` values:
 - `external`: unresolved or separately owned machine dependency;
 - `person`: human actor when directly evidenced.
 
-`subtype` is extensible and descriptive. It is not used as a C4 type.
+`subtype` is extensible and describes observed runtime behavior.
 
 Strong identity examples:
 
@@ -138,7 +138,7 @@ Strong identity examples:
 {"package": "Company.DesignSystem", "version": "5.2.0"}
 ```
 
-Use `canonicalId` only when an existing confirmed canonical identity is known.
+Use `modelId` only when an existing confirmed model identity is known.
 
 ## Inbound interface
 
@@ -186,7 +186,7 @@ Event/message interfaces require a channel:
 }
 ```
 
-Do not list callers on an inbound interface unless direct caller evidence exists. The compiler derives callers from outbound observations.
+Do not list callers on an inbound interface unless direct caller evidence exists. During reconciliation, derive callers only from matching outbound observations.
 
 ## Outbound dependency
 
@@ -218,7 +218,7 @@ Target examples:
 
 ```json
 {"unitId": "local-database"}
-{"canonicalId": "runtime.confirmed-payments"}
+{"modelId": "runtime.confirmed-payments"}
 {"kind": "runtime", "deploymentIdentity": "payments-api"}
 {"kind": "store", "technology": "SQL Server", "server": "sales", "database": "Orders", "schema": "fulfilment"}
 {"kind": "channel", "transport": "Azure Service Bus", "namespace": "sales", "topic": "order-submitted"}
@@ -273,9 +273,9 @@ Orders are contiguous positive integers. Add `next` only when a non-linear path 
 
 Never turn a gap into a guessed relationship.
 
-## Generated canonical model
+## Reconciled architecture model
 
-`canonical.json` contains keyed collections:
+`model.json` contains keyed collections:
 
 - `sources`
 - `nodes`
@@ -286,6 +286,6 @@ Never turn a gap into a guessed relationship.
 - `gaps`
 - `conflicts`
 
-Canonical relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. The compiler creates channel-to-consumer relationships from inbound event/message interfaces and marks compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
+Model relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
 
-The canonical model is C4-neutral. Downstream mapping decides which nodes are Software Systems, Containers, Components, or supporting evidence by applying C4 semantics and confirmed boundary decisions.
+The reconciled model records architecture facts independently of any presentation or documentation notation. A consumer may select, group, or project those facts, but must preserve model identity, direction, evidence, certainty, and confirmed boundary decisions.

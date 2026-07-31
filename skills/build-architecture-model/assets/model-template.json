@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "id": "replace-subject-id",
+    "name": "Replace subject name"
+  },
+  "sources": {},
+  "nodes": {},
+  "interfaces": {},
+  "relationships": {},
+  "flows": {},
+  "systemBoundaries": {},
+  "gaps": [],
+  "conflicts": []
+}

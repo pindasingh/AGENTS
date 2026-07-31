@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "id": "replace-subject-id",
+    "name": "Replace subject name",
+    "description": "Replace with the user-selected architecture scope",
+    "aliases": [],
+    "requestedSources": ["replace/source/path"],
+    "exclusions": []
+  }
+}

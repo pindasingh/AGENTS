@@ -24,4 +24,4 @@ Retain API version, schema origin/fingerprint, authentication mechanism, and key
 
 ## Shared design systems
 
-Record package identity and version as a library dependency. A design system becomes a runtime/external service only when separately running behavior is evidenced, such as a runtime asset service with architecturally meaningful communication. Package use can support impact analysis but normally does not produce a C4 Container connector.
+Record package identity and version as a library dependency. A design system becomes a runtime or external service only when separately running behavior is evidenced, such as a runtime asset service with architecturally meaningful communication. Package use can support impact analysis but does not by itself establish a runtime relationship.
