@@ -2,15 +2,55 @@
 
 ## Design contract
 
-The model separates agent-authored repository observations from deterministic reconciliation:
+The model separates repository-local observations from canonical reconciliation:
 
 ```text
-subject.json + decisions.json + scans/*.json -> canonical.json
+subject.json + decisions.json + scans/*.json --agent reconciliation--> canonical.json
+progress.json --records the agent's stage and completed gates
 ```
 
-Agents write `subject.json`, `decisions.json`, and one scan file at a time. Only `architecture_model.py compile` writes `canonical.json`. All files are strict UTF-8 JSON with `schemaVersion: 1`.
+The agent writes every artifact directly; this skill does not run scripts or validators. All files are strict UTF-8 JSON with `schemaVersion: 1`. The shapes and reconciliation rules in this document are normative, not illustrative.
 
-Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The generated canonical model uses stable references because it is compiler-owned and validated.
+Do not add top-level keys or emit an alternate architecture representation. Before handing the model to another skill, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, and `canonical.json` contains the reconciliation of all scans and decisions.
+
+## progress.json
+
+Create the ledger when initializing the model. It is keyed by the exact entries in `subject.requestedSources`, and only one source may be active:
+
+```json
+{
+  "schemaVersion": 1,
+  "activeSource": "../orders-api",
+  "sources": {
+    "../orders-api": {
+      "sourceId": "orders-api",
+      "revision": "0123456789abcdef",
+      "stage": "reconciling",
+      "gates": {
+        "scanWritten": true,
+        "scanValidated": true,
+        "canonicalUpdated": false,
+        "gapsReviewed": false,
+        "conflictsReviewed": false
+      }
+    },
+    "../search-worker": {
+      "stage": "pending",
+      "gates": {
+        "scanWritten": false,
+        "scanValidated": false,
+        "canonicalUpdated": false,
+        "gapsReviewed": false,
+        "conflictsReviewed": false
+      }
+    }
+  }
+}
+```
+
+Allowed stages are `pending`, `scanning`, `validating`, `reconciling`, `reviewing`, and `complete`. Gates become true only in their displayed order. A complete entry requires all gates true plus a `sourceId` and exact `revision` matching its scan. If a scan or canonical artifact changes, reset the affected gate and every later gate before continuing.
+
+Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The canonical model uses stable references and is the only reconciled handoff artifact.
 
 ## subject.json
 
@@ -186,7 +226,7 @@ Event/message interfaces require a channel:
 }
 ```
 
-Do not list callers on an inbound interface unless direct caller evidence exists. The compiler derives callers from outbound observations.
+Do not list callers on an inbound interface unless direct caller evidence exists. During reconciliation, derive callers from outbound observations.
 
 ## Outbound dependency
 
@@ -273,7 +313,7 @@ Orders are contiguous positive integers. Add `next` only when a non-linear path 
 
 Never turn a gap into a guessed relationship.
 
-## Generated canonical model
+## Canonical model
 
 `canonical.json` contains keyed collections:
 
@@ -286,6 +326,6 @@ Never turn a gap into a guessed relationship.
 - `gaps`
 - `conflicts`
 
-Canonical relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. The compiler creates channel-to-consumer relationships from inbound event/message interfaces and marks compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
+Canonical relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
 
 The canonical model is C4-neutral. Downstream mapping decides which nodes are Software Systems, Containers, Components, or supporting evidence by applying C4 semantics and confirmed boundary decisions.
