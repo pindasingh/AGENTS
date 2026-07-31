@@ -7,7 +7,7 @@ description: Scans one or many code repositories incrementally and builds an evi
 
 Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and reconcile them into one reconciled working model after every repository. Do not draw C4 diagrams in this skill or assign C4 abstraction types during discovery.
 
-Before scanning, read [references/model-spec.md](references/model-spec.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
+Before scanning, read [references/model-spec.md](references/model-spec.md) and [references/reconciled-model.md](references/reconciled-model.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
 ## Runtime constraint
 
@@ -33,7 +33,18 @@ The model directory is the only architecture-model deliverable. Do not substitut
 - The reconciled model is the durable working memory read before scanning the next repository.
 - Prose in the final response may only summarize completion, gaps, conflicts, and file locations; it must not become a second architecture model.
 
-Copy [assets/scan-template.json](assets/scan-template.json), [assets/progress-template.json](assets/progress-template.json), and [assets/model-template.json](assets/model-template.json) as the starting shapes; use [references/model-spec.md](references/model-spec.md) for `subject.json`, `decisions.json`, and all nested records. Replace example values rather than inventing a different structure. The contract is closed: do not add convenience top-level fields or create a second model format.
+Copy all five starting shapes: [assets/subject-template.json](assets/subject-template.json), [assets/decisions-template.json](assets/decisions-template.json), [assets/progress-template.json](assets/progress-template.json), [assets/scan-template.json](assets/scan-template.json), and [assets/model-template.json](assets/model-template.json). Use [references/model-spec.md](references/model-spec.md) for repository-local artifacts and [references/reconciled-model.md](references/reconciled-model.md) for every nested `model.json` record. Replace example values rather than inventing a different structure. The contract is closed: do not add convenience top-level fields or create a second model format.
+
+## Validation without bundled scripts
+
+Validation is a deliberate agent review, not merely successful JSON parsing. Before setting a validation gate or handing the directory to another skill, perform all four layers:
+
+1. **Syntax:** every artifact is strict UTF-8 JSON with `schemaVersion: 1` and no placeholder values.
+2. **Structure:** every object uses only the fields, value types, enums, and required collections defined by the templates and references.
+3. **References:** progress entries match scans; every model endpoint, owner, member, interface, relationship, flow step, source finding, and decision reference resolves.
+4. **Semantics:** direction, identity, certainty, versions, evidence, gaps, conflicts, and confirmed decisions remain faithful to the scans.
+
+If any layer fails, reset the affected progress gate and later gates, repair the authoritative artifact, and repeat the review. Do not describe a model as validated when only its JSON syntax was checked.
 
 ## Scope authority
 
@@ -158,5 +169,7 @@ Do not report gathering complete until:
 - [ ] Candidate callers and targets remain gaps rather than fabricated relationships.
 - [ ] `progress.json` has no active source; every requested source is `complete`; every gate is true; and each recorded source ID/revision matches its scan.
 - [ ] Reconciliation applies the same identity and ordering rules regardless of repository scan order.
+- [ ] Every `model.json` record matches [references/reconciled-model.md](references/reconciled-model.md), every reference resolves, and `model.systemBoundaries` exactly mirrors `decisions.systemBoundaries`.
+- [ ] Re-reading the complete `.architecture-model/` directory passes syntax, structure, reference, and semantic validation; no single file is handed off in isolation.
 
-Apply [evals/reasoning-cases.md](evals/reasoning-cases.md) to agent behavior. Matching a fail condition is a regression.
+Apply every Markdown case under `evals/` to agent behavior. Matching a fail condition is a regression.
