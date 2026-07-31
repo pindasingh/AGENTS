@@ -1,0 +1,28 @@
+{
+  "id": "replace-code-view-id",
+  "title": "Code — Replace component name",
+  "diagramType": "Code",
+  "description": "Replace with this view's implementation question.",
+  "scope": {
+    "id": "replace-component-scope-id",
+    "name": "Replace component name",
+    "type": "Component",
+    "description": "Replace component responsibility.",
+    "technology": "Unknown",
+    "evidenceRefs": ["replace-source-id:relative/path:1-2#Symbol"]
+  },
+  "elements": [
+    {
+      "id": "replace-code-element-id",
+      "name": "Replace observed code identity",
+      "type": "Class",
+      "description": "Replace implementation responsibility.",
+      "insideScope": true,
+      "evidenceRefs": ["replace-source-id:relative/path:3-20#ClassName"]
+    }
+  ],
+  "relationships": [],
+  "navigation": [],
+  "links": [],
+  "notes": []
+}

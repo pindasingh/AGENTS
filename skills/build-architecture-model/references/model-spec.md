@@ -9,7 +9,7 @@ subject.json + decisions.json + scans/*.json --agent reconciliation--> model.jso
 progress.json --records the agent's stage and completed gates
 ```
 
-The agent writes every artifact directly; this skill does not run scripts or validators. All files are strict UTF-8 JSON with `schemaVersion: 1`. The shapes and reconciliation rules in this document are normative, not illustrative.
+The agent writes every artifact directly; this skill does not require bundled scripts or validators. All files are strict UTF-8 JSON with `schemaVersion: 1`. The shapes and reconciliation rules in this document and [reconciled-model.md](reconciled-model.md) are normative, not illustrative.
 
 Do not add top-level keys or emit an alternate architecture representation. Before handing the model to another skill, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, and `model.json` contains the reconciliation of all scans and decisions.
 
@@ -315,17 +315,6 @@ Never turn a gap into a guessed relationship.
 
 ## Reconciled model
 
-`model.json` contains keyed collections:
+Author `model.json` exactly as specified in [reconciled-model.md](reconciled-model.md). That reference defines the required and optional fields for `sources`, `nodes`, `interfaces`, `relationships`, `flows`, `systemBoundaries`, `gaps`, `conflicts`, source findings, and model evidence.
 
-- `sources`
-- `nodes`
-- `interfaces`
-- `relationships`
-- `flows`
-- `systemBoundaries`
-- `gaps`
-- `conflicts`
-
-Model relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
-
-The reconciled model is C4-neutral. Downstream mapping decides which nodes are Software Systems, Containers, Components, or supporting evidence by applying C4 semantics and confirmed boundary decisions.
+During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts. The reconciled model remains C4-neutral; downstream mapping decides which facts become Software Systems, Containers, Components, Code elements, or supporting evidence.

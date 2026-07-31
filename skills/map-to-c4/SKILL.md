@@ -5,15 +5,21 @@ description: Projects a reconciled architecture model into navigable C4 System C
 
 # Map to C4
 
-Project an evidence-backed reconciled architecture model into navigable C4 views. Read [references/c4-source-of-truth.md](references/c4-source-of-truth.md), [references/model-input.md](references/model-input.md), and [references/view-json.md](references/view-json.md) before working.
+Project an evidence-backed reconciled architecture model into navigable C4 views. Read [references/c4-source-of-truth.md](references/c4-source-of-truth.md), [references/model-input.md](references/model-input.md), [references/view-json.md](references/view-json.md), and the sibling build skill's [reconciled-model contract](../build-architecture-model/references/reconciled-model.md) before working.
 
 This skill does not discover repositories. If the reconciled model is absent or stale, apply the sibling `build-architecture-model` skill first.
 
 ## Templates
 
-Start from:
+Start from the template for the selected level:
 
-- [assets/view-template.json](assets/view-template.json) for the private view definition;
+- [assets/view-template.json](assets/view-template.json) for System Context;
+- [assets/container-view-template.json](assets/container-view-template.json) for Container;
+- [assets/component-view-template.json](assets/component-view-template.json) for Component;
+- [assets/code-view-template.json](assets/code-view-template.json) for Code;
+- [assets/landscape-view-template.json](assets/landscape-view-template.json) for System Landscape;
+- [assets/dynamic-view-template.json](assets/dynamic-view-template.json) for Dynamic;
+- [assets/deployment-view-template.json](assets/deployment-view-template.json) for Deployment;
 - [assets/diagram-template.svg](assets/diagram-template.svg) for a connected diagram;
 - [assets/page-template.html](assets/page-template.html) for a public diagram page;
 - [assets/index-template.html](assets/index-template.html) for architecture navigation.
@@ -33,13 +39,24 @@ System Context and Container views are required. Component and Code views are op
 
 ## Projection workflow
 
-1. Read and self-check the complete reconciled model. Stop or return to discovery when conflicts or gaps prevent an honest required view.
+1. Read and validate the complete `.architecture-model/` directory using [references/model-input.md](references/model-input.md). A parseable `model.json` alone is not sufficient. Stop or return to discovery when any handoff check fails or when conflicts or gaps prevent an honest required view.
 2. Confirm Software System boundaries from `decisions.json`; never use a candidate boundary as confirmed scope.
 3. Create one private JSON view definition from the template for each diagram. Include explicit element and relationship IDs plus model IDs or exact evidence references.
 4. Lay out the SVG directly. Put all included elements on one canvas, place scoped boundaries around their children, then draw one visible labelled directional connector per relationship.
 5. Create the HTML page from the template with breadcrumbs, the SVG, responsibilities, directional relationship details, architecture notes, and zoom links.
 6. Create the subject-specific index and navigation hierarchy.
 7. Review every JSON, SVG, HTML file, and local link using the completion check below.
+
+## Validation layers
+
+Do not collapse validation into a single visual impression. Complete these layers in order for every package:
+
+1. **Input:** the complete architecture-model handoff passes syntax, structural, referential, and semantic checks.
+2. **Projection:** every view item maps to compatible model IDs or exact evidence references without changing direction, identity, version, certainty, or ownership.
+3. **Artifact:** view JSON endpoints resolve; SVG elements/connectors correspond one-to-one; provenance attributes and local links resolve; no placeholders remain.
+4. **Rendered:** inspect the connected diagram at desktop and narrow widths for enclosure, arrow direction, clipping, overlap, contrast, and readable text.
+
+If rendered inspection is unavailable, report the package as structurally checked but not fully validated. Never claim the diagram acceptance gate passed from source inspection alone.
 
 ## C4 mapping rules
 
@@ -96,5 +113,6 @@ For every completed view, read the private JSON and rendered artifacts back and 
 - [ ] Component/Code views contain only evidenced cohesive boundaries/identities; optional diagrams do not replace required views.
 - [ ] Public pages contain architecture conclusions rather than raw evidence or execution metadata.
 - [ ] Re-reading the model source confirms names, direction, ownership, versions, and identities were not redefined by presentation.
+- [ ] Input, projection, artifact, and rendered validation layers all passed; any unavailable layer is explicitly reported rather than assumed.
 
 Apply every Markdown case under `evals/` as a reasoning checklist.

@@ -1,6 +1,6 @@
 # Architecture model input contract
 
-`map-to-c4` consumes the reconciled `model.json` produced by the sibling `build-architecture-model` skill. Read that skill's `references/model-spec.md` for the complete discovery schema.
+`map-to-c4` consumes the complete `.architecture-model/` directory produced by the sibling `build-architecture-model` skill. `model.json` is the projection authority, while the other files prove that it is current, reconciled, and based on explicit decisions. Read that skill's `references/model-spec.md` and `references/reconciled-model.md` for the complete contract.
 
 ## Authority and mutability
 
@@ -9,9 +9,23 @@
 - `model.json` is agent-reconciled working memory. Edit it only while applying `build-architecture-model`, with every claim supported by scans or confirmed decisions.
 - C4 view JSON and rendered artifacts are projections; they do not become architecture authority.
 
-Before mapping, review every artifact using the completion check in `build-architecture-model/SKILL.md`. Resolve broken references, unsupported claims, conflicts, and blocking gaps there.
+Before mapping, review every artifact using the completion check in `build-architecture-model/SKILL.md`. Resolve broken references, unsupported claims, conflicts, and blocking gaps there. Never accept a standalone `model.json` as a validated handoff.
 
 If raw repositories were supplied without a model, run `build-architecture-model` first. Do not recreate a second evidence ledger or overlap model inside `map-to-c4`.
+
+## Deterministic preflight
+
+Perform every check before creating a view:
+
+1. Parse all JSON artifacts and reject placeholder values or unexpected top-level keys.
+2. Require `progress.activeSource` to be null and every requested source to be complete with all gates true.
+3. Match every progress source ID/revision to exactly one scan and every `model.sources` entry to the same scan path, repository, revision, and branch.
+4. Require `model.subject` to equal `subject.json.subject` and `model.systemBoundaries` to equal `decisions.json.systemBoundaries`.
+5. Resolve every identity/target override, model node endpoint, interface owner, boundary member, flow trigger/step, source finding, and evidence source/path.
+6. Confirm every model record uses the sibling reconciled-model shape and every relationship has direction, purpose, technology, certainty, findings, and evidence.
+7. Review open gaps and conflicts. Return to the build skill when any item blocks a truthful required view.
+
+Fail closed: do not repair, reinterpret, or supplement the model inside this skill.
 
 ## Mapping rules
 
