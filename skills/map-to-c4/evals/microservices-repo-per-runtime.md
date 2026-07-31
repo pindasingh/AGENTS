@@ -31,7 +31,7 @@ The API, worker, scheduler, and schema jointly deliver one user-valued Fulfilmen
 - `fulfilment-contracts` is shared code/contract evidence attached to the containers that embed it; it is not a Container because it does not run or store data.
 - `fulfilment-client` is a contract mirror/generated client attached to its consuming container; it is not a Software System or Container.
 - Components are identified separately inside each application Container from cohesive functionality and interfaces. Repository identity alone does not create a Component.
-- The canonical model contains one element per established runtime/data boundary with evidence links back to all repositories.
+- The reconciled model contains one element per established runtime/data boundary with evidence links back to all repositories.
 
 ## Required diagrams
 

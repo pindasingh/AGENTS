@@ -14,7 +14,7 @@ Three repositories named `sales`, `billing`, and `shared-platform` are owned by 
 
 - Reject repository name, domain terminology, and navigation convenience as sufficient Software System evidence.
 - Preserve the competing user-value/ownership boundaries as candidates in private discovery material.
-- Do not generate core System Context or Container diagrams until one canonical Software System boundary is evidenced or explicitly confirmed.
+- Do not generate core System Context or Container diagrams until one confirmed Software System boundary is evidenced or explicitly confirmed.
 - Ask one focused boundary question that describes the plausible domain-specific alternatives.
 - A temporary System Landscape may show separately evidenced Software Systems only; it must not turn the three unresolved names into confirmed systems.
 - Do not silently model the documentation repository or helper tooling instead.

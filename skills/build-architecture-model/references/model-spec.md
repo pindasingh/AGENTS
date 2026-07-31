@@ -2,16 +2,16 @@
 
 ## Design contract
 
-The model separates repository-local observations from canonical reconciliation:
+The model separates repository-local observations from model reconciliation:
 
 ```text
-subject.json + decisions.json + scans/*.json --agent reconciliation--> canonical.json
+subject.json + decisions.json + scans/*.json --agent reconciliation--> model.json
 progress.json --records the agent's stage and completed gates
 ```
 
 The agent writes every artifact directly; this skill does not run scripts or validators. All files are strict UTF-8 JSON with `schemaVersion: 1`. The shapes and reconciliation rules in this document are normative, not illustrative.
 
-Do not add top-level keys or emit an alternate architecture representation. Before handing the model to another skill, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, and `canonical.json` contains the reconciliation of all scans and decisions.
+Do not add top-level keys or emit an alternate architecture representation. Before handing the model to another skill, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, and `model.json` contains the reconciliation of all scans and decisions.
 
 ## progress.json
 
@@ -29,7 +29,7 @@ Create the ledger when initializing the model. It is keyed by the exact entries 
       "gates": {
         "scanWritten": true,
         "scanValidated": true,
-        "canonicalUpdated": false,
+        "modelUpdated": false,
         "gapsReviewed": false,
         "conflictsReviewed": false
       }
@@ -39,7 +39,7 @@ Create the ledger when initializing the model. It is keyed by the exact entries 
       "gates": {
         "scanWritten": false,
         "scanValidated": false,
-        "canonicalUpdated": false,
+        "modelUpdated": false,
         "gapsReviewed": false,
         "conflictsReviewed": false
       }
@@ -48,9 +48,9 @@ Create the ledger when initializing the model. It is keyed by the exact entries 
 }
 ```
 
-Allowed stages are `pending`, `scanning`, `validating`, `reconciling`, `reviewing`, and `complete`. Gates become true only in their displayed order. A complete entry requires all gates true plus a `sourceId` and exact `revision` matching its scan. If a scan or canonical artifact changes, reset the affected gate and every later gate before continuing.
+Allowed stages are `pending`, `scanning`, `validating`, `reconciling`, `reviewing`, and `complete`. Gates become true only in their displayed order. A complete entry requires all gates true plus a `sourceId` and exact `revision` matching its scan. If a scan or model artifact changes, reset the affected gate and every later gate before continuing.
 
-Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The canonical model uses stable references and is the only reconciled handoff artifact.
+Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The reconciled model uses stable references and is the only reconciled handoff artifact.
 
 ## subject.json
 
@@ -178,7 +178,7 @@ Strong identity examples:
 {"package": "Company.DesignSystem", "version": "5.2.0"}
 ```
 
-Use `canonicalId` only when an existing confirmed canonical identity is known.
+Use `modelId` only when an existing confirmed model identity is known.
 
 ## Inbound interface
 
@@ -258,7 +258,7 @@ Target examples:
 
 ```json
 {"unitId": "local-database"}
-{"canonicalId": "runtime.confirmed-payments"}
+{"modelId": "runtime.confirmed-payments"}
 {"kind": "runtime", "deploymentIdentity": "payments-api"}
 {"kind": "store", "technology": "SQL Server", "server": "sales", "database": "Orders", "schema": "fulfilment"}
 {"kind": "channel", "transport": "Azure Service Bus", "namespace": "sales", "topic": "order-submitted"}
@@ -313,9 +313,9 @@ Orders are contiguous positive integers. Add `next` only when a non-linear path 
 
 Never turn a gap into a guessed relationship.
 
-## Canonical model
+## Reconciled model
 
-`canonical.json` contains keyed collections:
+`model.json` contains keyed collections:
 
 - `sources`
 - `nodes`
@@ -326,6 +326,6 @@ Never turn a gap into a guessed relationship.
 - `gaps`
 - `conflicts`
 
-Canonical relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
+Model relationships always have `from`, `to`, `kind`, `purpose`, `technology`, `certainty`, `sourceFindings`, and evidence. During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts.
 
-The canonical model is C4-neutral. Downstream mapping decides which nodes are Software Systems, Containers, Components, or supporting evidence by applying C4 semantics and confirmed boundary decisions.
+The reconciled model is C4-neutral. Downstream mapping decides which nodes are Software Systems, Containers, Components, or supporting evidence by applying C4 semantics and confirmed boundary decisions.

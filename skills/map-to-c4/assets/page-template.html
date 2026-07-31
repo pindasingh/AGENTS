@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{DIAGRAM_TYPE}} — {{SCOPE_NAME}}</title>
+  <style>
+    body { color: #172033; font-family: system-ui, sans-serif; line-height: 1.5; margin: auto; max-width: 90rem; padding: 1.5rem; }
+    nav a { margin-right: 1rem; } img { display: block; height: auto; max-width: 100%; }
+    table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #cbd5e1; padding: .6rem; text-align: left; }
+    .diagram { border: 1px solid #cbd5e1; margin-block: 1.5rem; overflow: auto; }
+  </style>
+</head>
+<body>
+  <nav aria-label="Breadcrumb">{{BREADCRUMB_LINKS}}</nav>
+  <main>
+    <h1>{{DIAGRAM_TYPE}} — {{SCOPE_NAME}}</h1>
+    <p>{{VIEW_DESCRIPTION}}</p>
+    <figure class="diagram">
+      <img src="{{SVG_RELATIVE_PATH}}" alt="{{DIAGRAM_ALT_TEXT}}">
+      <figcaption>{{DIAGRAM_CAPTION}}</figcaption>
+    </figure>
+    <h2>Elements</h2>
+    <table><thead><tr><th>Name and type</th><th>Responsibility</th><th>Technology</th></tr></thead>
+      <tbody>{{ELEMENT_ROWS}}</tbody></table>
+    <h2>Relationships</h2>
+    <table><thead><tr><th>From</th><th>To</th><th>Purpose</th><th>Technology</th></tr></thead>
+      <tbody>{{RELATIONSHIP_ROWS}}</tbody></table>
+    <section><h2>Architecture notes</h2>{{ARCHITECTURE_NOTES}}</section>
+    <nav aria-label="Zoom navigation">{{ZOOM_LINKS}}</nav>
+  </main>
+</body>
+</html>

@@ -30,7 +30,7 @@ Match generated clients to servers using generator metadata, OpenAPI/protobuf or
 
 ## Clean Architecture and mediator patterns
 
-Project names such as Domain, Application, Infrastructure, and API do not establish C4 Components. Use MediatR/CQS handlers, ports, adapters, public interfaces, and dependency direction to trace an operation. Record internal steps only for significant decisions or boundary crossings. Do not inventory every handler, validator, mapper, behavior, repository class, or utility.
+Project names such as Domain, Application, Infrastructure, and API do not establish architecture boundaries. Use MediatR/CQS handlers, ports, adapters, public interfaces, and dependency direction to trace an operation. Record internal steps only for significant decisions or boundary crossings. Do not inventory every handler, validator, mapper, behavior, repository class, or utility.
 
 ## Stores
 

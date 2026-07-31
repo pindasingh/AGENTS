@@ -1,11 +1,11 @@
 ---
 name: build-architecture-model
-description: Scans one or many code repositories incrementally and builds an evidence-backed, C4-neutral canonical architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use before architecture mapping, C4 generation, cross-repository dependency analysis, system discovery, or architecture impact analysis.
+description: Scans one or many code repositories incrementally and builds an evidence-backed, C4-neutral reconciled architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use before architecture mapping, C4 generation, cross-repository dependency analysis, system discovery, or architecture impact analysis.
 ---
 
 # Build Architecture Model
 
-Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and reconcile them into one canonical working model after every repository. Do not draw C4 diagrams in this skill or assign C4 abstraction types during discovery.
+Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and reconcile them into one reconciled working model after every repository. Do not draw C4 diagrams in this skill or assign C4 abstraction types during discovery.
 
 Before scanning, read [references/model-spec.md](references/model-spec.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
@@ -23,17 +23,17 @@ The model directory is the only architecture-model deliverable. Do not substitut
   decisions.json
   progress.json
   scans/<source-id>.json
-  canonical.json
+  model.json
 ```
 
 - Agents author one bounded scan JSON document per repository.
 - `decisions.json` preserves explicit identity, ownership, and boundary decisions.
 - `progress.json` is the persisted workflow ledger. It identifies the one active source and records the completed gates for each requested source. The agent updates it only at the transitions defined below.
-- `canonical.json` is the sole reconciled architecture model. Update it only from validated scan observations and explicit decisions.
-- The canonical model is the durable working memory read before scanning the next repository.
+- `model.json` is the sole reconciled architecture model. Update it only from validated scan observations and explicit decisions.
+- The reconciled model is the durable working memory read before scanning the next repository.
 - Prose in the final response may only summarize completion, gaps, conflicts, and file locations; it must not become a second architecture model.
 
-Copy [assets/scan-template.json](assets/scan-template.json), [assets/progress-template.json](assets/progress-template.json), and [assets/canonical-template.json](assets/canonical-template.json) as the starting shapes; use [references/model-spec.md](references/model-spec.md) for `subject.json`, `decisions.json`, and all nested records. Replace example values rather than inventing a different structure. The contract is closed: do not add convenience top-level fields or create a second model format.
+Copy [assets/scan-template.json](assets/scan-template.json), [assets/progress-template.json](assets/progress-template.json), and [assets/model-template.json](assets/model-template.json) as the starting shapes; use [references/model-spec.md](references/model-spec.md) for `subject.json`, `decisions.json`, and all nested records. Replace example values rather than inventing a different structure. The contract is closed: do not add convenience top-level fields or create a second model format.
 
 ## Scope authority
 
@@ -47,18 +47,18 @@ For each source, complete this bounded cycle before opening the next source. Whe
 
 1. Read repository instructions.
 2. Identify the exact repository, revision, branch, and scan coverage.
-3. Select the next `pending` source, set only that entry to `scanning`, set `activeSource`, and then read the current `subject.json`, `decisions.json`, and `canonical.json`.
+3. Select the next `pending` source, set only that entry to `scanning`, set `activeSource`, and then read the current `subject.json`, `decisions.json`, and `model.json`.
 4. Inventory solutions/workspaces, build outputs, executable entry points, deployment descriptors, configuration, generated code, tests, and documentation.
 5. Discover all runtime units, stores, channels, shared libraries, inbound interfaces, outbound dependencies, and architecturally meaningful operations.
 6. Write or replace only `scans/<source-id>.json`.
 7. Self-check the scan field by field against the template and model specification. Set its `scanWritten` and `scanValidated` gates true only after the matching scan exists, has exact revision and coverage, and passes every completion item below.
 8. Review newly resolved identities, contract conflicts, candidate external targets, and gaps.
-9. Reconcile the scan into `canonical.json`, re-read the result, and then set `canonicalUpdated`, `gapsReviewed`, and `conflictsReviewed` true. Set the source to `complete` and clear `activeSource` only when all five gates are true.
+9. Reconcile the scan into `model.json`, re-read the result, and then set `modelUpdated`, `gapsReviewed`, and `conflictsReviewed` true. Set the source to `complete` and clear `activeSource` only when all five gates are true.
 10. Re-read `progress.json`; only start the next pending source when `activeSource` is null.
 
 Never jump a stage or pre-mark a gate. If an artifact changes after its gate was set, reset that gate and every later gate to false, return the source to the corresponding stage, and repeat the checks. The progress ledger is an agent handoff protocol, not executable enforcement: it cannot prevent a dishonest agent from writing false values, but it keeps a compliant agent on track across context loss and makes skipped work visible to the next agent.
 
-Do not defer reconciliation until every repository has been scanned. Do not copy findings from one scan into another. Re-scanning a source replaces its repository-local observations and requires the agent to update the canonical model.
+Do not defer reconciliation until every repository has been scanned. Do not copy findings from one scan into another. Re-scanning a source replaces its repository-local observations and requires the agent to update the reconciled model.
 
 ## Record facts, not C4 guesses
 
@@ -92,7 +92,7 @@ For every outbound dependency, capture:
 - rules that affect whether or where the dependency is invoked;
 - evidence.
 
-`from` and `to` in each canonical relationship define runtime direction. Do not replace direction with a vague `dependsOn`. Keep compile/package dependencies distinct from runtime requests, message flow, data access, and UI composition.
+`from` and `to` in each model relationship define runtime direction. Do not replace direction with a vague `dependsOn`. Keep compile/package dependencies distinct from runtime requests, message flow, data access, and UI composition.
 
 ## Right level of detail
 
@@ -127,7 +127,7 @@ Use strong identity signals before names:
 
 Never merge incompatible API or event versions silently. Never infer an inbound caller merely because an endpoint exists. Reconcile callers only from outbound findings matched to compatible inbound interfaces. Leave unmatched targets as candidates or gaps.
 
-A shared physical database host and a shared logical data store are different facts. Distinguish server/cluster, database/catalog, schema, index, and migration ownership. Several services using one logical store produce several directional relationships to one canonical store identity; they do not produce duplicate databases.
+A shared physical database host and a shared logical data store are different facts. Distinguish server/cluster, database/catalog, schema, index, and migration ownership. Several services using one logical store produce several directional relationships to one model store identity; they do not produce duplicate databases.
 
 Use `decisions.json` for explicit identity/target overrides and candidate/confirmed/rejected system boundaries. Preserve confirmed decisions across rescans. Do not encode uncertain guesses as decisions.
 
@@ -135,11 +135,11 @@ Use `decisions.json` for explicit identity/target overrides and candidate/confir
 
 Record one operation for a concrete inbound interface when it adds architectural value. Use a short ordered step list. A step either executes at a local unit or uses one of the owner's outbound dependencies. Add `next` only for an evidenced branch, parallel continuation, failure, or retry that materially changes the architectural story.
 
-Do not build a detailed causal/event-sourcing model. Keep local implementation steps only when they explain a meaningful rule or boundary crossing. Map local dependency references to canonical relationships during reconciliation; downstream tools can turn selected flows into Dynamic diagrams.
+Do not build a detailed causal/event-sourcing model. Keep local implementation steps only when they explain a meaningful rule or boundary crossing. Map local dependency references to model relationships during reconciliation; downstream tools can turn selected flows into Dynamic diagrams.
 
 ## Fail-closed accuracy
 
-Use certainty values only in the canonical model: `observed`, `corroborated`, `inferred`, `conflicting`, or `unknown`. Repository scan documents contain observations and explicit gaps; apply the reconciliation rules in the model specification consistently to determine corroboration.
+Use certainty values only in the reconciled model: `observed`, `corroborated`, `inferred`, `conflicting`, or `unknown`. Repository scan documents contain observations and explicit gaps; apply the reconciliation rules in the model specification consistently to determine corroboration.
 
 Record a gap when configuration is injected externally, a target cannot be resolved, a caller is absent from supplied roots, generated code hides an origin, reflection prevents tracing, or ownership cannot be established. Record concrete searches and architectural impact. Unknown is preferable to a polished guess.
 

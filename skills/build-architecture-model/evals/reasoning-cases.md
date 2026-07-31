@@ -10,7 +10,7 @@ The agent resumes after context compaction, sees some scan files, assumes the wo
 
 ### Required outcome
 
-Read `progress.json`, resume its single active source at the recorded stage, and advance its gates in order. A source cannot become complete until its scan is written and self-checked, canonical reconciliation is updated, and gaps and conflicts are reviewed. Final completion requires no active source and every requested source complete with all gates true.
+Read `progress.json`, resume its single active source at the recorded stage, and advance its gates in order. A source cannot become complete until its scan is written and self-checked, model reconciliation is updated, and gaps and conflicts are reviewed. Final completion requires no active source and every requested source complete with all gates true.
 
 ### Fail conditions
 
@@ -19,21 +19,21 @@ Read `progress.json`, resume its single active source at the recorded stage, and
 - Marks a source complete with a false or missing gate, or without a matching scan revision.
 - Reports final completion while the ledger contains an active or unfinished source.
 
-## Canonical output contract
+## Reconciled output contract
 
 ### Prompt
 
-After scanning a repository, the agent offers a polished Markdown architecture report and a hand-maintained JSON file whose fields resemble the canonical model.
+After scanning a repository, the agent offers a polished Markdown architecture report and a hand-maintained JSON file whose fields resemble the reconciled model.
 
 ### Required outcome
 
-Treat `.architecture-model/` as the only model deliverable, author findings only in the prescribed scan shape, and reconcile them into the prescribed `canonical.json` shape. Re-read the scans, decisions, canonical model, and progress gates before handoff. Keep any final prose to a status summary and pointers to the artifacts.
+Treat `.architecture-model/` as the only model deliverable, author findings only in the prescribed scan shape, and reconcile them into the prescribed `model.json` shape. Re-read the scans, decisions, reconciled model, and progress gates before handoff. Keep any final prose to a status summary and pointers to the artifacts.
 
 ### Fail conditions
 
 - Substitutes Markdown, diagrams, or an alternate JSON format for the required model directory.
 - Adds free-form top-level fields to a scan.
-- Calls a stale `canonical.json` canonical when it does not reflect every current scan and decision.
+- Treats a stale `model.json` as authoritative when it does not reflect every current scan and decision.
 - Completes without re-reading the artifacts and satisfying every progress gate.
 
 ## Repository-by-repository checkpointing
@@ -44,12 +44,12 @@ The user supplies seven repositories. The agent proposes reading all repositorie
 
 ### Required outcome
 
-Initialize the model and ledger, scan one repository, self-check its scan, reconcile and re-read `canonical.json`, review gaps/conflicts, mark its gates complete, and only then continue. Read the updated canonical model and progress ledger before each next scan.
+Initialize the model and ledger, scan one repository, self-check its scan, reconcile and re-read `model.json`, review gaps/conflicts, mark its gates complete, and only then continue. Read the updated reconciled model and progress ledger before each next scan.
 
 ### Fail conditions
 
 - Defers all persisted output until the final repository.
-- Updates `canonical.json` without reconciling it from the current scans and decisions.
+- Updates `model.json` without reconciling it from the current scans and decisions.
 - Copies one repository's findings into another repository's scan.
 
 ## API caller and version

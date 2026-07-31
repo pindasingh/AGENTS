@@ -6,7 +6,7 @@
       "gates": {
         "scanWritten": false,
         "scanValidated": false,
-        "canonicalUpdated": false,
+        "modelUpdated": false,
         "gapsReviewed": false,
         "conflictsReviewed": false
       },
