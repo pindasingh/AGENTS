@@ -1,15 +1,17 @@
 {
-  "schemaVersion": 1,
-  "subject": {
-    "id": "replace-subject-id",
-    "name": "Replace subject name"
-  },
-  "sources": {},
-  "nodes": {},
-  "interfaces": {},
-  "relationships": {},
+  "conflicts": {},
   "flows": {},
-  "systemBoundaries": {},
-  "gaps": [],
-  "conflicts": []
+  "gaps": {},
+  "interfaces": {},
+  "nodes": {},
+  "relationships": {},
+  "schemaVersion": 1,
+  "sources": {},
+  "subject": {
+    "description": "Replace with the selected architecture subject description",
+    "id": "replace-with-subject-id",
+    "name": "Replace with subject name",
+    "requestedSources": []
+  },
+  "systemBoundaries": {}
 }
