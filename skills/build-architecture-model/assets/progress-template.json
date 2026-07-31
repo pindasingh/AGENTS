@@ -1,0 +1,16 @@
+{
+  "activeSource": null,
+  "schemaVersion": 1,
+  "sources": {
+    "replace-with-requested-source": {
+      "gates": {
+        "scanWritten": false,
+        "scanValidated": false,
+        "canonicalUpdated": false,
+        "gapsReviewed": false,
+        "conflictsReviewed": false
+      },
+      "stage": "pending"
+    }
+  }
+}
