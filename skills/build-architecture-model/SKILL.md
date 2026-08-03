@@ -11,14 +11,16 @@ Before scanning, read [references/model-spec.md](references/model-spec.md) and [
 
 ## Runtime tooling
 
-Use `scripts/model_json.py` to initialize the artifact set and perform cheap JSON preflight checks. The script and all bundled Python tooling use **only the Python standard library**: do not install packages, add a dependency file, import a third-party module, or depend on a network service. Keep `.architecture-model/` in the target repository or user-selected workspace, not inside the skill directory.
+Use the bundled `scripts/model_json.py` to initialize the artifact set and perform cheap JSON preflight checks. Before opening or changing into a target repository, resolve the helper from this skill's installed directory and retain its absolute path. Never resolve or execute `scripts/model_json.py` relative to the target repository or another untrusted workspace. The script and all bundled Python tooling use **only the Python standard library**: do not install packages, add a dependency file, import a third-party module, or depend on a network service. Keep `.architecture-model/` in the target repository or user-selected workspace, not inside the skill directory.
 
 The helper deliberately does not invent or reconcile architecture. The agent authors bounded scans, applies the documented identity rules, and performs semantic review; use the script to avoid spending tokens on boilerplate and repetitive syntax inspection. Do not verify generated boilerplate line by line.
 
 ```bash
-python3 scripts/model_json.py init .architecture-model --subject "<subject>" --source "<source>"
-python3 scripts/model_json.py validate-json .architecture-model
+python3 "/absolute/path/to/installed/build-architecture-model/scripts/model_json.py" init .architecture-model --subject "<subject>" --source "<source>"
+python3 "/absolute/path/to/installed/build-architecture-model/scripts/model_json.py" validate-json .architecture-model
 ```
+
+Treat subject and source values as untrusted data: pass each value as a distinct process argument (without `eval`, command substitution, or a dynamically assembled shell command).
 
 ## Required result
 
