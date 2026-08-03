@@ -24,7 +24,9 @@ Start from the template for the selected level:
 - [assets/page-template.html](assets/page-template.html) for a public diagram page;
 - [assets/index-template.html](assets/index-template.html) for architecture navigation.
 
-Copy the templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Author the view JSON, SVG, and HTML directly. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`.
+Copy the JSON templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`. Generate SVG and HTML with `scripts/render_c4.py`; do not hand-author generated markup.
+
+All bundled Python must use **only the Python standard library**. Do not install packages, add Python dependency manifests, import third-party layout/rendering libraries, or call a hosted renderer. Run `python3 scripts/render_c4.py <view.json> --svg <view.svg> --html <view.html>`. The renderer derives box and canvas height from wrapped content and emits every input relationship as a labelled, directional connector. If it rejects a view, fix the view or renderer rather than patching generated SVG.
 
 ## Required hierarchy
 
@@ -42,10 +44,9 @@ System Context and Container views are required. Component and Code views are op
 1. Read and validate the complete `.architecture-model/` directory using [references/model-input.md](references/model-input.md). A parseable `model.json` alone is not sufficient. Stop or return to discovery when any handoff check fails or when conflicts or gaps prevent an honest required view.
 2. Confirm Software System boundaries from `decisions.json`; never use a candidate boundary as confirmed scope.
 3. Create one private JSON view definition from the template for each diagram. Include explicit element and relationship IDs plus model IDs or exact evidence references.
-4. Lay out the SVG directly. Put all included elements on one canvas, place scoped boundaries around their children, then draw one visible labelled directional connector per relationship.
-5. Create the HTML page from the template with breadcrumbs, the SVG, responsibilities, directional relationship details, architecture notes, and zoom links.
-6. Create the subject-specific index and navigation hierarchy.
-7. Review every JSON, SVG, HTML file, and local link using the completion check below.
+4. Keep the visible view audience-focused. Put certainty, evidence status, endpoint inventories, and fine-grained detail in private JSON/model data or a deeper view; never append “not verified” or similar process commentary to visible labels.
+5. Render SVG/HTML with the bundled script, then create the subject-specific index and navigation hierarchy.
+6. Review generated artifacts and links using programmatic checks, then visually inspect desktop and narrow widths. Do not spend tokens manually verifying generated markup line by line.
 
 ## Validation layers
 
@@ -61,12 +62,14 @@ If rendered inspection is unavailable, report the package as structurally checke
 ## C4 mapping rules
 
 - Establish Software Systems using user value, ownership, responsibility, visibility of internals, and coordinated delivery—not repository names or domains.
+- A repository that contains only an API normally evidences an Application Container inside a wider Software System. It does not by itself establish the top-level Software System, subject, business domain, or landscape scope.
 - Map independently running applications and owned logical data stores to Containers inside their owning system. A substantial browser client and its server are separate Containers.
 - Treat queues/topics according to ownership and architectural coupling; do not automatically turn a broker into a Container.
 - Never promote libraries, assemblies, packages, folders, contracts, generated clients, or migrations into Containers without runtime evidence.
 - Define Components from cohesive behavior, interfaces, encapsulation, and dependencies inside exactly one Container; packaging alone is insufficient.
 - Create Code views only from observed identities and static relationships inside one Component. Never invent class candidates.
 - Classify a cross-domain machine caller as a concrete Software System, a human as a Person, and an in-system caller as another Container. Do not create `Domain`, `Consumer`, or `Microservice` C4 types.
+- Use progressive disclosure: a Context view shows external collaboration, a Container view shows runtime responsibilities, and a Component or Dynamic view answers one selected internal question. Do not project every known fact at every level.
 
 ## Diagram acceptance gate
 
