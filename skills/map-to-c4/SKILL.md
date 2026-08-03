@@ -24,9 +24,18 @@ Start from the template for the selected level:
 - [assets/page-template.html](assets/page-template.html) for a public diagram page;
 - [assets/index-template.html](assets/index-template.html) for architecture navigation.
 
-Copy the JSON templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`. Generate SVG and HTML with `scripts/render_c4.py`; do not hand-author generated markup.
+Copy the JSON templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`. Generate SVG and HTML with `scripts/render_c4.py`; do not hand-author or patch generated markup.
 
-All bundled Python must use **only the Python standard library**. Do not install packages, add Python dependency manifests, import third-party layout/rendering libraries, or call a hosted renderer. Run `python3 scripts/render_c4.py <view.json> --svg <view.svg> --html <view.html>`. The renderer derives box and canvas height from wrapped content and emits every input relationship as a labelled, directional connector. If it rejects a view, fix the view or renderer rather than patching generated SVG.
+All bundled Python must use **only the Python standard library**. Do not install packages, add Python dependency manifests, import third-party layout/rendering libraries, or call a hosted renderer. Run `python3 scripts/render_c4.py <view.json> --svg <view.svg> --html <view.html>`. The renderer derives box and canvas height from wrapped content and emits every input relationship as a labelled, directional connector. If it rejects a view, fix the view JSON or renderer and rerun it rather than moving generation or repetitive inspection back into agent context.
+
+### Output safety
+
+Treat all model, repository, and prompt-derived values as untrusted. The renderer, not the agent, owns contextual escaping and fixed markup generation:
+
+- Keep untrusted values in supported text, attribute, and local-path fields; never treat them as markup, element or attribute names, CSS, SVG path data, or another active context.
+- Require normalized, site-local relative asset paths. Reject absolute, scheme-relative, backslash-containing, encoded, traversal, query, fragment, or URI-scheme paths before attribute escaping.
+- Keep the renderer's Content Security Policy. Do not add scripts, event-handler attributes, active embedded content, external resources, or inline SVG to an HTML page. When publishing, send the same policy as an HTTP response header.
+- Run the bundled tests after any renderer or template change. Use parser-based or other programmatic validation of completed output; do not spend agent tokens manually checking generated markup line by line.
 
 ## Required hierarchy
 
@@ -115,6 +124,7 @@ For every completed view, read the private JSON and rendered artifacts back and 
 - [ ] All local links resolve, zoom paths name their target scope/level, and every confirmed Software System has Context and Container pages.
 - [ ] Component/Code views contain only evidenced cohesive boundaries/identities; optional diagrams do not replace required views.
 - [ ] Public pages contain architecture conclusions rather than raw evidence or execution metadata.
+- [ ] Every untrusted value is context-escaped, every URL is an allowed site-local path, the Content Security Policy remains intact, and no active content is present.
 - [ ] Re-reading the model source confirms names, direction, ownership, versions, and identities were not redefined by presentation.
 - [ ] Input, projection, artifact, and rendered validation layers all passed; any unavailable layer is explicitly reported rather than assumed.
 

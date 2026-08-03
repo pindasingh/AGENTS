@@ -5,6 +5,8 @@ import argparse, json, math, textwrap
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
+import re
+from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
 BOX_W, MIN_H, GAP_X, GAP_Y = 280, 120, 100, 55
@@ -95,8 +97,20 @@ def render(view):
         out.append(f'<g data-c4-element-id="{escape(item["id"])}"{attrs(item)}><rect class="box{" external" if external else ""}" x="{b.x}" y="{b.y}" width="{b.w}" height="{b.h}" rx="7"/>{text(b.cx,b.y+28,wrap(item["name"]),"name")}{text(b.cx,b.y+55+18*(len(wrap(item["name"]))-1),[f"[{item["type"]}]",*wrap(item["description"]),*wrap(item.get("technology",""))] if item.get("technology") else [f"[{item["type"]}]",*wrap(item["description"])],"detail")}</g>')
     out.append('</svg>'); result=''.join(out); ET.fromstring(result); return result
 
+def safe_local_path(value):
+    value=str(value)
+    parsed=urlsplit(value)
+    require(bool(value) and not re.search(r'[\\\x00-\x1f\x7f]',value), 'asset path must not be empty or contain backslashes or control characters')
+    require(not parsed.scheme and not parsed.netloc and not value.startswith('/'), 'asset path must be site-local and relative')
+    require(not parsed.query and not parsed.fragment and '%' not in value, 'asset path must not be encoded or contain a query or fragment')
+    require(all(part not in ('','.','..') for part in parsed.path.split('/')), 'asset path must be normalized and must not traverse directories')
+    return parsed.path
+
 def html_page(view, svg_name):
-    return f'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{escape(view["title"])}</title><style>body{{font:16px Arial;margin:2rem}}object{{width:100%;height:auto;min-height:70vh}}</style></head><body><h1>{escape(view["title"])}</h1><p>{escape(view.get("description",""))}</p><object type="image/svg+xml" data="{escape(svg_name)}"></object></body></html>'
+    svg_name=safe_local_path(svg_name)
+    policy="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'none'"
+    title=escape(view['title']); description=escape(view.get('description',''))
+    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="{policy}"><title>{title}</title><style>body{{font:16px Arial;margin:2rem}}img{{display:block;width:100%;height:auto}}</style></head><body><main><h1>{title}</h1><p>{description}</p><img src="{escape(svg_name)}" alt="{title}"></main></body></html>'
 
 def main():
     p=argparse.ArgumentParser(description=__doc__); p.add_argument('view',type=Path); p.add_argument('--svg',type=Path,required=True); p.add_argument('--html',type=Path); a=p.parse_args()
