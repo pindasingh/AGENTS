@@ -24,7 +24,15 @@ Start from the template for the selected level:
 - [assets/page-template.html](assets/page-template.html) for a public diagram page;
 - [assets/index-template.html](assets/index-template.html) for architecture navigation.
 
-Copy the templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Author the view JSON, SVG, and HTML directly. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`.
+Copy the templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Author the view JSON, SVG, and HTML directly. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`. Treat all model, repository, and prompt-derived values as untrusted and apply the output-safety rules below while replacing placeholders.
+
+### Output safety
+
+- Escape every untrusted value for its destination context. In HTML or SVG/XML text, encode at least `&`, `<`, and `>`; in quoted attributes, also encode the quote character. Do not insert untrusted strings as markup, element or attribute names, CSS, or SVG path data.
+- Structured placeholders such as `BREADCRUMB_LINKS`, `ELEMENT_ROWS`, `RELATIONSHIP_ROWS`, `ARCHITECTURE_NOTES`, `ZOOM_LINKS`, and `OPTIONAL_VIEW_LINKS` are not trusted HTML. Build their fixed elements explicitly and context-escape every model-derived text and attribute value within them.
+- Links and image sources must be normalized, site-local relative paths. Reject absolute, scheme-relative, backslash-containing, or traversal paths and any URI scheme (including `javascript:`, `data:`, and `file:`) before HTML attribute escaping.
+- Keep the templates' Content Security Policy. Do not add scripts, event-handler attributes, active embedded content, external resources, or inline SVG to an HTML page. When publishing, send the same policy as an HTTP response header.
+- Read the completed files back and fail validation if a placeholder remains, parsing fails, a disallowed URL appears, or generated HTML/SVG contains `script`, `foreignObject`, event-handler attributes, or other active content.
 
 ## Required hierarchy
 
@@ -112,6 +120,7 @@ For every completed view, read the private JSON and rendered artifacts back and 
 - [ ] All local links resolve, zoom paths name their target scope/level, and every confirmed Software System has Context and Container pages.
 - [ ] Component/Code views contain only evidenced cohesive boundaries/identities; optional diagrams do not replace required views.
 - [ ] Public pages contain architecture conclusions rather than raw evidence or execution metadata.
+- [ ] Every untrusted value is context-escaped, every URL is an allowed site-local path, the Content Security Policy remains intact, and no active content is present.
 - [ ] Re-reading the model source confirms names, direction, ownership, versions, and identities were not redefined by presentation.
 - [ ] Input, projection, artifact, and rendered validation layers all passed; any unavailable layer is explicitly reported rather than assumed.
 
