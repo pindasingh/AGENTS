@@ -52,6 +52,14 @@ Initialize the model and ledger, scan one repository, self-check its scan, recon
 - Updates `model.json` without reconciling it from the current scans and decisions.
 - Copies one repository's findings into another repository's scan.
 
+## Token-efficient standard-library tooling
+
+**Prompt:** The agent wants to initialize and syntax-check the architecture artifact set, then proposes installing a JSON-schema package and asking another model to regenerate `model.json`.
+
+**Required:** Use the bundled helper for deterministic boilerplate and JSON preflight. Bundled Python uses only the standard library, requires no installation or network, and never substitutes for evidence discovery, reconciliation decisions, or semantic review.
+
+**Fail if:** the agent adds a dependency manifest, imports a third-party Python module, delegates architecture interpretation to the helper, manually recreates generated boilerplate, or verifies generated JSON line by line instead of reviewing architectural meaning.
+
 ## API caller and version
 
 ### Prompt

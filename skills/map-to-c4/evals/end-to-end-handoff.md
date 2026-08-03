@@ -14,6 +14,8 @@ The user supplies two repositories that together implement one confirmed Orderin
 - Preserve browser-to-API and API-to-database direction, API version, technology, logical-store identity, and model relationship provenance.
 - Assess Component and Code views but omit either when internal evidence is insufficient.
 - Complete input, projection, artifact, and rendered validation separately.
+- Use only bundled standard-library Python tooling; run programmatic generation/validation instead of manually checking every generated line.
+- Keep certainty and detailed evidence in model/view JSON, not in visible diagram labels.
 
 ## Fail conditions
 
@@ -23,3 +25,5 @@ The user supplies two repositories that together implement one confirmed Orderin
 - Duplicates the database per repository.
 - Produces disconnected cards, unresolved view endpoints, missing provenance, or broken links.
 - Claims full validation without rendered desktop and narrow-width inspection.
+- introduces a third-party Python dependency or hosted renderer.
+- draws scan-status commentary on the public diagram.

@@ -9,9 +9,16 @@ Discover the architecture of a user-named subject one repository at a time. The 
 
 Before scanning, read [references/model-spec.md](references/model-spec.md) and [references/reconciled-model.md](references/reconciled-model.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
-## Runtime constraint
+## Runtime tooling
 
-This is an instruction-only skill. Do not run bundled scripts, Python, validators, or lifecycle commands: none are required or provided. The agent creates and updates the JSON artifacts directly with its normal file-writing capability. Keep `.architecture-model/` in the target repository or user-selected workspace, not inside the skill directory.
+Use `scripts/model_json.py` to initialize the artifact set and perform cheap JSON preflight checks. The script and all bundled Python tooling use **only the Python standard library**: do not install packages, add a dependency file, import a third-party module, or depend on a network service. Keep `.architecture-model/` in the target repository or user-selected workspace, not inside the skill directory.
+
+The helper deliberately does not invent or reconcile architecture. The agent authors bounded scans, applies the documented identity rules, and performs semantic review; use the script to avoid spending tokens on boilerplate and repetitive syntax inspection. Do not verify generated boilerplate line by line.
+
+```bash
+python3 scripts/model_json.py init .architecture-model --subject "<subject>" --source "<source>"
+python3 scripts/model_json.py validate-json .architecture-model
+```
 
 ## Required result
 

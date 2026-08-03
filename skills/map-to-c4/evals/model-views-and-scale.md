@@ -19,6 +19,8 @@ A reconciled model has 80 Containers and 400 relationships. A user requests one 
 - Do not mix Components into Container views or invent group pseudo-elements as architectural identities.
 - Accept the trade-off that filtered views lose some big-picture detail; optionally supplement them with a suitable landscape or alternative visualisation.
 - Prefer repeatable modelling/generation over copied diagram elements so changes remain consistent and reviewable.
+- Use the bundled standard-library renderer; retain fine-grained facts in JSON rather than placing them all on the visible diagram.
+- Ensure generated boxes expand for wrapped text and every selected relationship remains a visible labelled arrow. Reduce density by filtering the view, never by clipping content or silently dropping connectors.
 
 ## Fail conditions
 
@@ -30,3 +32,6 @@ Fail if the response:
 - duplicates or independently renames model elements;
 - creates organisational/group boxes as Software Systems, Containers, or Components;
 - mixes abstraction levels to fill whitespace.
+- adds visible evidence-process labels such as `not verified` instead of keeping certainty in private model data;
+- silently omits a selected relationship, clips wrapped text with a fixed-height box, or relies on a fixed canvas that hides content;
+- installs or imports a third-party Python package for rendering.

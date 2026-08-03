@@ -10,9 +10,12 @@
 
 Three repositories named `sales`, `billing`, and `shared-platform` are owned by two teams. The repositories contain several executables and shared libraries. Documentation calls all three names “domains”, but does not state which user-valued products exist, which team owns each runtime, or which internals each team can see. Generate the complete C4 package now and use each repository as a Software System so navigation is simple.
 
+A fourth supplied repository contains only one HTTP API. The request refers to that repository as the subject, but provides no evidence that the API is independently user-valued or independently owned.
+
 ## Required outcome
 
 - Reject repository name, domain terminology, and navigation convenience as sufficient Software System evidence.
+- Treat the API runtime as candidate Application Container evidence, not automatically as the subject's top-level Software System or business domain.
 - Preserve the competing user-value/ownership boundaries as candidates in private discovery material.
 - Do not generate core System Context or Container diagrams until one confirmed Software System boundary is evidenced or explicitly confirmed.
 - Ask one focused boundary question that describes the plausible domain-specific alternatives.
@@ -29,3 +32,4 @@ Fail if the response:
 - fabricates a System Context scope to satisfy a four-level template;
 - asks the user to resolve routine repository bookkeeping instead of the architectural boundary;
 - presents unresolved candidates as authoritative architecture.
+- promotes the API-only repository directly to Software System or uses its repository name as a domain boundary.
