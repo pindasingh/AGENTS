@@ -24,15 +24,18 @@ Start from the template for the selected level:
 - [assets/page-template.html](assets/page-template.html) for a public diagram page;
 - [assets/index-template.html](assets/index-template.html) for architecture navigation.
 
-Copy the templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Author the view JSON, SVG, and HTML directly. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`. Treat all model, repository, and prompt-derived values as untrusted and apply the output-safety rules below while replacing placeholders.
+Copy the JSON templates, replace every `{{PLACEHOLDER}}`, and add or remove repeated blocks as needed. Keep view definitions under `.c4-work/views/` and public artifacts under `architecture/`. Generate SVG and HTML with `scripts/render_c4.py`; do not hand-author or patch generated markup.
+
+All bundled Python must use **only the Python standard library**. Do not install packages, add Python dependency manifests, import third-party layout/rendering libraries, or call a hosted renderer. Run `python3 scripts/render_c4.py <view.json> --svg <view.svg> --html <view.html>`. The renderer derives box and canvas height from wrapped content and emits every input relationship as a labelled, directional connector. If it rejects a view, fix the view JSON or renderer and rerun it rather than moving generation or repetitive inspection back into agent context.
 
 ### Output safety
 
-- Escape every untrusted value for its destination context. In HTML or SVG/XML text, encode at least `&`, `<`, and `>`; in quoted attributes, also encode the quote character. Do not insert untrusted strings as markup, element or attribute names, CSS, or SVG path data.
-- Structured placeholders such as `BREADCRUMB_LINKS`, `ELEMENT_ROWS`, `RELATIONSHIP_ROWS`, `ARCHITECTURE_NOTES`, `ZOOM_LINKS`, and `OPTIONAL_VIEW_LINKS` are not trusted HTML. Build their fixed elements explicitly and context-escape every model-derived text and attribute value within them.
-- Links and image sources must be normalized, site-local relative paths. Reject absolute, scheme-relative, backslash-containing, or traversal paths and any URI scheme (including `javascript:`, `data:`, and `file:`) before HTML attribute escaping.
-- Keep the templates' Content Security Policy. Do not add scripts, event-handler attributes, active embedded content, external resources, or inline SVG to an HTML page. When publishing, send the same policy as an HTTP response header.
-- Read the completed files back and fail validation if a placeholder remains, parsing fails, a disallowed URL appears, or generated HTML/SVG contains `script`, `foreignObject`, event-handler attributes, or other active content.
+Treat all model, repository, and prompt-derived values as untrusted. The renderer, not the agent, owns contextual escaping and fixed markup generation:
+
+- Keep untrusted values in supported text, attribute, and local-path fields; never treat them as markup, element or attribute names, CSS, SVG path data, or another active context.
+- Require normalized, site-local relative asset paths. Reject absolute, scheme-relative, backslash-containing, encoded, traversal, query, fragment, or URI-scheme paths before attribute escaping.
+- Keep the renderer's Content Security Policy. Do not add scripts, event-handler attributes, active embedded content, external resources, or inline SVG to an HTML page. When publishing, send the same policy as an HTTP response header.
+- Run the bundled tests after any renderer or template change. Use parser-based or other programmatic validation of completed output; do not spend agent tokens manually checking generated markup line by line.
 
 ## Required hierarchy
 
@@ -50,10 +53,9 @@ System Context and Container views are required. Component and Code views are op
 1. Read and validate the complete `.architecture-model/` directory using [references/model-input.md](references/model-input.md). A parseable `model.json` alone is not sufficient. Stop or return to discovery when any handoff check fails or when conflicts or gaps prevent an honest required view.
 2. Confirm Software System boundaries from `decisions.json`; never use a candidate boundary as confirmed scope.
 3. Create one private JSON view definition from the template for each diagram. Include explicit element and relationship IDs plus model IDs or exact evidence references.
-4. Lay out the SVG directly. Put all included elements on one canvas, place scoped boundaries around their children, then draw one visible labelled directional connector per relationship.
-5. Create the HTML page from the template with breadcrumbs, the SVG, responsibilities, directional relationship details, architecture notes, and zoom links.
-6. Create the subject-specific index and navigation hierarchy.
-7. Review every JSON, SVG, HTML file, and local link using the completion check below.
+4. Keep the visible view audience-focused. Put certainty, evidence status, endpoint inventories, and fine-grained detail in private JSON/model data or a deeper view; never append “not verified” or similar process commentary to visible labels.
+5. Render SVG/HTML with the bundled script, then create the subject-specific index and navigation hierarchy.
+6. Review generated artifacts and links using programmatic checks, then visually inspect desktop and narrow widths. Do not spend tokens manually verifying generated markup line by line.
 
 ## Validation layers
 
@@ -69,12 +71,14 @@ If rendered inspection is unavailable, report the package as structurally checke
 ## C4 mapping rules
 
 - Establish Software Systems using user value, ownership, responsibility, visibility of internals, and coordinated delivery—not repository names or domains.
+- A repository that contains only an API normally evidences an Application Container inside a wider Software System. It does not by itself establish the top-level Software System, subject, business domain, or landscape scope.
 - Map independently running applications and owned logical data stores to Containers inside their owning system. A substantial browser client and its server are separate Containers.
 - Treat queues/topics according to ownership and architectural coupling; do not automatically turn a broker into a Container.
 - Never promote libraries, assemblies, packages, folders, contracts, generated clients, or migrations into Containers without runtime evidence.
 - Define Components from cohesive behavior, interfaces, encapsulation, and dependencies inside exactly one Container; packaging alone is insufficient.
 - Create Code views only from observed identities and static relationships inside one Component. Never invent class candidates.
 - Classify a cross-domain machine caller as a concrete Software System, a human as a Person, and an in-system caller as another Container. Do not create `Domain`, `Consumer`, or `Microservice` C4 types.
+- Use progressive disclosure: a Context view shows external collaboration, a Container view shows runtime responsibilities, and a Component or Dynamic view answers one selected internal question. Do not project every known fact at every level.
 
 ## Diagram acceptance gate
 
