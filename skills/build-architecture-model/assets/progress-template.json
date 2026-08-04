@@ -1,14 +1,25 @@
 {
-  "activeSource": null,
-  "schemaVersion": 1,
-  "sources": {
-    "replace-with-requested-source": {
+  "activeSourceId": null,
+  "pathReviews": {
+    "path.submit-order.success": {
       "gates": {
-        "scanWritten": false,
-        "scanValidated": false,
-        "modelUpdated": false,
+        "asciiDiagramGenerated": false,
+        "canonicalPathValidated": false,
+        "numberedSequenceGenerated": false,
+        "projectionsValidated": false
+      },
+      "stage": "pending"
+    }
+  },
+  "schemaVersion": 2,
+  "sources": {
+    "source.orders-api": {
+      "gates": {
+        "conflictsReviewed": false,
         "gapsReviewed": false,
-        "conflictsReviewed": false
+        "graphUpdated": false,
+        "scanValidated": false,
+        "scanWritten": false
       },
       "stage": "pending"
     }

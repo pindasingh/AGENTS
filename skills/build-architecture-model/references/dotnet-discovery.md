@@ -18,7 +18,7 @@ Do not stop at an extension method call. Follow the registration implementation 
 
 ## Outbound work
 
-Find typed/named `HttpClient`, Refit, generated OpenAPI clients, gRPC clients, service-discovery keys, base-address configuration, message publish/send calls, producer registrations, `DbContext`/database clients, Elasticsearch clients, blob/file clients, and package/project references.
+Find typed/named `HttpClient`, Refit, generated OpenAPI clients, gRPC clients, service-discovery keys, base-address configuration, message publish/send calls, producer registrations, `DbContext`/database clients, Elasticsearch clients, caches, blob/file clients, feature-flag SDKs such as LaunchDarkly, remote configuration clients, telemetry/tracing clients, and package/project references.
 
 Trace configuration keys through `appsettings*.json`, options binding, environment variables, Helm/Kubernetes values, Compose, infrastructure code, and integration tests. A common key such as `DefaultConnection` does not prove a shared database.
 
@@ -30,7 +30,9 @@ Match generated clients to servers using generator metadata, OpenAPI/protobuf or
 
 ## Clean Architecture and mediator patterns
 
-Project names such as Domain, Application, Infrastructure, and API do not establish architecture boundaries. Use MediatR/CQS handlers, ports, adapters, public interfaces, and dependency direction to trace an operation. Record internal steps only for significant decisions or boundary crossings. Do not inventory every handler, validator, mapper, behavior, repository class, or utility.
+Project names such as Domain, Application, Infrastructure, and API do not establish architecture boundaries. For each selected exterior flow, follow middleware, controller/endpoint, MediatR/CQS dispatch, handlers, ports, adapters, repositories, clients, calls, and returns/effects in execution order. Record every operation or hand-off needed to explain the path and every invoked dependency, including configuration, feature flags, data/search stores, messaging, and telemetry. Do not inventory unrelated handlers, validators, mappers, behaviors, repository classes, or utilities merely because they exist.
+
+Use a stable component record only for cohesive or reusable execution responsibilities. A local operation may name exact evidence without promoting its class to a component.
 
 ## Stores
 

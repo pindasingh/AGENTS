@@ -16,7 +16,7 @@ Do not turn routes, pages, MobX stores, or design-system components into archite
 
 ## Outbound dependencies
 
-Find fetch/Axios clients, generated OpenAPI clients, GraphQL/gRPC-web clients, base URL and service-discovery configuration, browser messaging, storage, analytics, and runtime remote loading. Match clients to API interfaces using destination identity, method/path/version, and compatible contracts. An API route alone does not prove a browser caller.
+Find fetch/Axios clients, generated OpenAPI clients, GraphQL/gRPC-web clients, base URL and service-discovery configuration, browser messaging, storage, feature flags, analytics/telemetry, and runtime remote loading. Trace selected flows from the user action or exterior browser entry through state/action handlers and the exact client invocation. Match clients to API interfaces using destination identity, method/path/version, and compatible contracts. An API route alone does not prove a browser caller.
 
 ## Contracts and rules
 

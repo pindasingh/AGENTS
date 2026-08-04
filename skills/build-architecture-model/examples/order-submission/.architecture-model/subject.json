@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "subject": {
+    "aliases": [],
+    "description": "Architecture model for Ordering",
+    "discoveryRoots": [
+      "../orders-api",
+      "../orders-web"
+    ],
+    "exclusions": [],
+    "id": "domain.ordering",
+    "name": "Ordering",
+    "requestedSources": [
+      "source.orders-api",
+      "source.orders-web"
+    ]
+  }
+}

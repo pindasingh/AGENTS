@@ -1,0 +1,27 @@
+{
+  "certainty": "observed",
+  "evidence": [
+    {
+      "observation": "Fixture evidence",
+      "path": "src/Orders.cs",
+      "sourceId": "source.orders-api"
+    }
+  ],
+  "id": "runtime.api",
+  "identity": {
+    "fixture": "runtime.api"
+  },
+  "kind": "runtime",
+  "name": "Orders API",
+  "responsibility": "Handles order submission",
+  "schemaVersion": 2,
+  "sourceFindings": [
+    {
+      "sourceId": "source.orders-api",
+      "unitId": "orders-api"
+    }
+  ],
+  "technology": [
+    "Fixture"
+  ]
+}

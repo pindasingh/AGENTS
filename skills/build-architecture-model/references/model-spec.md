@@ -1,320 +1,192 @@
-# Architecture discovery model specification
+# Architecture discovery and workflow specification
 
-## Design contract
+## 1. Design contract
 
-The model separates repository-local observations from model reconciliation:
+The architecture model uses schema version 2 and separates repository observations, reconciled graph entities, operation paths, and generated projections:
 
 ```text
-subject.json + decisions.json + scans/*.json --agent reconciliation--> model.json
-progress.json --records the agent's stage and completed gates
+subject + decisions + sources/*/scan
+                  |
+                  v agent reconciliation
+independent domain/node/component/interface/relationship/operation/path shards
+                  |
+                  +-- deterministic index --> index.json
+                  +-- deterministic render --> numbered Markdown + ASCII
 ```
 
-The agent writes every artifact directly; this skill does not require bundled scripts or validators. All files are strict UTF-8 JSON with `schemaVersion: 1`. The shapes and reconciliation rules in this document and [reconciled-model.md](reconciled-model.md) are normative, not illustrative.
+There is no aggregate `model.json`. A canonical fact exists once in its own shard. References use stable IDs. `index.json` is generated and contains only paths, hashes, and hierarchy summaries.
 
-Do not add top-level keys or emit an alternate architecture representation. Before handing the model to another skill, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, and `model.json` contains the reconciliation of all scans and decisions.
+All JSON is strict UTF-8, `schemaVersion: 2`, sorted by the bundled formatter, and terminated by LF. Set-like arrays, including caller alternatives, are canonicalized; sequence order and participant first-endpoint order remain semantic.
 
-## progress.json
+## 2. Top-level control artifacts
 
-Create the ledger when initializing the model. It is keyed by the exact entries in `subject.requestedSources`, and only one source may be active:
+### subject.json
+
+Use [../assets/subject-template.json](../assets/subject-template.json). The user-selected scope ID starts with `domain.`. `discoveryRoots` records local roots or supplied repositories. `requestedSources` contains accepted `source.*` IDs, not checkout paths. Update both when repository discovery expands the source queue.
+
+### decisions.json
+
+Use [../assets/decisions-template.json](../assets/decisions-template.json).
+
+- `identityOverrides`: explicit local-observation to stable graph ID decisions.
+- `targetOverrides`: explicit outbound-target to graph node/interface decisions.
+- `repositoryOverrides`: explicit candidate location/repository to stable source ID decisions.
+- `systemBoundaries`: candidate/confirmed/rejected/conflicting boundary decisions for downstream mapping.
+
+Do not encode guesses as overrides.
+
+### progress.json
+
+Use [../assets/progress-template.json](../assets/progress-template.json). `sources` exactly matches source shards and `pathReviews` exactly matches operation path shards.
+
+Source gates advance in this order:
+
+1. `scanWritten`
+2. `scanValidated`
+3. `graphUpdated`
+4. `gapsReviewed`
+5. `conflictsReviewed`
+
+A complete source has all gates true and a `revision` equal to `scan.source.revision`. Only `activeSourceId` may be in progress.
+
+Path-review gates advance in this order:
+
+1. `canonicalPathValidated`
+2. `numberedSequenceGenerated`
+3. `asciiDiagramGenerated`
+4. `projectionsValidated`
+
+A complete review has `stage: "complete"` and all gates true. Changing a source, graph shard, path, or projection resets the affected gate and all later gates.
+
+## 3. Source scan
+
+One `sources/<source-id>/scan.json` contains only repository-local observations. Use [../assets/scan-template.json](../assets/scan-template.json).
+
+Required top-level fields are:
+
+- `schemaVersion`, `id`, and `source`;
+- `discoveredRepositories`;
+- `units`, `components`, and `operations`;
+- `gaps`.
+
+`source` records exact `location`, `repository`, `revision`, `branch`, status, and coverage. Status is `pending`, `scanning`, `partial`, `blocked`, or `complete`.
+
+### Repository discovery candidates
+
+Each `discoveredRepositories` item has:
 
 ```json
 {
-  "schemaVersion": 1,
-  "activeSource": "../orders-api",
-  "sources": {
-    "../orders-api": {
-      "sourceId": "orders-api",
-      "revision": "0123456789abcdef",
-      "stage": "reconciling",
-      "gates": {
-        "scanWritten": true,
-        "scanValidated": true,
-        "modelUpdated": false,
-        "gapsReviewed": false,
-        "conflictsReviewed": false
-      }
-    },
-    "../search-worker": {
-      "stage": "pending",
-      "gates": {
-        "scanWritten": false,
-        "scanValidated": false,
-        "modelUpdated": false,
-        "gapsReviewed": false,
-        "conflictsReviewed": false
-      }
-    }
-  }
+  "id": "source.eligibility-api",
+  "location": "../eligibility-api",
+  "repository": "https://example/eligibility-api.git",
+  "reason": "Generated client metadata and deployment identity match the outbound target",
+  "status": "candidate",
+  "evidence": ["src/Clients/EligibilityClient.g.cs and deploy/values.yaml"]
 }
 ```
 
-Allowed stages are `pending`, `scanning`, `validating`, `reconciling`, `reviewing`, and `complete`. Gates become true only in their displayed order. A complete entry requires all gates true plus a `sourceId` and exact `revision` matching its scan. If a scan or model artifact changes, reset the affected gate and every later gate before continuing.
+Status is `candidate`, `accepted`, `rejected`, or `unavailable`. Preserve candidates even after rejection or failed access. An accepted candidate gets its own source shard and progress entry before scanning.
 
-Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The reconciled model uses stable references and is the only reconciled handoff artifact.
+### Evidence anchors
 
-## subject.json
+Repository-local evidence has `path` and `observation`; `symbol`, `lineStart`, and `lineEnd` are optional. Paths are relative to the source root. Reconciled evidence additionally has `sourceId`.
 
-```json
-{
-  "schemaVersion": 1,
-  "subject": {
-    "id": "fulfilment",
-    "name": "Fulfilment",
-    "description": "Software supporting fulfilment operations",
-    "aliases": ["Shipping"],
-    "requestedSources": ["../orders-api", "../search-worker"],
-    "exclusions": []
-  }
-}
-```
+### Units
 
-The subject is the user-selected architecture scope. It can be a system, product, platform, service estate, business domain, or another named scope. It is not automatically a DDD domain or C4 Software System.
+Repository-local units use kinds:
 
-## decisions.json
-
-```json
-{
-  "schemaVersion": 1,
-  "identityOverrides": {
-    "source-id:local-unit-id": "runtime.stable-id"
-  },
-  "targetOverrides": {
-    "source-id:local-unit-id:outbound-id": "runtime.target-id"
-  },
-  "systemBoundaries": {
-    "system.fulfilment": {
-      "name": "Fulfilment",
-      "responsibility": "Coordinates fulfilment",
-      "status": "confirmed",
-      "members": ["runtime.orders-api.abc123", "store.orders.def456"],
-      "evidence": ["Confirmed by the architecture owner"]
-    }
-  }
-}
-```
-
-Use overrides only for explicit identity decisions. System boundary status is `candidate`, `confirmed`, `rejected`, or `conflicting`. A C4 mapper must not use a candidate boundary as a confirmed System Context scope.
-
-## Repository scan
-
-```json
-{
-  "schemaVersion": 1,
-  "source": {
-    "id": "orders-api",
-    "path": "../orders-api",
-    "repository": "https://example/orders-api.git",
-    "revision": "0123456789abcdef",
-    "branch": "main",
-    "scanStatus": "complete",
-    "coverage": {
-      "included": ["src/**", "deploy/**"],
-      "excluded": ["bin/**", "obj/**"],
-      "limitations": []
-    }
-  },
-  "units": {},
-  "operations": {},
-  "gaps": []
-}
-```
-
-`scanStatus` is `complete`, `partial`, or `blocked`. Complete means the supplied source was fully inspected under the recorded coverage, not that production architecture is completely known.
-
-## Evidence anchor
-
-Every unit, interface, dependency, and operation step requires evidence:
-
-```json
-{
-  "path": "src/Api/Program.cs",
-  "symbol": "Program",
-  "lineStart": 12,
-  "lineEnd": 42,
-  "observation": "Registers and starts the Orders HTTP application"
-}
-```
-
-Paths are relative to the source root. `symbol` and line ranges are optional; `path` and `observation` are required.
-
-## Unit
-
-Units are keyed by a repository-local ID:
-
-```json
-{
-  "kind": "runtime",
-  "subtype": "api",
-  "name": "Orders API",
-  "responsibility": "Accepts and manages orders",
-  "technology": [".NET 8", "ASP.NET Core"],
-  "identity": {
-    "deploymentIdentity": "orders-api"
-  },
-  "ownership": "Fulfilment team",
-  "inbound": [],
-  "outbound": [],
-  "evidence": []
-}
-```
-
-Allowed `kind` values:
-
-- `runtime`: independently executing code, including browser applications and MFEs when independently delivered;
+- `runtime`: independently executing API, worker, browser app/MFE, job, function, CLI, or scheduler;
 - `store`: logical database/schema, index, bucket, or file store;
 - `channel`: queue, topic, or another logical message channel;
-- `library`: linked/package code that does not run independently;
-- `external`: unresolved or separately owned machine dependency;
-- `person`: human actor when directly evidenced.
+- `library`: linked/package code;
+- `external`: separately owned or unresolved machine dependency;
+- `person`: directly evidenced actor.
 
-`subtype` is extensible and descriptive. It is not used as a C4 type.
+A repository can contain several runtimes and a runtime can use artifacts from several repositories. Project/repository boundaries are evidence, not runtime identity.
 
-Strong identity examples:
+Each unit records name, responsibility, technology, identity, inbound interfaces, outbound dependencies, and evidence. Preserve exact deployment, service, data-store, channel, package, and contract identities.
 
-```json
-{"deploymentIdentity": "orders-api"}
-{"technology": "SQL Server", "server": "sales", "database": "Orders", "schema": "fulfilment"}
-{"transport": "Azure Service Bus", "namespace": "sales", "topic": "order-submitted"}
-{"package": "Company.DesignSystem", "version": "5.2.0"}
-```
+### Repository-local components
 
-Use `modelId` only when an existing confirmed model identity is known.
+Use a component only for cohesive, stable execution responsibility inside a runtime. Require declaration, interface, registration, or implementation evidence. Record local owner, name, responsibility, technology, optional provided interface/role, and evidence.
 
-## Inbound interface
+Do not manufacture components from folders, layers, every class, variable names, receiver names, or framework objects.
 
-```json
-{
-  "id": "submit-order-v2",
-  "kind": "http",
-  "purpose": "Submits an order",
-  "method": "POST",
-  "path": "/api/v2/orders",
-  "version": "v2",
-  "contract": {
-    "name": "SubmitOrder",
-    "version": "v2",
-    "format": "JSON",
-    "schemaPath": "openapi/orders-v2.json",
-    "fingerprint": "sha256:...",
-    "keyFields": ["orderId", "customerId"]
-  },
-  "rules": ["Requires an authenticated customer"],
-  "evidence": []
-}
-```
+### Inbound interfaces
 
-Allowed kinds are `http`, `grpc`, `event`, `message`, `job`, `ui`, `file`, and `other`.
+Kinds are `http`, `grpc`, `event`, `message`, `job`, `ui`, `file`, and `other`. Capture applicable fields:
 
-Event/message interfaces require a channel:
+- owner and purpose;
+- method/path/service or channel/subscription/consumer group;
+- version and contract name/schema/fingerprint;
+- authentication, routing, filtering, and caller-affecting rules;
+- evidence.
 
-```json
-{
-  "id": "consume-order-submitted-v3",
-  "kind": "event",
-  "purpose": "Indexes accepted orders",
-  "version": "v3",
-  "channel": {
-    "technology": "MassTransit",
-    "transport": "Azure Service Bus",
-    "namespace": "sales",
-    "topic": "order-submitted",
-    "subscription": "search-indexer"
-  },
-  "contract": {"name": "OrderSubmitted", "version": "v3", "fingerprint": "sha256:..."},
-  "rules": ["Processes accepted orders only"],
-  "evidence": []
-}
-```
+An inbound interface does not prove a caller.
 
-Do not list callers on an inbound interface unless direct caller evidence exists. During reconciliation, derive callers from outbound observations.
+### Outbound dependencies
 
-## Outbound dependency
+Kinds are `request`, `event`, `message`, `data`, `search`, `file`, `library`, `ui-load`, and `other`. Capture source, destination identity, purpose, technology, contract/version, rules, and evidence.
 
-```json
-{
-  "id": "call-payments-v2",
-  "kind": "request",
-  "purpose": "Authorises payment",
-  "technology": "HTTPS/JSON",
-  "target": {
-    "kind": "runtime",
-    "deploymentIdentity": "payments-api",
-    "name": "Payments API"
-  },
-  "interface": {
-    "method": "POST",
-    "path": "/api/v2/authorisations",
-    "version": "v2"
-  },
-  "contract": {"name": "AuthorisePayment", "version": "v2", "fingerprint": "sha256:..."},
-  "rules": ["Invoked only for card payments"],
-  "evidence": []
-}
-```
+Use strong target identity in this order: confirmed override, deployment identity, exact store/channel identity, configured service address plus compatible interface, compatible contract/fingerprint, generated-client origin, package identity, then name only as a candidate.
 
-Allowed kinds are `request`, `event`, `message`, `data`, `search`, `file`, `library`, `ui-load`, and `other`.
+### Repository-local operations
 
-Target examples:
+Operations are evidence-backed ordered slices used to stitch end-to-end paths. Each is owned by a local runtime, names its trigger interface, and contains contiguous positive-integer steps.
 
-```json
-{"unitId": "local-database"}
-{"modelId": "runtime.confirmed-payments"}
-{"kind": "runtime", "deploymentIdentity": "payments-api"}
-{"kind": "store", "technology": "SQL Server", "server": "sales", "database": "Orders", "schema": "fulfilment"}
-{"kind": "channel", "transport": "Azure Service Bus", "namespace": "sales", "topic": "order-submitted"}
-{"kind": "library", "package": "Company.DesignSystem", "version": "5.2.0"}
-```
+Each step records:
 
-A target with `unitId` references another unit in the same scan. Other targets are reconciled by exact normalized identity. Names alone do not establish identity.
+- `at` a local unit/component or `uses` a local outbound dependency;
+- kind, action, input, output/effect, boundary, and evidence;
+- optional branch/next semantics when architecturally meaningful.
 
-## Operation
+Record separate call and return/effect steps when later control or data matters. Include touched configuration, feature flags, stores, channels, external APIs, telemetry, and cross-domain dependencies. Do not copy ordinary implementation instructions or complete payload schemas.
 
-Operations are keyed and owned by a local runtime:
+## 4. Reconciliation rules
 
-```json
-{
-  "name": "Submit order",
-  "owner": "orders-api",
-  "trigger": "submit-order-v2",
-  "steps": [
-    {
-      "order": 1,
-      "at": "orders-api",
-      "action": "Validates the order",
-      "evidence": []
-    },
-    {
-      "order": 2,
-      "uses": "orders-database-write",
-      "action": "Stores the accepted order",
-      "evidence": []
-    }
-  ]
-}
-```
+Read [sharded-graph.md](sharded-graph.md) before writing graph shards.
 
-Each step has exactly one of:
+- Reconcile by stable identity, never scan order.
+- Keep incompatible API/event versions separate and create conflicts.
+- Derive callers from compatible outbound-to-inbound evidence.
+- Distinguish physical database host from logical database/schema/index.
+- Keep package dependencies separate from runtime interactions.
+- Preserve unmatched targets, callers, and continuations as concrete gaps.
+- Update reciprocal links together: domain ↔ component, domain ↔ operation, component ↔ operation, operation ↔ path.
+- Reconcile after each source rather than loading all repositories into conversation memory.
 
-- `at`: a local unit where an architecturally meaningful rule executes;
-- `uses`: an outbound dependency owned by the operation runtime.
+## 5. Deterministic tool transaction
 
-Orders are contiguous positive integers. Add `next` only when a non-linear path matters; it can be an order number, `"end"`, an array of orders, or a condition-to-order map.
+After authored JSON changes:
 
-## Gap
+1. Run `format` to canonicalize JSON and set-like arrays.
+2. Run `render` to replace every operation-path projection.
+3. Run `index` to regenerate paths, content hashes, semantic hashes, hierarchy, and the overall semantic hash.
+4. Run final `validate`.
 
-```json
-{
-  "id": "payments-base-address",
-  "description": "The payments base address is injected from an unavailable secret store",
-  "impact": "The exact target system cannot be corroborated",
-  "searches": ["Searched appsettings files", "Searched deployment manifests"]
-}
-```
+`validate --allow-incomplete` is only for checking an initialized/in-progress model. Never use it as final completion evidence.
 
-Never turn a gap into a guessed relationship.
+The index contains:
 
-## Reconciled model
+- `contentHash`: canonical complete JSON, including provenance;
+- `semanticHash`: canonical architecture meaning with evidence/source-finding material removed;
+- `modelSemanticHash`: combined semantic identity of scope/decisions, graph entities, and paths; repository locations, requested-source queue, source revisions, and evidence anchors do not alter it by themselves;
+- projection content hashes.
 
-Author `model.json` exactly as specified in [reconciled-model.md](reconciled-model.md). That reference defines the required and optional fields for `sources`, `nodes`, `interfaces`, `relationships`, `flows`, `systemBoundaries`, `gaps`, `conflicts`, source findings, and model evidence.
+Use `diff` between saved indexes. A revision or evidence-line change can be evidence-only. A behavior, identity, relationship, component responsibility, operation, or sequence change is semantic. Projection changes without a canonical path change indicate drift.
 
-During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts. The reconciled model remains C4-neutral; downstream mapping decides which facts become Software Systems, Containers, Components, Code elements, or supporting evidence.
+## 6. Validation layers
+
+Final validation must cover all layers:
+
+1. **Syntax and canonicalization** — valid version-2 UTF-8 JSON and canonical formatting.
+2. **Closed structure** — required/optional fields and enums only.
+3. **References** — every ID resolves and reciprocal hierarchy references agree.
+4. **Graph semantics** — ownership and relationship direction are compatible.
+5. **Path semantics** — exact participants, sequence hierarchy, endpoints, terminal outcome, gaps, and coverage.
+6. **Workflow** — revision-matched complete sources and complete path reviews.
+7. **Projection** — generated Markdown and ASCII equal deterministic rendering byte for byte.
+8. **Index** — generated index exactly matches current shards and projections.
+
+Any failure blocks handoff.
