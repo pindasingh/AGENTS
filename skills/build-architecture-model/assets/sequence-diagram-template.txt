@@ -1,0 +1,15 @@
+Flow: {{FLOW_NAME}}
+Flow ID: {{FLOW_ID}}
+Scenario: {{SCENARIO}}
+Path: {{PATH}}
+Trigger: {{TRIGGER}}
+Coverage: {{COVERAGE}}
+
+Participants (exact model set):
+{{ASCII_PARTICIPANT_ROWS_IN_MODEL_ORDER}}
+
+{{ASCII_EXACT_NUMBERED_INTERACTIONS_FROM_MODEL}}
+
+Final return/effect: {{EXACT_NUMBERED_TERMINAL_INTERACTION_FROM_MODEL}}
+Outcome: {{OUTCOME}}
+Unresolved: {{UNRESOLVED_POINTS_OR_NONE}}

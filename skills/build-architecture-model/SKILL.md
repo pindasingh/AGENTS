@@ -1,11 +1,11 @@
 ---
 name: build-architecture-model
-description: Scans one or many code repositories incrementally and builds an evidence-backed, C4-neutral reconciled architecture model of runtimes, stores, interfaces, contracts, dependencies, operations, conflicts, and gaps. Use before architecture mapping, C4 generation, cross-repository dependency analysis, system discovery, or architecture impact analysis.
+description: Scans one or many code repositories incrementally and builds an evidence-backed, architecture-style-neutral model of runtimes, components, stores, interfaces, contracts, dependencies, and authoritative numbered end-to-end execution flows, with Markdown and ASCII flow reviews. Use for system discovery, cross-repository flow tracing, architecture mapping, or impact analysis.
 ---
 
 # Build Architecture Model
 
-Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and reconcile them into one reconciled working model after every repository. Do not draw C4 diagrams in this skill or assign C4 abstraction types during discovery.
+Discover the architecture of a user-named subject one repository at a time. The subject can be a system, product, platform, service estate, business domain, or another explicitly selected scope; do not assume DDD. Produce accurate repository-local findings first and reconcile them into one working model after every repository. Trace every selected exterior entry point into authoritative, hierarchically numbered end-to-end execution paths. Do not draw C4 diagrams or assign C4 abstraction types.
 
 Before scanning, read [references/model-spec.md](references/model-spec.md) and [references/reconciled-model.md](references/reconciled-model.md) completely. Read the applicable framework playbooks under `references/` after detecting the repository technologies.
 
@@ -13,7 +13,7 @@ Before scanning, read [references/model-spec.md](references/model-spec.md) and [
 
 Use the bundled `scripts/model_json.py` to initialize the artifact set and perform cheap JSON preflight checks. Before opening or changing into a target repository, resolve the helper from this skill's installed directory and retain its absolute path. Never resolve or execute `scripts/model_json.py` relative to the target repository or another untrusted workspace. The script and all bundled Python tooling use **only the Python standard library**: do not install packages, add a dependency file, import a third-party module, or depend on a network service. Keep `.architecture-model/` in the target repository or user-selected workspace, not inside the skill directory.
 
-The helper deliberately does not invent or reconcile architecture. The agent authors bounded scans, applies the documented identity rules, and performs semantic review; use the script to avoid spending tokens on boilerplate and repetitive syntax inspection. Do not verify generated boilerplate line by line.
+The helper deliberately does not invent or reconcile architecture. The agent authors bounded scans, applies the documented identity and flow-sequencing rules, and performs semantic review. The final validation also compares each flow's ID, participant order, hierarchical sequence numbers/order, and stage/operation labels across `model.json`, numbered Markdown, and ASCII. Use the script to avoid spending tokens on boilerplate and repetitive structural comparison. Do not verify generated boilerplate line by line.
 
 ```bash
 python3 "/absolute/path/to/installed/build-architecture-model/scripts/model_json.py" init .architecture-model --subject "<subject>" --source "<source>"
@@ -33,25 +33,32 @@ The model directory is the only architecture-model deliverable. Do not substitut
   progress.json
   scans/<source-id>.json
   model.json
+  flow-reviews/<flow-id>/numbered-sequence.md
+  flow-reviews/<flow-id>/sequence-diagram.txt
 ```
 
 - Agents author one bounded scan JSON document per repository.
 - `decisions.json` preserves explicit identity, ownership, and boundary decisions.
 - `progress.json` is the persisted workflow ledger. It identifies the one active source and records the completed gates for each requested source. The agent updates it only at the transitions defined below.
-- `model.json` is the sole reconciled architecture model. Update it only from validated scan observations and explicit decisions.
+- `model.json` is the sole reconciled architecture model. Its flow sequences are authoritative. Update it only from validated scan observations and explicit decisions.
+- Every model flow path has two mandatory human-review projections: an exact numbered Markdown sequence and a plain UTF-8 ASCII sequence diagram.
+- Review artifacts never add, omit, merge, split, renumber, or reorder model steps.
 - The reconciled model is the durable working memory read before scanning the next repository.
 - Prose in the final response may only summarize completion, gaps, conflicts, and file locations; it must not become a second architecture model.
 
 Copy all five starting shapes: [assets/subject-template.json](assets/subject-template.json), [assets/decisions-template.json](assets/decisions-template.json), [assets/progress-template.json](assets/progress-template.json), [assets/scan-template.json](assets/scan-template.json), and [assets/model-template.json](assets/model-template.json). Use [references/model-spec.md](references/model-spec.md) for repository-local artifacts and [references/reconciled-model.md](references/reconciled-model.md) for every nested `model.json` record. Replace example values rather than inventing a different structure. The contract is closed: do not add convenience top-level fields or create a second model format.
 
+Create each flow review from [assets/numbered-sequence-template.md](assets/numbered-sequence-template.md) and [assets/sequence-diagram-template.txt](assets/sequence-diagram-template.txt). Replace every placeholder and reproduce the canonical model sequence exactly.
+
 ## Validation without bundled scripts
 
-Validation is a deliberate agent review, not merely successful JSON parsing. Before setting a validation gate or handing the directory to another skill, perform all four layers:
+Validation is a deliberate agent review, not merely successful JSON parsing. Before setting a validation gate or handing the directory to another skill, perform all five layers:
 
 1. **Syntax:** every artifact is strict UTF-8 JSON with `schemaVersion: 1` and no placeholder values.
 2. **Structure:** every object uses only the fields, value types, enums, and required collections defined by the templates and references.
-3. **References:** progress entries match scans; every model endpoint, owner, member, interface, relationship, flow step, source finding, and decision reference resolves.
-4. **Semantics:** direction, identity, certainty, versions, evidence, gaps, conflicts, and confirmed decisions remain faithful to the scans.
+3. **References:** progress entries match scans; every model endpoint, owner, component, member, interface, relationship, flow-coverage record, sequence step, source finding, decision, and flow-review reference resolves.
+4. **Semantics:** direction, identity, certainty, versions, evidence, sequence, inputs, outputs/effects, boundaries, gaps, conflicts, and confirmed decisions remain faithful to the scans.
+5. **Projection:** each flow's JSON, numbered Markdown, and ASCII diagram contain the same flow ID, participants, sequence numbers, ordering, operations, directions, dependencies, and outcome.
 
 If any layer fails, reset the affected progress gate and later gates, repair the authoritative artifact, and repeat the review. Do not describe a model as validated when only its JSON syntax was checked.
 
@@ -69,7 +76,7 @@ For each source, complete this bounded cycle before opening the next source. Whe
 2. Identify the exact repository, revision, branch, and scan coverage.
 3. Select the next `pending` source, set only that entry to `scanning`, set `activeSource`, and then read the current `subject.json`, `decisions.json`, and `model.json`.
 4. Inventory solutions/workspaces, build outputs, executable entry points, deployment descriptors, configuration, generated code, tests, and documentation.
-5. Discover all runtime units, stores, channels, shared libraries, inbound interfaces, outbound dependencies, and architecturally meaningful operations.
+5. Discover all runtime units, stable internal components, stores, channels, shared libraries, inbound interfaces, outbound dependencies, and ordered operations.
 6. Write or replace only `scans/<source-id>.json`.
 7. Self-check the scan field by field against the template and model specification. Set its `scanWritten` and `scanValidated` gates true only after the matching scan exists, has exact revision and coverage, and passes every completion item below.
 8. Review newly resolved identities, contract conflicts, candidate external targets, and gaps.
@@ -79,6 +86,22 @@ For each source, complete this bounded cycle before opening the next source. Whe
 Never jump a stage or pre-mark a gate. If an artifact changes after its gate was set, reset that gate and every later gate to false, return the source to the corresponding stage, and repeat the checks. The progress ledger is an agent handoff protocol, not executable enforcement: it cannot prevent a dishonest agent from writing false values, but it keeps a compliant agent on track across context loss and makes skipped work visible to the next agent.
 
 Do not defer reconciliation until every repository has been scanned. Do not copy findings from one scan into another. Re-scanning a source replaces its repository-local observations and requires the agent to update the reconciled model.
+
+## End-to-end flow transaction
+
+After repository reconciliation, build or refresh every selected flow path before completion:
+
+1. Start at one exact exterior entry point: HTTP/gRPC interface, UI action, message/event consumer, scheduled job, file arrival, or another evidenced trigger.
+2. Discover every evidenced caller. An exposed inbound interface does not prove a caller. Match clients using destination identity, route/service, version, contract, generated origin, gateway/BFF routing, authentication audience, or equivalent evidence.
+3. Trace control through every architecturally meaningful in-process operation and hand-off. Use a stable component only when its declaration, interface, registration, or implementation identity is evidenced; a receiver name at one call site is not enough.
+4. Include every dependency and touchpoint actually invoked by the path, regardless of domain or ownership: configuration, feature flags, stores, search engines, caches, external APIs, other domains, messaging, files, telemetry, and infrastructure services. Record local bound/options access as a local configuration operation; create an external configuration participant only when a remote provider/runtime interaction is evidenced.
+5. Place every call, later return/effect, read/write, publication, delivery, consumption, decision, retry, and telemetry action at its own exact position. Do not collapse a call and its return or response mapping and caller return into one step.
+6. Continue across repositories when an outbound interaction matches a compatible downstream inbound interface and operation. Stop at the known boundary and record a gap when continuation evidence is absent or incompatible.
+7. End at an explicit interaction returning the response to the originating caller set, a terminal state/effect, one-way completion, or explicit unresolved gap. An in-process response-mapping step is not the caller return.
+8. Store the canonical path in `model.json`, validate its numbering and coverage, then generate both review artifacts from that sequence.
+9. Compare JSON, Markdown, and ASCII operation by operation. Mark the flow review complete only when they match exactly.
+
+Use a separate flow path for each materially different success, rejection, no-result, fallback, retry, failure, or asynchronous outcome. Do not combine branches into an unreadable universal path.
 
 ## Record facts, not C4 guesses
 
@@ -92,6 +115,8 @@ For each unit, capture:
 - outbound dependencies;
 - ownership only when evidenced;
 - exact source anchors and observations.
+
+Record a stable internal component only when evidence establishes cohesive responsibility or a meaningful execution role inside one runtime, such as a controller, handler/orchestrator, repository, adapter, or client used in traced paths. Require a declaration, interface, registration, or implementation identity—not only a variable/field name or method receiver at a call site. Record its containing runtime, responsibility, technology, interface/role, certainty during reconciliation, and evidence. Do not promote every folder, layer, helper, class, or framework object.
 
 For every inbound interface, capture what is observed and architecturally useful:
 
@@ -128,7 +153,7 @@ Capture rules that change:
 - ownership or state progression;
 - retry, outbox, idempotency, or compensation behavior when architecturally significant.
 
-Do not capture every field validator, object mapping, logging statement, MediatR pipeline behavior, helper method, or framework call.
+For a selected flow, capture every invoked dependency and every operation or hand-off needed to explain the execution sequence. Ordinary language/runtime instructions remain out of scope, but configuration and observability interactions are not omitted merely because they are cross-cutting.
 
 MediatR, CQS, MassTransit, MobX, and design systems are mechanisms or shared artifacts unless evidence establishes a separately running boundary. Use framework-specific wiring to trace operations, not to manufacture nodes.
 
@@ -153,9 +178,13 @@ Use `decisions.json` for explicit identity/target overrides and candidate/confir
 
 ## Operations and flows
 
-Record one operation for a concrete inbound interface when it adds architectural value. Use a short ordered step list. A step either executes at a local unit or uses one of the owner's outbound dependencies. Add `next` only for an evidenced branch, parallel continuation, failure, or retry that materially changes the architectural story.
+Record repository-local operations for every exterior entry point selected for flow coverage and for downstream interfaces needed to continue those flows. Preserve local execution order, component identity/evidence, inputs, outputs/effects, conditions, and dependency use.
 
-Do not build a detailed causal/event-sourcing model. Keep local implementation steps only when they explain a meaningful rule or boundary crossing. Map local dependency references to model relationships during reconciliation; downstream tools can turn selected flows into Dynamic diagrams.
+Reconcile local operations into one canonical model flow per named path. Store its ordered execution in a flat `sequence` array with hierarchical string numbers such as `1`, `1.1`, `1.2`, `2`, and `2.1.1`. Top-level integers are stages; descendants are operations. Every descendant names its existing parent. Numbers are unique, sibling numbers are contiguous, parents precede children, and array order matches numeric hierarchy.
+
+Every non-stage step records the operation, execution location or source/destination, referenced interface/relationship/component or exact evidence, input, output/effect, crossed boundary, certainty, evidence, and explicit continuation/return/termination semantics when not implied by the next step. The renderer does not invent sequence: all projections reproduce the stored numbers unchanged.
+
+Maintain `flowCoverage` for public/exterior inbound interfaces. Each is covered by one or more flow paths, explicitly excluded with a reason, or unresolved with searches and impact. A complete inventory with missing end-to-end paths is not a complete architecture model.
 
 ## Fail-closed accuracy
 
@@ -171,7 +200,11 @@ Do not report gathering complete until:
 - [ ] Every detected executable/runtime and logical store is represented or explicitly excluded.
 - [ ] Every discovered inbound interface is inventoried with version/contract details when observed.
 - [ ] Every outbound architectural dependency has direction, purpose, technology, target identity, and evidence.
-- [ ] Every operation selected for Dynamic/Component analysis maps to an inbound interface and evidenced steps; other public interfaces remain inventoried without forced flow detail.
+- [ ] Every repository-local operation used by a model flow maps to an inbound interface or evidenced continuation and preserves its ordered steps.
+- [ ] Every selected exterior interface has flow coverage; every required path begins at an evidenced trigger and ends at a response, terminal effect, one-way completion, or explicit gap.
+- [ ] Every model flow uses valid hierarchical sequence numbers and captures all touched dependencies at their exact stages regardless of domain or ownership.
+- [ ] Every evidenced cross-repository continuation is followed; unmatched or incompatible continuations remain gaps.
+- [ ] Every flow has a complete `flow-reviews/<flow-id>/numbered-sequence.md` and `sequence-diagram.txt` pair whose content matches the JSON sequence exactly.
 - [ ] Shared packages, generated clients, contracts, migrations, and design systems are not mistaken for runtimes.
 - [ ] API/event versions and incompatible contracts have not been silently merged.
 - [ ] Database server, logical database/schema, and data access are distinguished.
@@ -179,6 +212,7 @@ Do not report gathering complete until:
 - [ ] `progress.json` has no active source; every requested source is `complete`; every gate is true; and each recorded source ID/revision matches its scan.
 - [ ] Reconciliation applies the same identity and ordering rules regardless of repository scan order.
 - [ ] Every `model.json` record matches [references/reconciled-model.md](references/reconciled-model.md), every reference resolves, and `model.systemBoundaries` exactly mirrors `decisions.systemBoundaries`.
-- [ ] Re-reading the complete `.architecture-model/` directory passes syntax, structure, reference, and semantic validation; no single file is handed off in isolation.
+- [ ] `progress.flowReviews` contains exactly the model flow IDs and every review gate is true.
+- [ ] Re-reading the complete `.architecture-model/` directory passes syntax, structure, reference, semantic, and projection validation; no single file is handed off in isolation.
 
 Apply every Markdown case under `evals/` to agent behavior. Matching a fail condition is a regression.

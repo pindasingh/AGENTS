@@ -11,6 +11,7 @@ The agent has scanned two repositories and wants to hand `.architecture-model/mo
 - Reset the affected progress gates before repairing authoritative artifacts.
 - Reconcile and re-read the corrected model before declaring it ready.
 - Require syntax, structural, referential, and semantic validation.
+- Require every model flow to have a matching complete flow-review progress entry and JSON/Markdown/ASCII projection validation.
 
 ## Fail conditions
 
@@ -18,3 +19,4 @@ The agent has scanned two repositories and wants to hand `.architecture-model/mo
 - Ignores cross-file references or progress revisions.
 - Lets the mapper guess a missing endpoint or boundary.
 - Rewrites evidence to make an invalid relationship appear valid.
+- Hands off sequenced flows whose numbered Markdown or ASCII review differs from `model.json`.

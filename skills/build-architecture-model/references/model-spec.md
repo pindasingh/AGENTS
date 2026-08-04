@@ -6,12 +6,13 @@ The model separates repository-local observations from model reconciliation:
 
 ```text
 subject.json + decisions.json + scans/*.json --agent reconciliation--> model.json
-progress.json --records the agent's stage and completed gates
+model.json flows --exact projection--> flow-reviews/*/{numbered-sequence.md,sequence-diagram.txt}
+progress.json --records source and flow-review stages and completed gates
 ```
 
 The agent writes every artifact directly; this skill does not require bundled scripts or validators. All files are strict UTF-8 JSON with `schemaVersion: 1`. The shapes and reconciliation rules in this document and [reconciled-model.md](reconciled-model.md) are normative, not illustrative.
 
-Do not add top-level keys or emit an alternate architecture representation. Before handing the model to another skill, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, and `model.json` contains the reconciliation of all scans and decisions.
+Do not add undocumented top-level keys or emit an alternate architecture representation. Before handoff, re-read every artifact and confirm that `progress.json` has no active source, every requested source is complete with all gates true, recorded source identities/revisions match their scans, every model flow has a complete review record, and `model.json` contains the reconciliation of all scans and decisions.
 
 ## progress.json
 
@@ -44,11 +45,24 @@ Create the ledger when initializing the model. It is keyed by the exact entries 
         "conflictsReviewed": false
       }
     }
+  },
+  "flowReviews": {
+    "flow.submit-order.success": {
+      "stage": "validating",
+      "gates": {
+        "canonicalFlowValidated": true,
+        "numberedSequenceWritten": true,
+        "asciiDiagramWritten": true,
+        "projectionsValidated": false
+      }
+    }
   }
 }
 ```
 
-Allowed stages are `pending`, `scanning`, `validating`, `reconciling`, `reviewing`, and `complete`. Gates become true only in their displayed order. A complete entry requires all gates true plus a `sourceId` and exact `revision` matching its scan. If a scan or model artifact changes, reset the affected gate and every later gate before continuing.
+Source stages are `pending`, `scanning`, `validating`, `reconciling`, `reviewing`, and `complete`. Flow-review stages are `pending`, `authoring`, `validating`, and `complete`. Gates become true only in their displayed order. A complete source requires all source gates true plus a `sourceId` and exact `revision` matching its scan. A complete flow review requires all four review gates true. If a scan, model flow, or projection changes, reset the affected gate and every later gate before continuing.
+
+`progress.flowReviews` has exactly one entry per `model.flows` key and no extras. Create or reset it after flow reconciliation. A flow cannot be complete merely because its JSON parses. `model.flowCoverage` has exactly one entry per reconciled inbound interface: covered, explicitly excluded, or unresolved through a recorded gap. A flat inventory cannot pass by silently omitting relevant flow work.
 
 Repository scan documents are deliberately self-contained. Evidence is embedded beside each observation to avoid fragile evidence-reference graphs. The reconciled model uses stable references and is the only reconciled handoff artifact.
 
@@ -114,6 +128,7 @@ Use overrides only for explicit identity decisions. System boundary status is `c
     }
   },
   "units": {},
+  "components": {},
   "operations": {},
   "gaps": []
 }
@@ -168,6 +183,29 @@ Allowed `kind` values:
 - `person`: human actor when directly evidenced.
 
 `subtype` is extensible and descriptive. It is not used as a C4 type.
+
+## Internal component
+
+Components are keyed by repository-local ID and exist inside one runtime unit:
+
+```json
+{
+  "owner": "orders-api",
+  "name": "Submit Order Handler",
+  "responsibility": "Orchestrates order submission",
+  "technology": [".NET", "MediatR"],
+  "interface": "Handles SubmitOrderCommand",
+  "evidence": [
+    {
+      "path": "src/Application/SubmitOrderHandler.cs",
+      "symbol": "SubmitOrderHandler",
+      "observation": "Handles and orchestrates SubmitOrderCommand"
+    }
+  ]
+}
+```
+
+`owner`, `name`, `responsibility`, `technology`, and non-empty `evidence` are required. `owner` resolves to a local runtime. `interface` is optional. Create a component only for cohesive behavior or a stable execution role used in a traced operation, supported by its declaration, interface, registration, or implementation. A variable/field name or method receiver at a call site does not establish a component. Smaller or incompletely identified local steps execute at the runtime with exact evidence and, when material, a gap.
 
 Strong identity examples:
 
@@ -269,7 +307,7 @@ A target with `unitId` references another unit in the same scan. Other targets a
 
 ## Operation
 
-Operations are keyed and owned by a local runtime:
+Operations are repository-local ordered slices keyed and owned by a local runtime. They provide evidence for later cross-repository flow stitching:
 
 ```json
 {
@@ -280,13 +318,23 @@ Operations are keyed and owned by a local runtime:
     {
       "order": 1,
       "at": "orders-api",
+      "component": "submit-order-handler",
+      "kind": "local-operation",
       "action": "Validates the order",
+      "input": "SubmitOrderCommand",
+      "output": "Validated command",
+      "boundary": "in-process",
       "evidence": []
     },
     {
       "order": 2,
       "uses": "orders-database-write",
+      "component": "submit-order-handler",
+      "kind": "data-write",
       "action": "Stores the accepted order",
+      "input": "Accepted order",
+      "output": "Persisted order",
+      "boundary": "data-store",
       "evidence": []
     }
   ]
@@ -298,7 +346,28 @@ Each step has exactly one of:
 - `at`: a local unit where an architecturally meaningful rule executes;
 - `uses`: an outbound dependency owned by the operation runtime.
 
-Orders are contiguous positive integers. Add `next` only when a non-linear path matters; it can be an order number, `"end"`, an array of orders, or a condition-to-order map.
+`component` is optional and resolves to a local component owned by the operation runtime. Required step fields are `order`, `kind`, `action`, `input`, `output`, `boundary`, and non-empty `evidence`. Orders are contiguous positive integers. Add `next` only when a non-linear local path matters; it can be an order number, `"end"`, an array of orders, or a condition-to-order map. Record a call's later return/effect as its own step when it changes control or data needed by the end-to-end trace.
+
+A bound/local configuration read remains an `at` operation on the runtime or evidenced component with `kind: "config-read"`; it does not create an external configuration unit or outbound dependency. Record an external configuration target only when source or deployment evidence establishes a remote provider interaction at runtime.
+
+Allowed operation step kinds are `entry`, `local-operation`, `interaction`, `return`, `decision`, `data-read`, `data-write`, `config-read`, `feature-evaluation`, `publish`, `deliver`, `consume`, `telemetry`, `retry`, `outcome`, and `gap`.
+
+Allowed boundaries are `in-process`, `runtime`, `data-store`, `search-store`, `message-channel`, `configuration`, `observability`, `external-service`, `file`, and `other`.
+
+## Flow review artifacts
+
+For every reconciled model flow at `flows.<flow-id>`, create:
+
+```text
+flow-reviews/<flow-id>/numbered-sequence.md
+flow-reviews/<flow-id>/sequence-diagram.txt
+```
+
+`numbered-sequence.md` contains the flow ID, trigger, callers, exact participant IDs in model order, contract, path/outcome, coverage, the complete hierarchical numbered execution, and unresolved points. Each operation states its location/endpoints, dependency, input, output/effect, boundary, certainty, and evidence summary. Render each stage/operation label exactly as stored in the model so the bundled validator can compare it.
+
+`sequence-diagram.txt` is plain UTF-8 ASCII readable in a monospaced terminal. List participant IDs as contiguous `P1`, `P2`, and so on in exact model order. Render every non-stage operation as `<number> <source alias(es)> -> <destination alias(es)> : <exact operation label> ...`; render local operations with the same alias on both sides. Every arrow carries the exact model sequence number, endpoints/direction, and exact stage/operation label. A request/response path shows its final return arrow to the originating caller set as a separate numbered interaction. Long flows may use consecutive stage panels but must not omit or reorder steps.
+
+The model is authoritative. Generate both artifacts only after validating the canonical flow, then compare all three representations. Their flow ID, callers, participants, sequence numbers, order, operations, directions, dependencies, inputs/outputs/effects, and outcome must match. Run the bundled final validator, which deterministically checks flow ID, participants, sequence numbers/order, labels, and ASCII endpoints/direction; manually review dependency, input/output/effect, evidence, and outcome semantics. Any mismatch resets `projectionsValidated` and later completion state.
 
 ## Gap
 
@@ -315,6 +384,6 @@ Never turn a gap into a guessed relationship.
 
 ## Reconciled model
 
-Author `model.json` exactly as specified in [reconciled-model.md](reconciled-model.md). That reference defines the required and optional fields for `sources`, `nodes`, `interfaces`, `relationships`, `flows`, `systemBoundaries`, `gaps`, `conflicts`, source findings, and model evidence.
+Author `model.json` exactly as specified in [reconciled-model.md](reconciled-model.md). That reference defines the required and optional fields for `sources`, `nodes`, `components`, `interfaces`, `relationships`, `flows`, `flowCoverage`, `systemBoundaries`, `gaps`, `conflicts`, source findings, and model evidence.
 
 During reconciliation, create channel-to-consumer relationships from inbound event/message interfaces and mark compatible publisher/consumer contracts as corroborated. Incompatible versions or fingerprints become conflicts. The reconciled model remains C4-neutral; downstream mapping decides which facts become Software Systems, Containers, Components, Code elements, or supporting evidence.

@@ -2,6 +2,22 @@
 
 Apply every case to changes in gathering instructions and to representative agent runs. Any fail condition is a regression.
 
+## Complete graph is not a complete flow
+
+### Prompt
+
+The model contains every runtime, internal component, data store, configuration provider, external API, telemetry sink, and directional relationship used by a POST request. All references resolve, but the flow contains only an unordered list of dependencies and no returned response or terminal effect.
+
+### Required outcome
+
+Reject the model as incomplete. Reconstruct an evidence-backed hierarchical sequence from the exterior entry point through every executed operation and dependency touchpoint to its outcome. Preserve exact sequence numbers in the model and generate matching Markdown and ASCII reviews.
+
+### Fail conditions
+
+- Treats relationship coverage as execution-flow coverage.
+- Lets a renderer infer order from graph adjacency.
+- Marks flow coverage complete without an outcome.
+
 ## Persisted stage tracking
 
 ### Prompt
@@ -56,7 +72,7 @@ Initialize the model and ledger, scan one repository, self-check its scan, recon
 
 **Prompt:** The agent wants to initialize and syntax-check the architecture artifact set, then proposes installing a JSON-schema package and asking another model to regenerate `model.json`.
 
-**Required:** Use the bundled helper for deterministic boilerplate and JSON preflight. Bundled Python uses only the standard library, requires no installation or network, and never substitutes for evidence discovery, reconciliation decisions, or semantic review.
+**Required:** Use the bundled helper for deterministic boilerplate and JSON preflight. Bundled Python uses only the standard library, requires no installation or network, and never substitutes for evidence discovery, reconciliation decisions, sequencing, or semantic/projection review.
 
 **Fail if:** the agent adds a dependency manifest, imports a third-party Python module, delegates architecture interpretation to the helper, manually recreates generated boilerplate, or verifies generated JSON line by line instead of reviewing architectural meaning.
 

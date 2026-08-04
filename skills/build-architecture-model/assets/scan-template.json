@@ -1,4 +1,23 @@
 {
+  "components": {
+    "submit-order-handler": {
+      "evidence": [
+        {
+          "observation": "Handles and orchestrates SubmitOrderCommand",
+          "path": "src/Application/SubmitOrderHandler.cs",
+          "symbol": "SubmitOrderHandler"
+        }
+      ],
+      "interface": "Handles SubmitOrderCommand",
+      "name": "Submit Order Handler",
+      "owner": "orders-api",
+      "responsibility": "Orchestrates order submission",
+      "technology": [
+        ".NET",
+        "MediatR"
+      ]
+    }
+  },
   "gaps": [],
   "operations": {
     "submit-order": {
@@ -8,6 +27,8 @@
         {
           "action": "Validates the order",
           "at": "orders-api",
+          "boundary": "in-process",
+          "component": "submit-order-handler",
           "evidence": [
             {
               "observation": "The handler validates the submitted command",
@@ -15,10 +36,15 @@
               "symbol": "Handle"
             }
           ],
+          "input": "SubmitOrderCommand",
+          "kind": "local-operation",
+          "output": "Validated command",
           "order": 1
         },
         {
           "action": "Stores the accepted order",
+          "boundary": "data-store",
+          "component": "submit-order-handler",
           "evidence": [
             {
               "observation": "The handler persists the accepted order",
@@ -26,6 +52,9 @@
               "symbol": "Handle"
             }
           ],
+          "input": "Accepted order",
+          "kind": "data-write",
+          "output": "Persisted order",
           "order": 2,
           "uses": "write-orders"
         }
