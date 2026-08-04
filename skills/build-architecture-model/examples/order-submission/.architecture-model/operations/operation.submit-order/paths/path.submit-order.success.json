@@ -1,0 +1,208 @@
+{
+  "callers": [
+    {
+      "certainty": "corroborated",
+      "evidence": [
+        {
+          "observation": "Calls POST /api/orders with OrderRequest v1",
+          "path": "src/api/orders.ts",
+          "sourceId": "source.orders-web"
+        }
+      ],
+      "nodeId": "runtime.client",
+      "relationshipId": "relationship.client.submit-order",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-web",
+          "unitId": "orders-web"
+        }
+      ]
+    }
+  ],
+  "certainty": "corroborated",
+  "coverage": {
+    "knownOmissions": [],
+    "status": "complete",
+    "unresolvedGapIds": []
+  },
+  "description": "Submits and stores a valid order",
+  "id": "path.submit-order.success",
+  "kind": "success",
+  "name": "Submit order â€” successful path",
+  "operationId": "operation.submit-order",
+  "outcome": {
+    "at": "2.1",
+    "description": "Caller receives OrderResponse",
+    "kind": "response"
+  },
+  "participants": [
+    {
+      "id": "runtime.client",
+      "role": "Initiates the request"
+    },
+    {
+      "id": "runtime.api",
+      "role": "Accepts and returns the request"
+    },
+    {
+      "id": "component.api.submit-handler",
+      "role": "Orchestrates submission"
+    },
+    {
+      "id": "store.orders",
+      "role": "Persists the order"
+    }
+  ],
+  "schemaVersion": 2,
+  "sequence": [
+    {
+      "evidence": [
+        {
+          "observation": "Fixture evidence",
+          "path": "src/Orders.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "kind": "stage",
+      "name": "Request enters the Orders API",
+      "number": "1",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    },
+    {
+      "boundary": "runtime",
+      "callerRelationshipIds": [
+        "relationship.client.submit-order"
+      ],
+      "certainty": "corroborated",
+      "continuation": "continue",
+      "destination": "runtime.api",
+      "evidence": [
+        {
+          "observation": "Calls POST /api/orders with OrderRequest v1",
+          "path": "src/api/orders.ts",
+          "sourceId": "source.orders-web"
+        }
+      ],
+      "input": "OrderRequest",
+      "interfaceId": "interface.api.submit-order",
+      "kind": "entry",
+      "number": "1.1",
+      "operation": "Sends POST /api/orders",
+      "output": "Accepted request",
+      "parent": "1",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-web",
+          "unitId": "orders-web"
+        }
+      ]
+    },
+    {
+      "at": "component.api.submit-handler",
+      "boundary": "in-process",
+      "certainty": "observed",
+      "continuation": "continue",
+      "evidence": [
+        {
+          "observation": "Fixture evidence",
+          "path": "src/Orders.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "input": "OrderRequest",
+      "kind": "local-operation",
+      "number": "1.2",
+      "operation": "Validates the submitted order",
+      "output": "Validated order",
+      "parent": "1",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    },
+    {
+      "boundary": "data-store",
+      "certainty": "observed",
+      "continuation": "continue",
+      "destination": "store.orders",
+      "evidence": [
+        {
+          "observation": "Fixture evidence",
+          "path": "src/Orders.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "input": "Validated order",
+      "kind": "data-write",
+      "number": "1.3",
+      "operation": "Stores the accepted order",
+      "output": "Persisted order",
+      "parent": "1",
+      "relationshipId": "relationship.api.write-orders",
+      "source": "component.api.submit-handler",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    },
+    {
+      "evidence": [
+        {
+          "observation": "Fixture evidence",
+          "path": "src/Orders.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "kind": "stage",
+      "name": "Response returns",
+      "number": "2",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    },
+    {
+      "boundary": "runtime",
+      "callerRelationshipIds": [
+        "relationship.client.submit-order"
+      ],
+      "certainty": "corroborated",
+      "continuation": "return",
+      "evidence": [
+        {
+          "observation": "Fixture evidence",
+          "path": "src/Orders.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "input": "Persisted order",
+      "interfaceId": "interface.api.submit-order",
+      "kind": "return",
+      "number": "2.1",
+      "operation": "Returns OrderResponse to the caller",
+      "output": "OrderResponse",
+      "parent": "2",
+      "source": "runtime.api",
+      "sourceFindings": [
+        {
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    }
+  ],
+  "triggerInterfaceIds": [
+    "interface.api.submit-order"
+  ]
+}

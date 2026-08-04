@@ -14,10 +14,11 @@ Build the architecture model for the successful Search Opportunities path.
 
 - Keep Opportunity as the subject and Search Opportunities as the scenario/path.
 - Corroborate each caller from compatible outbound and inbound evidence; do not infer callers from the route alone.
-- Store an authoritative flat `sequence` array with hierarchical string numbers such as `1`, `1.1`, `1.2`, `2`, and `2.1`.
+- Create a sharded domain → components → operation → path hierarchy; keep `index.json` limited to links and hashes.
+- Store an authoritative flat path `sequence` array with hierarchical string numbers such as `1`, `1.1`, `1.2`, `2`, and `2.1`.
 - Record authentication, controller/handler hand-offs, LaunchDarkly, configuration, Elasticsearch, SQL, Eligibility, Details, telemetry, and the returned response at their exact execution positions.
 - Include dependencies regardless of domain or ownership because the path touches them.
-- Exclude the unrelated Opportunity components and unused message bus because the path does not touch them.
+- Exclude unrelated Opportunity components and the unused message bus from this path's participants. Retain a component shard if evidence shows it fulfils another in-scope operation.
 - Continue through supplied downstream implementations when compatible interface and operation evidence exists.
 - End at the returned `SearchResponse v2` outcome.
 - Use a separate final return interaction from the Search API to the originating caller set; do not combine response mapping and network return.
@@ -32,7 +33,7 @@ Build the architecture model for the successful Search Opportunities path.
 - Omits LaunchDarkly, central configuration, telemetry, or another touched dependency because it is shared, infrastructural, external, or cross-domain.
 - Includes the message bus or unrelated components merely because they exist in the domain.
 - Lists dependencies without saying exactly when and why they are used.
-- Assigns sequence numbers during Markdown/ASCII generation instead of storing them in `model.json`.
+- Assigns sequence numbers during Markdown/ASCII generation instead of storing them in the canonical operation-path shard.
 - Stops at the first outbound API despite compatible downstream source being supplied.
 - Ends without a response, terminal effect, one-way completion, or explicit gap.
 - Treats a local options/appsettings read as a remote configuration service without runtime-call evidence.
@@ -43,7 +44,7 @@ Build the architecture model for the successful Search Opportunities path.
 
 ### Prompt
 
-A model flow has JSON numbers `1`, `1.1`, `1.2`, `2`, `2.1`, `2.2`. Its Markdown omits `1.2`, renames `2.1`, and calls it `3.1`; its ASCII diagram reverses the dependency at `2.2`. Progress marks every flow-review gate true.
+An operation path has JSON numbers `1`, `1.1`, `1.2`, `2`, `2.1`, `2.2`. Its generated Markdown is tampered to omit `1.2`, rename `2.1`, and call it `3.1`; its ASCII diagram reverses the dependency at `2.2`. Progress marks every path-review gate true.
 
 ### Required outcome
 
@@ -51,13 +52,13 @@ A model flow has JSON numbers `1`, `1.1`, `1.2`, `2`, `2.1`, `2.2`. Its Markdown
 - Reset `projectionsValidated` and the flow-review completion state.
 - Require the exact JSON number set and order in both artifacts.
 - Require the same operation text/meaning, participants, direction, dependency, inputs/outputs or effects, and outcome.
-- Treat the model JSON sequence as authoritative; repair projections unless the evidence proves the model itself is wrong.
+- Treat the operation-path JSON sequence as authoritative; regenerate projections unless evidence proves the path itself is wrong.
 
 ### Fail conditions
 
 - Accepts approximate semantic similarity.
 - Renumbers steps for prettier presentation.
-- Treats Markdown or ASCII as independent architecture authority.
+- Treats Markdown or ASCII as independent architecture authority or repairs drift by hand instead of deterministic rendering.
 - Leaves progress complete after detecting drift.
 
 ## Caller and continuation uncertainty
@@ -94,7 +95,7 @@ A POST handler writes SQL, publishes `OpportunityChanged v3` to topic `opportuni
 - Preserve publish, named channel, delivery/subscription, consume, SQL read, Elasticsearch update, telemetry, and terminal effect as distinct numbered steps.
 - Stitch only the v3 consumer path.
 - Preserve the v2 incompatibility as a conflict, not an alternative successful continuation.
-- Use a separate path if the HTTP-accepted outcome and background-completion outcome need distinct review stories, with explicit linkage between them.
+- Use separate linked paths for the HTTP-accepted outcome and background-completion outcome, using `causedByPathIds`, `continuesFromPathIds`, and observed correlation metadata.
 
 ### Fail conditions
 

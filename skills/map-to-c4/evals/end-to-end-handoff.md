@@ -6,9 +6,9 @@ The user supplies two repositories that together implement one confirmed Orderin
 
 ## Required outcome
 
-- Apply `build-architecture-model` first and produce the complete five-part `.architecture-model/` directory.
+- Apply `build-architecture-model` first and produce the complete sharded `.architecture-model/` directory.
 - Validate syntax, structure, cross-file references, evidence, decisions, progress revisions, and semantics before mapping.
-- Make `model.subject` and `model.systemBoundaries` exact mirrors of their authoritative files.
+- Keep subject and system-boundary decisions authoritative while graph shards reference their stable identities.
 - Apply `map-to-c4` without rescanning or modifying the model.
 - Produce required System Context and Container view JSON, connected provenance-annotated SVG, HTML pages, index, and working navigation.
 - Preserve browser-to-API and API-to-database direction, API version, technology, logical-store identity, and model relationship provenance.
@@ -20,8 +20,8 @@ The user supplies two repositories that together implement one confirmed Orderin
 
 ## Fail conditions
 
-- Hands only `model.json` to the mapper or treats JSON parsing as complete validation.
-- Uses an undocumented reconciled-model record shape.
+- Hands only `index.json` or one shard to the mapper, or treats JSON parsing as complete validation.
+- Uses an undocumented sharded-graph record shape or copied aggregate.
 - Changes model identities or direction during projection.
 - Duplicates the database per repository.
 - Produces disconnected cards, unresolved view endpoints, missing provenance, or broken links.

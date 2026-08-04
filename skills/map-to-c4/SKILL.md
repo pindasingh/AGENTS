@@ -5,7 +5,7 @@ description: Projects a reconciled architecture model into navigable C4 System C
 
 # Map to C4
 
-Project an evidence-backed reconciled architecture model into navigable C4 views. Read [references/c4-source-of-truth.md](references/c4-source-of-truth.md), [references/model-input.md](references/model-input.md), [references/view-json.md](references/view-json.md), and the sibling build skill's [reconciled-model contract](../build-architecture-model/references/reconciled-model.md) before working.
+Project an evidence-backed reconciled architecture model into navigable C4 views. Read [references/c4-source-of-truth.md](references/c4-source-of-truth.md), [references/model-input.md](references/model-input.md), [references/view-json.md](references/view-json.md), and the sibling build skill's [sharded graph contract](../build-architecture-model/references/sharded-graph.md) before working.
 
 This skill does not discover repositories. If the reconciled model is absent or stale, apply the sibling `build-architecture-model` skill first.
 
@@ -50,7 +50,7 @@ System Context and Container views are required. Component and Code views are op
 
 ## Projection workflow
 
-1. Read and validate the complete `.architecture-model/` directory using [references/model-input.md](references/model-input.md). A parseable `model.json` alone is not sufficient. Stop or return to discovery when any handoff check fails or when conflicts or gaps prevent an honest required view.
+1. Read and validate the complete `.architecture-model/` directory using [references/model-input.md](references/model-input.md). `index.json` is navigation and hashes only; load referenced canonical shards. Stop or return to discovery when any handoff check fails or when conflicts or gaps prevent an honest required view.
 2. Confirm Software System boundaries from `decisions.json`; never use a candidate boundary as confirmed scope.
 3. Create one private JSON view definition from the template for each diagram. Include explicit element and relationship IDs plus model IDs or exact evidence references.
 4. Keep the visible view audience-focused. Put certainty, evidence status, endpoint inventories, and fine-grained detail in private JSON/model data or a deeper view; never append “not verified” or similar process commentary to visible labels.

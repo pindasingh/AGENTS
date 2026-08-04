@@ -1,0 +1,25 @@
+{
+  "certainty": "observed",
+  "evidence": [
+    {
+      "observation": "Writes accepted orders",
+      "path": "src/Infrastructure/OrdersDbContext.cs",
+      "sourceId": "source.orders-api"
+    }
+  ],
+  "fromId": "runtime.orders-api",
+  "id": "relationship.orders-api.write-orders",
+  "kind": "data",
+  "purpose": "Persists accepted orders",
+  "rules": [],
+  "schemaVersion": 2,
+  "sourceFindings": [
+    {
+      "outboundId": "write-orders",
+      "sourceId": "source.orders-api",
+      "unitId": "orders-api"
+    }
+  ],
+  "technology": "Entity Framework Core/SQL Server",
+  "toId": "store.orders"
+}

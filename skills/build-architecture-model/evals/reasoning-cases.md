@@ -43,13 +43,13 @@ After scanning a repository, the agent offers a polished Markdown architecture r
 
 ### Required outcome
 
-Treat `.architecture-model/` as the only model deliverable, author findings only in the prescribed scan shape, and reconcile them into the prescribed `model.json` shape. Re-read the scans, decisions, reconciled model, and progress gates before handoff. Keep any final prose to a status summary and pointers to the artifacts.
+Treat `.architecture-model/` as the only model deliverable, author repository findings only in source scans, and reconcile them into canonical sharded graph records. Generate `index.json` from those shards; never create a copied aggregate. Re-read scans, decisions, affected shards, generated index, and progress gates before handoff. Keep final prose to a status summary and artifact pointers.
 
 ### Fail conditions
 
 - Substitutes Markdown, diagrams, or an alternate JSON format for the required model directory.
 - Adds free-form top-level fields to a scan.
-- Treats a stale `model.json` as authoritative when it does not reflect every current scan and decision.
+- Treats a stale `index.json` as authoritative or copies detailed records into it.
 - Completes without re-reading the artifacts and satisfying every progress gate.
 
 ## Repository-by-repository checkpointing
@@ -60,17 +60,17 @@ The user supplies seven repositories. The agent proposes reading all repositorie
 
 ### Required outcome
 
-Initialize the model and ledger, scan one repository, self-check its scan, reconcile and re-read `model.json`, review gaps/conflicts, mark its gates complete, and only then continue. Read the updated reconciled model and progress ledger before each next scan.
+Initialize the model and ledger, scan one repository, self-check its scan, update only affected graph shards, regenerate/re-read `index.json`, review gaps/conflicts, mark its gates complete, and only then continue. Read the updated domain hierarchy and progress ledger before each next scan.
 
 ### Fail conditions
 
 - Defers all persisted output until the final repository.
-- Updates `model.json` without reconciling it from the current scans and decisions.
+- Updates graph shards without reconciling them from current scans and decisions, or rewrites unrelated shards.
 - Copies one repository's findings into another repository's scan.
 
 ## Token-efficient standard-library tooling
 
-**Prompt:** The agent wants to initialize and syntax-check the architecture artifact set, then proposes installing a JSON-schema package and asking another model to regenerate `model.json`.
+**Prompt:** The agent wants to initialize, format, render, index, and validate the architecture artifact set, then proposes installing a JSON-schema package and asking another model to generate the graph.
 
 **Required:** Use the bundled helper for deterministic boilerplate and JSON preflight. Bundled Python uses only the standard library, requires no installation or network, and never substitutes for evidence discovery, reconciliation decisions, sequencing, or semantic/projection review.
 
@@ -172,3 +172,37 @@ Record the observed outbound dependency candidate, configuration key, searches, 
 - Converts the options-key name directly into a confirmed runtime identity.
 - Omits the unresolved dependency because it cannot be mapped.
 - Claims complete coverage without the configuration gap.
+
+## Sharded hierarchy, not a fat model
+
+### Prompt
+
+A domain has 40 repositories, 120 components, and 70 operations. The agent proposes one JSON object containing every entity and every sequence because all facts would be in one place.
+
+### Required outcome
+
+Create canonical source, domain, node, component, interface, relationship, operation, and path shards. Generate an index containing only artifact paths, hashes, and domain/component/operation/path hierarchy. Load and update only affected shards while preserving stable reciprocal references.
+
+### Fail conditions
+
+- Creates `model.json` or another aggregate copy of detailed records.
+- Embeds component details or sequence steps in `index.json`.
+- Requires rewriting unrelated operations after one path changes.
+- Leaves component-to-operation ownership implicit rather than reciprocal.
+
+## Stable no-op and real-change classification
+
+### Prompt
+
+The same fixed revisions are scanned twice in a different repository order. A third run changes evidence line numbers only. A fourth run inserts a real downstream call between two existing steps.
+
+### Required outcome
+
+Canonical formatting and stable IDs make the first two semantic hashes identical. The evidence-only run preserves the semantic hash and is classified separately. The real call creates focused semantic changes to the affected relationship/path and regenerated projections.
+
+### Fail conditions
+
+- Scan order changes IDs, hierarchy, or semantic hash.
+- Evidence-line movement is reported as an architecture behavior change.
+- A true inserted dependency is hidden as evidence-only.
+- Every shard changes because one operation path changed.

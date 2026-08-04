@@ -1,395 +1,269 @@
-# Reconciled architecture model contract
+# Sharded architecture graph contract
 
-This is the closed, normative contract for `.architecture-model/model.json`. Read it with `model-spec.md`. Every keyed collection may be empty, but every record that exists must use the shape defined here. Do not add top-level fields or alternate record shapes.
+This is the normative contract for reconciled schema-version-2 artifacts. Read it with [model-spec.md](model-spec.md). Every artifact has one stable ID, one canonical file, and references other artifacts by ID. Do not duplicate records into `index.json` or create an aggregate model.
 
-## Common records
+## Stable IDs and file locations
 
-### Model evidence
+IDs match `[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*` and contain no path separators. Use semantic prefixes:
 
-Every model claim carries at least one source-qualified anchor:
+| Artifact | ID example | Canonical path |
+|---|---|---|
+| Source | `source.orders-api` | `sources/source.orders-api/scan.json` |
+| Domain | `domain.fulfilment` | `domains/domain.fulfilment.json` |
+| Node | `runtime.orders-api`, `store.orders` | `nodes/<id>.json` |
+| Component | `component.orders-api.submit-handler` | `components/<id>.json` |
+| Interface | `interface.orders-api.submit-order-v2` | `interfaces/<id>.json` |
+| Relationship | `relationship.orders-api.write-orders` | `relationships/<id>.json` |
+| Operation | `operation.submit-order` | `operations/<id>/operation.json` |
+| Path | `path.submit-order.success` | `operations/<operation-id>/paths/<id>.json` |
+| Gap/conflict | `gap.*`, `conflict.*` | `gaps/<id>.json`, `conflicts/<id>.json` |
+
+Stable IDs follow confirmed deployment, contract, store/channel, or implementation identity. Do not derive them from scan order, temporary checkout roots, array positions, or presentation labels.
+
+## Common provenance records
+
+### Reconciled evidence
 
 ```json
 {
-  "sourceId": "orders-api",
-  "path": "src/Api/Program.cs",
-  "symbol": "Program",
-  "lineStart": 12,
+  "sourceId": "source.orders-api",
+  "path": "src/Api/OrdersController.cs",
+  "symbol": "Submit",
+  "lineStart": 20,
   "lineEnd": 42,
-  "observation": "Starts the Orders HTTP application"
+  "observation": "Defines POST /api/v2/orders"
 }
 ```
 
-Required fields are `sourceId`, `path`, and `observation`. `symbol`, `lineStart`, and `lineEnd` are optional. When either line is present both are required, positive, and `lineEnd` is not less than `lineStart`. `sourceId` must resolve in `model.sources`; paths are relative to that source.
+`sourceId`, `path`, and `observation` are required. `sourceId` resolves to a source shard. `symbol` and a complete valid line range are optional.
 
 ### Source finding
 
-Use structured findings rather than ad-hoc strings:
-
 ```json
 {
-  "sourceId": "orders-api",
+  "sourceId": "source.orders-api",
   "unitId": "orders-api",
   "componentId": "submit-order-handler",
   "interfaceId": "submit-order-v2",
-  "outboundId": "write-orders",
   "operationId": "submit-order",
   "stepOrder": 2
 }
 ```
 
-`sourceId` is required. `unitId` is required except for a component-only finding, where `componentId` plus its resolvable owner establishes the unit. Add only the keys that identify the originating observation: `componentId`, `interfaceId`, `outboundId`, `operationId`, and `stepOrder`. Each supplied key must resolve inside the named scan. A finding identifies one local observation; use several findings when a model fact reconciles several observations.
+`sourceId` is required. Add only local identifiers needed to locate the observation: `unitId`, `componentId`, `interfaceId`, `outboundId`, `operationId`, and `stepOrder`.
 
 ### Certainty
 
-`certainty` is exactly one of `observed`, `corroborated`, `inferred`, `conflicting`, or `unknown`.
+Use exactly `observed`, `corroborated`, `inferred`, `conflicting`, or `unknown`.
 
-## Top-level shape
+## Domain shard
+
+Use [../assets/domain-template.json](../assets/domain-template.json). Required fields are:
+
+- `schemaVersion`, `id`, `name`, and `description`;
+- `sourceIds`, `componentIds`, and `operationIds`.
+
+The arrays are references, not copied records. Every component and operation reciprocally names the same domain. A component not touched by one path remains in the domain if it fulfils another domain operation.
+
+## Node shard
+
+Use [../assets/node-template.json](../assets/node-template.json). Required fields are:
+
+- `schemaVersion`, `id`, `kind`, `name`, `responsibility`;
+- technology array and identity object;
+- certainty, non-empty source findings, and non-empty evidence.
+
+`subtype` and `ownership` are optional. Kinds are `runtime`, `store`, `channel`, `library`, `external`, and `person`.
+
+Nodes are independently meaningful graph participants. Internal components do not become runtime nodes.
+
+## Component shard
+
+Use [../assets/component-template.json](../assets/component-template.json). Required fields are:
+
+- `schemaVersion`, `id`, `domainId`, and `ownerNodeId`;
+- name, responsibility, technology, and `operationIds`;
+- certainty, non-empty source findings, and non-empty evidence.
+
+`interface` is optional. `ownerNodeId` resolves to a runtime node. Each operation in `operationIds` reciprocally contains this component in `ownerComponentIds`.
+
+A component represents stable execution responsibility, not arbitrary code structure. Smaller local operations can execute at their runtime with exact evidence without creating a component.
+
+## Interface shard
+
+Use [../assets/interface-template.json](../assets/interface-template.json). Required fields are:
+
+- `schemaVersion`, `id`, `ownerNodeId`, `kind`, `purpose`, and `rules`;
+- `coverage`;
+- certainty, non-empty source findings, and non-empty evidence.
+
+Applicable optional protocol fields are `method`, `path`, `service`, `version`, `channel`, and `contract`. Interface kinds are `http`, `grpc`, `event`, `message`, `job`, `ui`, `file`, and `other`.
+
+Coverage is:
 
 ```json
 {
-  "schemaVersion": 1,
-  "subject": {},
-  "sources": {},
-  "nodes": {},
-  "components": {},
-  "interfaces": {},
-  "relationships": {},
-  "flows": {},
-  "flowCoverage": {},
-  "systemBoundaries": {},
-  "gaps": {},
-  "conflicts": {}
-}
-```
-
-All twelve keys are required and no other top-level keys are allowed. `subject` exactly copies `subject.json.subject`, including `aliases` and `exclusions`.
-
-## Sources
-
-Key `sources` by scan `source.id`:
-
-```json
-"orders-api": {
-  "path": "../orders-api",
-  "repository": "https://example/orders-api.git",
-  "revision": "0123456789abcdef",
-  "branch": "main",
-  "scanPath": "scans/orders-api.json"
-}
-```
-
-All five fields are required and must exactly match the scan. `scanPath` is relative to `.architecture-model/` and must resolve to that scan.
-
-## Nodes
-
-Key nodes by stable model ID:
-
-```json
-"runtime.orders-api": {
-  "kind": "runtime",
-  "subtype": "api",
-  "name": "Orders API",
-  "responsibility": "Accepts and manages orders",
-  "technology": [".NET 8", "ASP.NET Core"],
-  "identity": {"deploymentIdentity": "orders-api"},
-  "ownership": "Fulfilment team",
-  "certainty": "observed",
-  "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api"}],
-  "evidence": [{"sourceId": "orders-api", "path": "src/Api/Program.cs", "observation": "Starts the Orders API"}]
-}
-```
-
-Required fields are `kind`, `name`, `responsibility`, `technology`, `identity`, `certainty`, non-empty `sourceFindings`, and non-empty `evidence`. `subtype` and `ownership` are optional. `kind` uses the discovery kinds from `model-spec.md`. `technology` is an array of strings and `identity` is an object containing observed identity keys; either may be empty when genuinely unknown.
-
-## Components
-
-Key components by stable model ID:
-
-```json
-"component.orders-api.submit-order-handler": {
-  "owner": "runtime.orders-api",
-  "name": "Submit Order Handler",
-  "responsibility": "Orchestrates order submission",
-  "technology": [".NET", "MediatR"],
-  "interface": "Handles SubmitOrderCommand",
-  "certainty": "observed",
-  "sourceFindings": [
-    {"sourceId": "orders-api", "componentId": "submit-order-handler"}
-  ],
-  "evidence": [
-    {"sourceId": "orders-api", "path": "src/Application/SubmitOrderHandler.cs", "observation": "Handles SubmitOrderCommand"}
-  ]
-}
-```
-
-Required fields are `owner`, `name`, `responsibility`, `technology`, `certainty`, non-empty `sourceFindings`, and non-empty `evidence`. `owner` resolves to a runtime node. `interface` is optional. A component is a stable execution responsibility inside one runtime, evidenced by a declaration, interface, registration, or implementation—not automatically a folder, layer, namespace, assembly, variable, field, method receiver, handler, repository, client, or class name. Small or incompletely identified local operations remain flow steps at their runtime with evidence and need not become components.
-
-## Interfaces
-
-Key interfaces by stable model ID:
-
-```json
-"interface.orders-api.submit-order-v2": {
-  "owner": "runtime.orders-api",
-  "kind": "http",
-  "purpose": "Submits an order",
-  "method": "POST",
-  "path": "/api/v2/orders",
-  "version": "v2",
-  "contract": {"name": "SubmitOrder", "version": "v2", "format": "JSON"},
-  "rules": ["Requires an authenticated customer"],
-  "certainty": "observed",
-  "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "interfaceId": "submit-order-v2"}],
-  "evidence": [{"sourceId": "orders-api", "path": "src/Api/Controllers/OrdersController.cs", "observation": "Defines POST /api/v2/orders"}]
-}
-```
-
-Required fields are `owner`, `kind`, `purpose`, `rules`, `certainty`, non-empty `sourceFindings`, and non-empty `evidence`. `owner` resolves to a node. Preserve the applicable observed interface fields from `model-spec.md`: `method`, `path`, `service`, `version`, `channel`, and `contract`. Do not add fields that were not observed.
-
-## Relationships
-
-```json
-"relationship.orders-api.write-orders": {
-  "from": "runtime.orders-api",
-  "to": "store.orders",
-  "kind": "data",
-  "purpose": "Creates and updates orders",
-  "technology": "Entity Framework Core/SQL Server",
-  "interface": {"database": "Orders", "schema": "fulfilment"},
-  "rules": [],
-  "certainty": "observed",
-  "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "outboundId": "write-orders"}],
-  "evidence": [{"sourceId": "orders-api", "path": "src/Infrastructure/OrdersDbContext.cs", "observation": "Writes accepted orders"}]
-}
-```
-
-Required fields are `from`, `to`, `kind`, `purpose`, `technology`, `rules`, `certainty`, non-empty `sourceFindings`, and non-empty `evidence`. Both endpoints resolve to nodes and direction follows runtime interaction. `interface` and `contract` are optional observed objects. Preserve incompatible versions as separate relationships and conflicts.
-
-## Flows
-
-Each flow record represents one named end-to-end path. It is not a bag of every branch in a scenario. Flow keys match `^flow\.[a-z0-9][a-z0-9._-]*$` and contain no path separators so the same ID can safely name its review directory.
-
-```json
-"flow.submit-order": {
-  "name": "Submit order — successful path",
-  "scenario": "Submit order",
-  "path": "successful",
-  "description": "Accepts and stores a valid order",
-  "owner": "runtime.orders-api",
-  "trigger": "interface.orders-api.submit-order-v2",
-  "callers": [
-    {
-      "nodeId": "runtime.orders-web",
-      "relationshipId": "relationship.orders-web.submit-order-v2",
-      "certainty": "corroborated",
-      "sourceFindings": [
-        {"sourceId": "orders-web", "unitId": "orders-web", "outboundId": "submit-order-v2"}
-      ],
-      "evidence": [
-        {"sourceId": "orders-web", "path": "src/api/orders.ts", "observation": "Calls POST /api/v2/orders"}
-      ]
-    }
-  ],
-  "participants": [
-    {"id": "runtime.orders-web", "role": "Initiates the request"},
-    {"id": "runtime.orders-api", "role": "Handles and orchestrates the request"},
-    {"id": "component.orders-api.submit-order-handler", "role": "Validates and stores the order"},
-    {"id": "store.orders", "role": "Persists the accepted order"}
-  ],
-  "certainty": "observed",
-  "sequence": [
-    {
-      "number": "1",
-      "kind": "stage",
-      "name": "Request enters the Orders API",
-      "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "operationId": "submit-order", "stepOrder": 1}],
-      "evidence": [{"sourceId": "orders-api", "path": "src/Application/SubmitOrderHandler.cs", "observation": "Validates the command"}]
-    },
-    {
-      "number": "1.1",
-      "parent": "1",
-      "kind": "entry",
-      "callerRelationshipIds": ["relationship.orders-web.submit-order-v2"],
-      "destination": "runtime.orders-api",
-      "interfaceId": "interface.orders-api.submit-order-v2",
-      "operation": "Sends POST /api/v2/orders",
-      "input": "SubmitOrder request v2",
-      "output": "Accepted HTTP request",
-      "boundary": "runtime",
-      "continuation": "continue",
-      "certainty": "corroborated",
-      "sourceFindings": [{"sourceId": "orders-web", "unitId": "orders-web", "outboundId": "submit-order-v2"}],
-      "evidence": [{"sourceId": "orders-web", "path": "src/api/orders.ts", "observation": "Calls POST /api/v2/orders"}]
-    },
-    {
-      "number": "1.2",
-      "parent": "1",
-      "kind": "local-operation",
-      "at": "component.orders-api.submit-order-handler",
-      "operation": "Validates the submitted order",
-      "input": "SubmitOrderCommand",
-      "output": "Validated command",
-      "boundary": "in-process",
-      "continuation": "continue",
-      "certainty": "observed",
-      "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "operationId": "submit-order", "stepOrder": 1}],
-      "evidence": [{"sourceId": "orders-api", "path": "src/Application/SubmitOrderHandler.cs", "observation": "Validates the command"}]
-    },
-    {
-      "number": "1.3",
-      "parent": "1",
-      "kind": "data-write",
-      "source": "component.orders-api.submit-order-handler",
-      "destination": "store.orders",
-      "relationshipId": "relationship.orders-api.write-orders",
-      "operation": "Stores the accepted order",
-      "input": "Accepted order",
-      "output": "Persisted order",
-      "boundary": "data-store",
-      "continuation": "continue",
-      "certainty": "observed",
-      "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "operationId": "submit-order", "stepOrder": 2}],
-      "evidence": [{"sourceId": "orders-api", "path": "src/Application/SubmitOrderHandler.cs", "observation": "Persists the order"}]
-    },
-    {
-      "number": "2",
-      "kind": "stage",
-      "name": "Response returns to the originating caller",
-      "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "operationId": "submit-order", "stepOrder": 2}],
-      "evidence": [{"sourceId": "orders-api", "path": "src/Api/Controllers/OrdersController.cs", "observation": "Returns the submit-order response"}]
-    },
-    {
-      "number": "2.1",
-      "parent": "2",
-      "kind": "return",
-      "source": "runtime.orders-api",
-      "callerRelationshipIds": ["relationship.orders-web.submit-order-v2"],
-      "interfaceId": "interface.orders-api.submit-order-v2",
-      "operation": "Returns SubmitOrderResponse v2 to the originating caller",
-      "input": "Persisted order result",
-      "output": "SubmitOrderResponse v2",
-      "boundary": "runtime",
-      "continuation": "return",
-      "certainty": "corroborated",
-      "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "operationId": "submit-order", "stepOrder": 2}],
-      "evidence": [{"sourceId": "orders-api", "path": "src/Api/Controllers/OrdersController.cs", "observation": "Returns the response to the HTTP caller"}]
-    }
-  ],
-  "outcome": {
-    "kind": "success",
-    "at": "2.1",
-    "description": "The originating caller receives SubmitOrderResponse v2"
-  },
-  "coverage": {
-    "status": "complete",
-    "unresolvedContinuations": [],
-    "knownOmissions": []
-  }
-}
-```
-
-Required flow fields are `name`, `scenario`, `path`, `description`, `owner`, `trigger`, `callers`, non-empty `participants`, `certainty`, non-empty `sequence`, `outcome`, and `coverage`. `owner` resolves to a runtime node and `trigger` to an interface owned by it. A caller record requires `nodeId`, `relationshipId`, `certainty`, non-empty `sourceFindings`, and non-empty `evidence`; both IDs resolve and the relationship must terminate at the trigger owner through a compatible interface. `callers` may be empty only when caller discovery produced an explicit gap referenced by `flowCoverage`.
-
-Each participant has `id` and `role`; `id` resolves to a node or component. The participant set contains every element touched by the sequence and no element included only because of domain/ownership membership.
-
-### Sequence records
-
-The `sequence` is a flat array in authoritative execution order. `number` is a string matching `^[1-9][0-9]*(\.[1-9][0-9]*)*$`. Numbers are unique. Root stages are contiguous integers. A non-root record has `parent` equal to the number with its final segment removed; the parent exists earlier. Siblings are contiguous and array order matches numeric hierarchy.
-
-A stage record requires `number`, `kind: "stage"`, `name`, non-empty `sourceFindings`, and non-empty `evidence`.
-
-Every non-stage record requires:
-
-- `number`, `parent`, `kind`, `operation`, `input`, `output`, `boundary`, `continuation`, `certainty`, non-empty `sourceFindings`, and non-empty `evidence`;
-- exactly one execution form: `at` for a local operation; `source` plus `destination` for an interaction; `callerRelationshipIds` plus `destination` and `interfaceId` for an `entry` step; or `source` plus `callerRelationshipIds` and `interfaceId` for a terminal caller `return` step;
-- `relationshipId` when a first-class model relationship supports the interaction;
-- `interfaceId` when an interface is invoked or handles the step.
-
-`at`, `source`, and `destination` resolve to nodes or components. Every `callerRelationshipIds` entry resolves to one flow caller's relationship, and every flow caller appears in the entry and terminal-return steps; these are alternative initiators/recipients, not simultaneous calls. `relationshipId` resolves to a relationship and its projected endpoints/direction remain compatible with the step; a component-to-node step may narrow the runtime source but must not reverse it. `interfaceId` resolves to an interface compatible with the destination/handler.
-
-Allowed non-stage kinds are `entry`, `local-operation`, `interaction`, `return`, `decision`, `data-read`, `data-write`, `config-read`, `feature-evaluation`, `publish`, `deliver`, `consume`, `telemetry`, `retry`, `outcome`, and `gap`. Allowed boundaries are `in-process`, `runtime`, `data-store`, `search-store`, `message-channel`, `configuration`, `observability`, `external-service`, `file`, and `other`. Allowed continuation values are `continue`, `return`, `terminate`, `one-way`, and `unresolved`.
-
-Calls and their later returns/effects occupy separate sequence positions when the return/effect changes control, state, or data needed by the trace. A request/response flow ends with a distinct return interaction to its originating caller set; local mapping cannot substitute for that boundary crossing. A one-way publish uses `one-way`; a missing continuation uses `unresolved` and must correspond to an unresolved-continuation entry and model gap.
-
-A local options/configuration access uses `kind: "config-read"`, `boundary: "configuration"`, and an `at` execution form. It may reference configuration-file/provider evidence without manufacturing an external node or relationship. Use an external configuration participant only when a remote runtime interaction is evidenced.
-
-`outcome` requires `kind`, `at`, and `description`; `at` resolves to a sequence number whose continuation terminates or returns the path. `coverage.status` is `complete`, `partial`, or `blocked`; `unresolvedContinuations` and `knownOmissions` are arrays of gap IDs or explicit, reviewable omission descriptions. `complete` requires both arrays empty.
-
-### Flow coverage
-
-Key `flowCoverage` by public/exterior interface ID:
-
-```json
-"interface.orders-api.submit-order-v2": {
   "status": "covered",
-  "flowIds": ["flow.submit-order"],
-  "reason": "Successful state-changing path traced from caller to persistence",
-  "evidence": [
-    {"sourceId": "orders-api", "path": "src/Api/Controllers/OrdersController.cs", "observation": "Defines the exterior entry point"}
-  ]
+  "operationPathIds": ["path.submit-order.success"],
+  "reason": "Successful state-changing path traced to response",
+  "gapIds": []
 }
 ```
 
-Required fields are `status`, `flowIds`, `reason`, and non-empty `evidence`. Status is `covered`, `excluded`, or `unresolved`. `covered` requires one or more resolving flow IDs. `excluded` requires an empty `flowIds` array and a concrete scope/value reason. `unresolved` requires an empty or partial `flowIds` array plus a referenced model gap in `gapIds`. Every reconciled inbound interface has exactly one coverage record. Use `excluded` with a concrete scope/value reason for an internal-only or otherwise irrelevant interface; never omit it silently.
+Status is `covered`, `excluded`, or `unresolved`:
 
-## System boundaries
+- covered requires resolving operation paths;
+- excluded requires empty path/gap arrays and a concrete scope reason;
+- unresolved requires one or more resolving gaps and may include partial paths.
 
-`model.systemBoundaries` exactly mirrors `decisions.systemBoundaries`; keys and record values must be identical:
+Every exterior interface has explicit coverage. Internal interfaces may be excluded with a reason rather than silently omitted.
+
+## Relationship shard
+
+Use [../assets/relationship-template.json](../assets/relationship-template.json). Required fields are:
+
+- `schemaVersion`, `id`, `fromId`, `toId`, `kind`, and `purpose`;
+- technology, rules, certainty, non-empty source findings, and non-empty evidence.
+
+`interfaceId` and `contract` are optional. Both endpoints resolve to nodes. Direction follows runtime interaction. Kinds are `request`, `event`, `message`, `data`, `search`, `file`, `library`, `ui-load`, and `other`.
+
+A component path step can narrow a runtime endpoint, but its referenced relationship must remain compatible with the component's owning runtime and cannot reverse direction.
+
+## Operation shard
+
+Use [../assets/operation-template.json](../assets/operation-template.json). Required fields are:
+
+- `schemaVersion`, `id`, `domainId`, `name`, and `description`;
+- non-empty `ownerComponentIds`;
+- non-empty `triggerInterfaceIds`;
+- non-empty `pathIds`.
+
+Every reference is reciprocal. An operation is the stable behavior/capability. It can have several exact path variants without combining them into an unreadable universal sequence.
+
+## Operation path shard
+
+A path is one authoritative execution variant. Required fields are:
+
+- `schemaVersion`, `id`, `operationId`, `name`, `kind`, and `description`;
+- non-empty `triggerInterfaceIds`;
+- callers, non-empty participants, certainty, and non-empty sequence;
+- outcome and coverage.
+
+Kinds are `success`, `rejection`, `no-result`, `fallback`, `retry`, `failure`, `asynchronous`, and `other`.
+
+Optional cross-path linkage:
+
+- `continuesFromPathIds`: this path continues an earlier path;
+- `causedByPathIds`: an earlier path caused this execution;
+- `correlation`: observed request/message/correlation identity.
+
+Use these links for accepted HTTP work followed by background processing, retries represented as separate review stories, or other related paths.
+
+### Callers
+
+Each caller has `nodeId`, `relationshipId`, certainty, non-empty source findings, and non-empty evidence. The relationship starts at the caller node and terminates at a trigger-owner runtime through a compatible interface. Several callers are alternatives unless evidence says they execute together.
+
+An empty caller array is allowed only for a non-caller trigger or when explicit gaps and unresolved coverage explain missing caller evidence.
+
+### Participants
+
+Each participant has `id` and `role`. IDs resolve to nodes or components. The participant set equals the exact set touched by sequence endpoints—no omissions and no unrelated domain members. Participant order controls stable `P1`, `P2`, and so on in the ASCII projection.
+
+### Sequence hierarchy
+
+The sequence is a flat array in exact execution order. `number` matches `^[1-9][0-9]*(\.[1-9][0-9]*)*$`.
+
+- Root records are contiguous stages `1`, `2`, `3`, and so on.
+- Descendants name `parent` by removing their final number segment.
+- Parents precede children.
+- Siblings are contiguous and array order equals numeric hierarchy.
+- Numbers never originate in a renderer.
+
+A stage requires `number`, `kind: "stage"`, `name`, non-empty source findings, and non-empty evidence.
+
+Every non-stage requires:
+
+- `number`, `parent`, `kind`, and `operation`;
+- `input`, `output`, `boundary`, `continuation`, and certainty;
+- non-empty source findings and evidence;
+- exactly one execution form.
+
+Execution forms are:
+
+1. `at` for local execution;
+2. `source` plus `destination` for an interaction;
+3. `callerRelationshipIds` plus `destination` and `interfaceId` for entry;
+4. `source` plus `callerRelationshipIds` and `interfaceId` for return to caller alternatives.
+
+Optional references are `relationshipId`, `interfaceId`, and `gapIds`. A first-class interaction uses its relationship. An invoked/handled interface uses its interface ID. An unresolved step names its gaps.
+
+Non-stage kinds are `entry`, `local-operation`, `interaction`, `return`, `decision`, `data-read`, `data-write`, `config-read`, `feature-evaluation`, `publish`, `deliver`, `consume`, `telemetry`, `retry`, `outcome`, and `gap`.
+
+Boundaries are `in-process`, `runtime`, `data-store`, `search-store`, `message-channel`, `configuration`, `observability`, `external-service`, `file`, and `other`.
+
+Continuation is `continue`, `return`, `terminate`, `one-way`, or `unresolved`.
+
+Calls and later returns/effects use separate steps when they alter control, state, or data. A request/response path ends with a separate return to its originating caller set; local response mapping is not that boundary crossing.
+
+### Outcome and coverage
+
+Outcome requires `kind`, `at`, and `description`. `at` resolves to a step whose continuation is `return`, `terminate`, `one-way`, or `unresolved`.
+
+Coverage is:
 
 ```json
-"system.fulfilment": {
-  "name": "Fulfilment",
-  "responsibility": "Coordinates fulfilment",
-  "status": "confirmed",
-  "members": ["runtime.orders-api", "store.orders"],
-  "evidence": ["Confirmed by the architecture owner"]
+{
+  "status": "complete",
+  "unresolvedGapIds": [],
+  "knownOmissions": []
 }
 ```
 
-Every member resolves to a model node. Status is `candidate`, `confirmed`, `rejected`, or `conflicting`. Only confirmed boundaries may anchor required C4 views.
+Status is `complete`, `partial`, or `blocked`. Complete requires empty unresolved gaps and omissions. Every unresolved gap ID resolves to a gap shard.
 
-## Gaps
+## Gap and conflict shards
 
-```json
-"gap.orders-api.payments-base-address": {
-  "description": "The payments base address is injected externally",
-  "impact": "The exact target cannot be corroborated",
-  "searches": ["Searched appsettings files", "Searched deployment manifests"],
-  "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "outboundId": "call-payments"}]
-}
+Use [../assets/gap-template.json](../assets/gap-template.json). A gap requires `schemaVersion`, ID, description, impact, searches, and non-empty source findings.
+
+A conflict requires `schemaVersion`, ID, description, impact, status, non-empty alternatives, and source findings. Status is `open` or `resolved`; resolved conflicts additionally explain resolution. Preserve incompatible observations rather than rewriting them into agreement.
+
+## Generated index
+
+`index.json` is produced by the `index` command and matches [../assets/index-template.json](../assets/index-template.json). It contains:
+
+- references and hashes grouped by artifact collection;
+- domain and operation hierarchy summaries;
+- projection references and hashes;
+- one overall model semantic hash;
+- hashed references to subject, decisions, and progress; subject and decision semantics contribute to the overall model semantic hash.
+
+It contains no responsibilities, technologies, evidence, sequence steps, or copied graph records. Editing it manually is invalid; regenerate it.
+
+## Deterministic projections
+
+For each path, `render` writes:
+
+```text
+projections/<operation-id>/<path-id>/numbered-sequence.md
+projections/<operation-id>/<path-id>/sequence-diagram.txt
 ```
 
-Required fields are `description`, `impact`, non-empty `searches`, and non-empty `sourceFindings`.
+The numbered view includes path/operation identity, triggers, callers, participants, outcome, coverage, exact hierarchical sequence, endpoint/location, kind, boundary, input, output, relationship/interface, continuation, certainty, and evidence summary.
 
-## Conflicts
+The ASCII view assigns participant aliases in canonical path order, preserves every exact sequence number and label, and renders local execution as self-arrows. It is suitable for terminal review and line-oriented diffs.
 
-```json
-"conflict.order-submitted-version": {
-  "description": "Publisher and legacy consumer use incompatible event versions",
-  "impact": "The legacy delivery path cannot be shown as compatible",
-  "status": "open",
-  "alternatives": [
-    {"value": "v3", "sourceFindings": [{"sourceId": "orders-api", "unitId": "orders-api", "outboundId": "publish-order-submitted"}]},
-    {"value": "v2", "sourceFindings": [{"sourceId": "legacy-worker", "unitId": "legacy-worker", "interfaceId": "consume-order-submitted-v2"}]}
-  ]
-}
-```
+Generated projections are never architecture authority and never manually repaired. Change the path when evidence proves it wrong; otherwise rerun `render`.
 
-Required fields are `description`, `impact`, `status`, and at least two `alternatives`. Status is `open` or `resolved`. Each alternative has `value` and non-empty `sourceFindings`. A resolved conflict additionally requires `resolution` and must not silently rewrite the underlying observations.
+## Handoff checks
 
-## Handoff validation
+Before handoff, confirm:
 
-Before another skill consumes the directory, re-read all files and verify:
-
-- top-level keys and every nested record match this contract;
-- every model source maps one-to-one to a completed progress entry and scan with the same path, revision, branch, and source ID;
-- every source finding and evidence source/path resolves;
-- every owner, endpoint, component, interface, boundary member, flow-coverage record, sequence reference, and operation step resolves;
-- `model.subject` equals `subject.json.subject` and `model.systemBoundaries` equals `decisions.systemBoundaries`;
-- every identity override names an existing scan unit and resolves to a model node, and every target override names an existing outbound dependency and resolves to a model node;
-- every current scan is reconciled and no stale model record cites a replaced observation;
-- conflicts and gaps are retained instead of flattened into established relationships.
-- every flow sequence passes hierarchical numbering, participant, direction, continuation, outcome, and coverage checks;
-- `progress.flowReviews` exactly matches `model.flows`, every gate is true, and each Markdown/ASCII artifact matches its authoritative JSON flow operation by operation.
-
-Failure at any item means the model is not ready for handoff.
+- the index equals a fresh generated index;
+- every source revision/progress entry agrees;
+- every graph reference resolves and reciprocal hierarchy links match;
+- relationship and caller directions are compatible;
+- participants exactly match path endpoints;
+- sequence hierarchy and outcomes are valid;
+- coverage and gaps agree;
+- generated projections equal deterministic rendering;
+- a snapshot diff classifies changes when updating an existing model.
