@@ -30,6 +30,15 @@ Project-local profiles in `.pi/agents/` are not enabled by default. Calling the 
 
 Text output is capped at Pi's standard 2,000-line/50 KB limit. `web_fetch` rejects network responses over 5 MiB and images over 1 MiB.
 
+## Skill invocation toggle
+
+Run `/toggle-skills` to configure every skill currently discovered by Pi:
+
+- `agent-invocable` — the skill description is available in agent context so Pi can select it automatically.
+- `manual-only` — the skill is hidden from agent context and runs only through explicit `/skill:name` invocation.
+
+`extensions/skill-toggle.ts` applies the selection directly to each discovered skill's source file, including package or external skills. Manual-only adds `disable-model-invocation: true`; agent-invocable removes that field. Press `Ctrl+S` to apply and reload Pi, or `Esc` to cancel. Manual invocation also requires Pi's `enableSkillCommands` setting.
+
 ## Context viewer
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary context occupancy and nested subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch. `/context-tree` remains available as a legacy alias.
