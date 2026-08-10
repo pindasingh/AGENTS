@@ -39,7 +39,7 @@ Pi's mutable and sensitive runtime data is intentionally not tracked here:
 
 - `dependency-install-guard.ts` — enforces the local no-dependency-install policy.
 - `herdr-agent-state.ts` — Herdr's Pi lifecycle integration. Herdr may regenerate this file; because Pi links to this repository, review and commit any generated update.
-- `subagent/` — adds the `subagent` tool, including isolated single, parallel, and chained Pi subprocesses, plus `/context-tree` for a toggleable primary/subagent context hierarchy.
+- `subagent/` — adds the `subagent` tool, including isolated single, parallel, and chained Pi subprocesses, plus `/context-viewer` for a toggleable primary/subagent context viewer (`/context-tree` remains as a legacy alias).
 - `opencode-web-tools.ts` — OpenCode-inspired `web_search` and `web_fetch` tools using built-in runtime APIs only.
 
 The matching subagent profiles are in `pi/agents/`, and workflow templates are in `pi/prompts/`.

@@ -9,49 +9,34 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Parallel streaming**: All parallel tasks stream updates simultaneously
 - **Markdown rendering**: Final output rendered with proper formatting (expanded view)
 - **Usage tracking**: Shows turns, tokens, cost, and context occupancy per agent
-- **Context hierarchy**: Toggle a live primary → subagent → nested-subagent tree with `/context-tree`
+- **Context viewer**: Toggle a live primary → subagent → nested-subagent context tree with `/context-viewer`
 - **Abort support**: Ctrl+C propagates to kill subagent processes
 
 ## Structure
 
 ```
-subagent/
-├── README.md            # This file
-├── index.ts             # The extension (entry point)
-├── agents.ts            # Agent discovery logic
-├── agents/              # Sample agent definitions
-│   ├── scout.md         # Fast recon, returns compressed context
-│   ├── planner.md       # Creates implementation plans
-│   ├── reviewer.md      # Code review
-│   └── worker.md        # General-purpose (full capabilities)
-└── prompts/             # Workflow presets (prompt templates)
-    ├── implement.md     # scout -> planner -> worker
-    ├── scout-and-plan.md    # scout -> planner (no implementation)
-    └── implement-and-review.md  # worker -> reviewer -> worker
+pi/
+├── extensions/subagent/
+│   ├── README.md            # This file
+│   ├── index.ts             # Extension entry point and subagent tool
+│   ├── agents.ts            # Agent discovery logic
+│   └── context-viewer.ts    # Primary/subagent context widget
+├── agents/
+│   ├── scout.md             # Fast reconnaissance
+│   ├── planner.md           # Implementation planning
+│   ├── reviewer.md          # Code review
+│   └── worker.md            # General-purpose work
+└── prompts/
+    ├── implement.md             # scout → planner → worker
+    ├── scout-and-plan.md        # scout → planner
+    └── implement-and-review.md  # worker → reviewer → worker
 ```
 
-## Installation
+## Loading in Pi
 
-From the repository root, symlink the files:
+This repository is the canonical source for the local Pi resources. Host provisioning maps `~/.pi/agent/extensions`, `agents`, and `prompts` to the corresponding `pi/` directories documented in the repository root [`README.md`](../../../README.md). The complete `subagent/` directory must remain available because `index.ts` imports both `agents.ts` and `context-viewer.ts`.
 
-```bash
-# Symlink the extension (must be in a subdirectory with index.ts)
-mkdir -p ~/.pi/agent/extensions/subagent
-ln -sf "$(pwd)/packages/coding-agent/examples/extensions/subagent/index.ts" ~/.pi/agent/extensions/subagent/index.ts
-ln -sf "$(pwd)/packages/coding-agent/examples/extensions/subagent/agents.ts" ~/.pi/agent/extensions/subagent/agents.ts
-
-# Symlink agents
-mkdir -p ~/.pi/agent/agents
-for f in packages/coding-agent/examples/extensions/subagent/agents/*.md; do
-  ln -sf "$(pwd)/$f" ~/.pi/agent/agents/$(basename "$f")
-done
-
-# Symlink workflow prompts
-mkdir -p ~/.pi/agent/prompts
-for f in packages/coding-agent/examples/extensions/subagent/prompts/*.md; do
-  ln -sf "$(pwd)/$f" ~/.pi/agent/prompts/$(basename "$f")
-done
-```
+After changing a linked extension, profile, or prompt, run Pi's `/reload` command.
 
 ## Security Model
 
@@ -110,8 +95,9 @@ Use a chain: first have scout find the read tool, then have planner suggest impr
 - Final output rendered as Markdown
 - Per-task usage (for chain/parallel)
 
-**Context hierarchy viewer**:
-- `/context-tree` toggles the viewer; `/context-tree open` and `/context-tree close` set it explicitly
+**Context viewer**:
+- `/context-viewer` or `/context-viewer toggle` toggles the viewer; `/context-viewer open` and `/context-viewer close` set it explicitly
+- `/context-tree` remains available as a legacy alias
 - Renders below the editor without taking focus
 - Shows current tokens, context-window size, percentage, model, and running/completed/failed state
 - Discovers nested subagent calls from child Pi JSON lifecycle events

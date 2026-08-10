@@ -2,7 +2,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { SubagentDetails, SingleResult } from "./index.ts";
 
-const WIDGET_ID = "subagent-context-tree";
+const WIDGET_ID = "subagent-context-viewer";
 
 type Theme = ExtensionContext["ui"]["theme"];
 type TuiHandle = { requestRender(): void };
@@ -53,7 +53,7 @@ function colorStatus(theme: Theme, status: ReturnType<typeof resultStatus>, text
 	return theme.fg("muted", text);
 }
 
-export class ContextHierarchyViewer {
+export class ContextViewer {
 	private visible = false;
 	private primary: PrimaryContext = { tokens: null, contextWindow: 0, percent: null, working: false };
 	private readonly invocations = new Map<string, SubagentDetails>();
@@ -134,7 +134,7 @@ export class ContextHierarchyViewer {
 			: `ctx:${formatTokens(this.primary.tokens)}`;
 		const primaryStatus = this.primary.working ? theme.fg("warning", "●") : theme.fg("success", "●");
 		lines.push(
-			`${theme.fg("accent", theme.bold("Context hierarchy"))} ${theme.fg("dim", "(/context-tree to close)")}`,
+			`${theme.fg("accent", theme.bold("Context viewer"))} ${theme.fg("dim", "(/context-viewer to close)")}`,
 			`${primaryStatus} ${theme.fg("toolTitle", "primary")} ${theme.fg("muted", primaryContext)}${this.primary.model ? ` ${theme.fg("dim", this.primary.model)}` : ""}`,
 		);
 
@@ -143,7 +143,7 @@ export class ContextHierarchyViewer {
 		for (let index = 0; index < entries.length; index += 1) {
 			this.renderDetails(lines, entries[index], "  ", index === entries.length - 1, theme);
 		}
-		const bounded = lines.length > 200 ? [...lines.slice(0, 199), theme.fg("warning", "… hierarchy truncated at 200 lines")] : lines;
+		const bounded = lines.length > 200 ? [...lines.slice(0, 199), theme.fg("warning", "… context tree truncated at 200 lines")] : lines;
 		return bounded.map((line) => truncateToWidth(line, Math.max(1, width)));
 	}
 

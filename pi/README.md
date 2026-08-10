@@ -30,8 +30,8 @@ Project-local profiles in `.pi/agents/` are not enabled by default. Calling the 
 
 Text output is capped at Pi's standard 2,000-line/50 KB limit. `web_fetch` rejects network responses over 5 MiB and images over 1 MiB.
 
-## Context hierarchy
+## Context viewer
 
-Run `/context-tree open`, `/context-tree close`, or `/context-tree` to toggle a live widget below the editor. It displays primary context occupancy and nested subagent context occupancy as a hierarchy. Completed subagent runs are reconstructed from the active session branch.
+Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary context occupancy and nested subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch. `/context-tree` remains available as a legacy alias.
 
 After changing a linked extension, profile, or prompt, use Pi's `/reload` command.

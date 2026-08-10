@@ -22,6 +22,7 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import {
 	CONFIG_DIR_NAME,
 	type ExtensionAPI,
+	type ExtensionCommandContext,
 	getAgentDir,
 	getMarkdownTheme,
 	withFileMutationQueue,
@@ -29,7 +30,7 @@ import {
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
-import { ContextHierarchyViewer } from "./hierarchy-viewer.ts";
+import { ContextViewer } from "./context-viewer.ts";
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
@@ -535,31 +536,36 @@ const SubagentParams = Type.Object({
 });
 
 export default function (pi: ExtensionAPI) {
-	const hierarchyViewer = new ContextHierarchyViewer();
+	const contextViewer = new ContextViewer();
+	const handleContextViewerCommand = async (args: string, ctx: ExtensionCommandContext): Promise<void> => {
+		const action = args.trim().toLowerCase() || "toggle";
+		if (action === "open") contextViewer.open(ctx);
+		else if (action === "close") contextViewer.close(ctx);
+		else if (action === "toggle") contextViewer.toggle(ctx);
+		else {
+			ctx.ui.notify("Usage: /context-viewer [open|close|toggle]", "warning");
+			return;
+		}
+		contextViewer.updatePrimary(ctx);
+		ctx.ui.notify(`Context viewer ${contextViewer.isVisible() ? "opened" : "closed"}.`, "info");
+	};
 
+	pi.registerCommand("context-viewer", {
+		description: "Open or close the primary/subagent context viewer (open|close|toggle)",
+		handler: handleContextViewerCommand,
+	});
 	pi.registerCommand("context-tree", {
-		description: "Open or close the primary/subagent context hierarchy (open|close|toggle)",
-		handler: async (args, ctx) => {
-			const action = args.trim().toLowerCase() || "toggle";
-			if (action === "open") hierarchyViewer.open(ctx);
-			else if (action === "close") hierarchyViewer.close(ctx);
-			else if (action === "toggle") hierarchyViewer.toggle(ctx);
-			else {
-				ctx.ui.notify("Usage: /context-tree [open|close|toggle]", "warning");
-				return;
-			}
-			hierarchyViewer.updatePrimary(ctx);
-			ctx.ui.notify(`Context hierarchy ${hierarchyViewer.isVisible() ? "opened" : "closed"}.`, "info");
-		},
+		description: "Legacy alias for /context-viewer",
+		handler: handleContextViewerCommand,
 	});
 
-	pi.on("session_start", (_event, ctx) => hierarchyViewer.restoreFromBranch(ctx));
-	pi.on("agent_start", (_event, ctx) => hierarchyViewer.updatePrimary(ctx, true));
-	pi.on("message_end", (_event, ctx) => hierarchyViewer.updatePrimary(ctx));
-	pi.on("agent_settled", (_event, ctx) => hierarchyViewer.updatePrimary(ctx, false));
-	pi.on("model_select", (_event, ctx) => hierarchyViewer.updatePrimary(ctx));
-	pi.on("session_tree", (_event, ctx) => hierarchyViewer.restoreFromBranch(ctx));
-	pi.on("session_shutdown", (_event, ctx) => hierarchyViewer.close(ctx));
+	pi.on("session_start", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
+	pi.on("agent_start", (_event, ctx) => contextViewer.updatePrimary(ctx, true));
+	pi.on("message_end", (_event, ctx) => contextViewer.updatePrimary(ctx));
+	pi.on("agent_settled", (_event, ctx) => contextViewer.updatePrimary(ctx, false));
+	pi.on("model_select", (_event, ctx) => contextViewer.updatePrimary(ctx));
+	pi.on("session_tree", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
+	pi.on("session_shutdown", (_event, ctx) => contextViewer.close(ctx));
 
 	pi.registerTool({
 		name: "subagent",
@@ -592,7 +598,7 @@ export default function (pi: ExtensionAPI) {
 						projectAgentsDir: discovery.projectAgentsDir,
 						results,
 					} satisfies SubagentDetails;
-					hierarchyViewer.updateInvocation(toolCallId, details);
+					contextViewer.updateInvocation(toolCallId, details);
 					return details;
 				};
 
