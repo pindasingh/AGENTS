@@ -29,6 +29,7 @@ import {
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
+import { ContextHierarchyViewer } from "./hierarchy-viewer.ts";
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
@@ -136,35 +137,83 @@ function formatToolCall(
 	}
 }
 
-interface UsageStats {
+export interface UsageStats {
 	input: number;
 	output: number;
 	cacheRead: number;
 	cacheWrite: number;
 	cost: number;
 	contextTokens: number;
+	contextWindow: number;
+	contextPercent: number | null;
 	turns: number;
 }
 
-interface SingleResult {
+export interface NestedInvocation {
+	toolCallId: string;
+	status: "running" | "complete" | "failed";
+	details?: SubagentDetails;
+}
+
+export interface SingleResult {
 	agent: string;
 	agentSource: "user" | "project" | "unknown";
 	task: string;
 	exitCode: number;
+	status?: "queued" | "running" | "complete" | "failed" | "aborted";
 	messages: Message[];
 	stderr: string;
 	usage: UsageStats;
+	nested?: NestedInvocation[];
 	model?: string;
 	stopReason?: string;
 	errorMessage?: string;
 	step?: number;
 }
 
-interface SubagentDetails {
+export interface SubagentDetails {
 	mode: "single" | "parallel" | "chain";
 	agentScope: AgentScope;
 	projectAgentsDir: string | null;
 	results: SingleResult[];
+}
+
+function emptyUsage(): UsageStats {
+	return {
+		input: 0,
+		output: 0,
+		cacheRead: 0,
+		cacheWrite: 0,
+		cost: 0,
+		contextTokens: 0,
+		contextWindow: 0,
+		contextPercent: null,
+		turns: 0,
+	};
+}
+
+function summarizeNestedDetails(details: SubagentDetails, depth = 0, budget = { nodes: 100 }): SubagentDetails {
+	return {
+		mode: details.mode,
+		agentScope: details.agentScope,
+		projectAgentsDir: details.projectAgentsDir,
+		results: details.results.flatMap((result) => {
+			if (budget.nodes <= 0) return [];
+			budget.nodes -= 1;
+			return [{
+				...result,
+				messages: [],
+				nested:
+					depth >= 7 || budget.nodes <= 0
+						? []
+						: (result.nested ?? []).slice(0, budget.nodes).map((nested) => ({
+								toolCallId: nested.toolCallId,
+								status: nested.status,
+								details: nested.details ? summarizeNestedDetails(nested.details, depth + 1, budget) : undefined,
+							})),
+			}];
+		}),
+	};
 }
 
 function getFinalOutput(messages: Message[]): string {
@@ -274,6 +323,7 @@ async function runSingleAgent(
 	signal: AbortSignal | undefined,
 	onUpdate: OnUpdateCallback | undefined,
 	makeDetails: (results: SingleResult[]) => SubagentDetails,
+	resolveContextWindow: (provider: string | undefined, model: string | undefined) => number,
 ): Promise<SingleResult> {
 	const agent = agents.find((a) => a.name === agentName);
 
@@ -286,7 +336,8 @@ async function runSingleAgent(
 			exitCode: 1,
 			messages: [],
 			stderr: `Unknown agent: "${agentName}". Available agents: ${available}.`,
-			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
+			usage: emptyUsage(),
+			status: "failed",
 			step,
 		};
 	}
@@ -305,19 +356,22 @@ async function runSingleAgent(
 		exitCode: 0,
 		messages: [],
 		stderr: "",
-		usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
+		usage: emptyUsage(),
+		status: "running",
+		nested: [],
 		model: agent.model,
 		step,
 	};
 
 	const emitUpdate = () => {
-		if (onUpdate) {
-			onUpdate({
-				content: [{ type: "text", text: getFinalOutput(currentResult.messages) || "(running...)" }],
-				details: makeDetails([currentResult]),
-			});
-		}
+		const details = makeDetails([currentResult]);
+		onUpdate?.({
+			content: [{ type: "text", text: getFinalOutput(currentResult.messages) || "(running...)" }],
+			details,
+		});
 	};
+
+	emitUpdate();
 
 	try {
 		if (agent.systemPrompt.trim()) {
@@ -361,17 +415,38 @@ async function runSingleAgent(
 							currentResult.usage.cacheRead += usage.cacheRead || 0;
 							currentResult.usage.cacheWrite += usage.cacheWrite || 0;
 							currentResult.usage.cost += usage.cost?.total || 0;
-							currentResult.usage.contextTokens = usage.totalTokens || 0;
+							currentResult.usage.contextTokens =
+								usage.totalTokens || usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
 						}
-						if (!currentResult.model && msg.model) currentResult.model = msg.model;
+						const assistant = msg as Message & { provider?: string; model?: string };
+						if (!currentResult.model && assistant.model) currentResult.model = assistant.model;
+						currentResult.usage.contextWindow = resolveContextWindow(assistant.provider, assistant.model ?? currentResult.model);
+						currentResult.usage.contextPercent =
+							currentResult.usage.contextWindow > 0
+								? (currentResult.usage.contextTokens / currentResult.usage.contextWindow) * 100
+								: null;
 						if (msg.stopReason) currentResult.stopReason = msg.stopReason;
 						if (msg.errorMessage) currentResult.errorMessage = msg.errorMessage;
 					}
 					emitUpdate();
 				}
 
-				if (event.type === "tool_result_end" && event.message) {
-					currentResult.messages.push(event.message as Message);
+				if (event.toolName === "subagent" && event.toolCallId) {
+					const nested = currentResult.nested ?? (currentResult.nested = []);
+					let invocation = nested.find((item) => item.toolCallId === event.toolCallId);
+					if (!invocation) {
+						invocation = { toolCallId: event.toolCallId, status: "running" };
+						nested.push(invocation);
+					}
+					if (event.type === "tool_execution_update") {
+						const details = event.partialResult?.details as SubagentDetails | undefined;
+						if (details?.results) invocation.details = summarizeNestedDetails(details);
+					}
+					if (event.type === "tool_execution_end") {
+						const details = event.result?.details as SubagentDetails | undefined;
+						if (details?.results) invocation.details = summarizeNestedDetails(details);
+						invocation.status = event.isError ? "failed" : "complete";
+					}
 					emitUpdate();
 				}
 			};
@@ -410,6 +485,8 @@ async function runSingleAgent(
 		});
 
 		currentResult.exitCode = exitCode;
+		currentResult.status = wasAborted ? "aborted" : exitCode === 0 && currentResult.stopReason !== "error" ? "complete" : "failed";
+		emitUpdate();
 		if (wasAborted) throw new Error("Subagent was aborted");
 		return currentResult;
 	} finally {
@@ -458,6 +535,32 @@ const SubagentParams = Type.Object({
 });
 
 export default function (pi: ExtensionAPI) {
+	const hierarchyViewer = new ContextHierarchyViewer();
+
+	pi.registerCommand("context-tree", {
+		description: "Open or close the primary/subagent context hierarchy (open|close|toggle)",
+		handler: async (args, ctx) => {
+			const action = args.trim().toLowerCase() || "toggle";
+			if (action === "open") hierarchyViewer.open(ctx);
+			else if (action === "close") hierarchyViewer.close(ctx);
+			else if (action === "toggle") hierarchyViewer.toggle(ctx);
+			else {
+				ctx.ui.notify("Usage: /context-tree [open|close|toggle]", "warning");
+				return;
+			}
+			hierarchyViewer.updatePrimary(ctx);
+			ctx.ui.notify(`Context hierarchy ${hierarchyViewer.isVisible() ? "opened" : "closed"}.`, "info");
+		},
+	});
+
+	pi.on("session_start", (_event, ctx) => hierarchyViewer.restoreFromBranch(ctx));
+	pi.on("agent_start", (_event, ctx) => hierarchyViewer.updatePrimary(ctx, true));
+	pi.on("message_end", (_event, ctx) => hierarchyViewer.updatePrimary(ctx));
+	pi.on("agent_settled", (_event, ctx) => hierarchyViewer.updatePrimary(ctx, false));
+	pi.on("model_select", (_event, ctx) => hierarchyViewer.updatePrimary(ctx));
+	pi.on("session_tree", (_event, ctx) => hierarchyViewer.restoreFromBranch(ctx));
+	pi.on("session_shutdown", (_event, ctx) => hierarchyViewer.close(ctx));
+
 	pi.registerTool({
 		name: "subagent",
 		label: "Subagent",
@@ -469,7 +572,7 @@ export default function (pi: ExtensionAPI) {
 		].join(" "),
 		parameters: SubagentParams,
 
-		async execute(_toolCallId, params, signal, onUpdate, ctx) {
+		async execute(toolCallId, params, signal, onUpdate, ctx) {
 			const agentScope: AgentScope = params.agentScope ?? "user";
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
@@ -482,12 +585,24 @@ export default function (pi: ExtensionAPI) {
 
 			const makeDetails =
 				(mode: "single" | "parallel" | "chain") =>
-				(results: SingleResult[]): SubagentDetails => ({
-					mode,
-					agentScope,
-					projectAgentsDir: discovery.projectAgentsDir,
-					results,
-				});
+				(results: SingleResult[]): SubagentDetails => {
+					const details = {
+						mode,
+						agentScope,
+						projectAgentsDir: discovery.projectAgentsDir,
+						results,
+					} satisfies SubagentDetails;
+					hierarchyViewer.updateInvocation(toolCallId, details);
+					return details;
+				};
+
+			const resolveContextWindow = (provider: string | undefined, model: string | undefined): number => {
+				if (!model) return 0;
+				if (provider) return ctx.modelRegistry.find(provider, model)?.contextWindow ?? 0;
+				const slash = model.indexOf("/");
+				if (slash > 0) return ctx.modelRegistry.find(model.slice(0, slash), model.slice(slash + 1))?.contextWindow ?? 0;
+				return ctx.model?.id === model ? ctx.model.contextWindow : 0;
+			};
 
 			if (modeCount !== 1) {
 				const available = agents.map((a) => `${a.name} (${a.source})`).join(", ") || "none";
@@ -536,19 +651,14 @@ export default function (pi: ExtensionAPI) {
 					const taskWithContext = step.task.replace(/\{previous\}/g, previousOutput);
 
 					// Create update callback that includes all previous results
-					const chainUpdate: OnUpdateCallback | undefined = onUpdate
-						? (partial) => {
-								// Combine completed results with current streaming result
-								const currentResult = partial.details?.results[0];
-								if (currentResult) {
-									const allResults = [...results, currentResult];
-									onUpdate({
-										content: partial.content,
-										details: makeDetails("chain")(allResults),
-									});
-								}
-							}
-						: undefined;
+					const chainUpdate: OnUpdateCallback = (partial) => {
+						// Combine completed results with current streaming result.
+						const currentResult = partial.details?.results[0];
+						if (currentResult) {
+							const details = makeDetails("chain")([...results, currentResult]);
+							onUpdate?.({ content: partial.content, details });
+						}
+					};
 
 					const result = await runSingleAgent(
 						ctx.cwd,
@@ -560,6 +670,7 @@ export default function (pi: ExtensionAPI) {
 						signal,
 						chainUpdate,
 						makeDetails("chain"),
+						resolveContextWindow,
 					);
 					results.push(result);
 
@@ -604,21 +715,21 @@ export default function (pi: ExtensionAPI) {
 						exitCode: -1, // -1 = still running
 						messages: [],
 						stderr: "",
-						usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
+						usage: emptyUsage(),
+						status: "queued",
 					};
 				}
 
 				const emitParallelUpdate = () => {
-					if (onUpdate) {
-						const running = allResults.filter((r) => r.exitCode === -1).length;
-						const done = allResults.filter((r) => r.exitCode !== -1).length;
-						onUpdate({
-							content: [
-								{ type: "text", text: `Parallel: ${done}/${allResults.length} done, ${running} running...` },
-							],
-							details: makeDetails("parallel")([...allResults]),
-						});
-					}
+					const running = allResults.filter((r) => r.exitCode === -1).length;
+					const done = allResults.filter((r) => r.exitCode !== -1).length;
+					const details = makeDetails("parallel")([...allResults]);
+					onUpdate?.({
+						content: [
+							{ type: "text", text: `Parallel: ${done}/${allResults.length} done, ${running} running...` },
+						],
+						details,
+					});
 				};
 
 				const results = await mapWithConcurrencyLimit(params.tasks, MAX_CONCURRENCY, async (t, index) => {
@@ -638,6 +749,7 @@ export default function (pi: ExtensionAPI) {
 							}
 						},
 						makeDetails("parallel"),
+						resolveContextWindow,
 					);
 					allResults[index] = result;
 					emitParallelUpdate();
@@ -674,6 +786,7 @@ export default function (pi: ExtensionAPI) {
 					signal,
 					onUpdate,
 					makeDetails("single"),
+					resolveContextWindow,
 				);
 				const isError = isFailedResult(result);
 				if (isError) {

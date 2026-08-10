@@ -8,7 +8,8 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Streaming output**: See tool calls and progress as they happen
 - **Parallel streaming**: All parallel tasks stream updates simultaneously
 - **Markdown rendering**: Final output rendered with proper formatting (expanded view)
-- **Usage tracking**: Shows turns, tokens, cost, and context usage per agent
+- **Usage tracking**: Shows turns, tokens, cost, and context occupancy per agent
+- **Context hierarchy**: Toggle a live primary → subagent → nested-subagent tree with `/context-tree`
 - **Abort support**: Ctrl+C propagates to kill subagent processes
 
 ## Structure
@@ -109,6 +110,14 @@ Use a chain: first have scout find the read tool, then have planner suggest impr
 - Final output rendered as Markdown
 - Per-task usage (for chain/parallel)
 
+**Context hierarchy viewer**:
+- `/context-tree` toggles the viewer; `/context-tree open` and `/context-tree close` set it explicitly
+- Renders below the editor without taking focus
+- Shows current tokens, context-window size, percentage, model, and running/completed/failed state
+- Discovers nested subagent calls from child Pi JSON lifecycle events
+- Reconstructs completed runs from the active session branch after resume
+- Primary occupancy uses Pi's live context estimate; child occupancy uses the latest child assistant response and may show `?` when the model's context window cannot be resolved
+
 **Parallel mode streaming**:
 - Shows all tasks with live status (⏳ running, ✓ done, ✗ failed)
 - Updates as each task makes progress
@@ -174,4 +183,6 @@ The bundled profiles intentionally omit a pinned model so child processes use th
 - Output truncated to last 10 items in collapsed view (expand to see all)
 - Parallel model-visible output is capped at 50 KB per task; full results remain in tool details
 - Agents discovered fresh on each invocation (allows editing mid-session)
+- A child context percentage is unavailable when its provider/model cannot be resolved in the parent's model registry
+- Primary context may temporarily be unknown immediately after compaction
 - Parallel mode limited to 8 tasks, 4 concurrent
