@@ -1,2 +1,8 @@
 __pycache__/
 *.py[cod]
+
+# Agent runtime state and secrets must never be committed.
+auth.json
+models-store.json
+trust.json
+sessions/
