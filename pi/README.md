@@ -23,12 +23,12 @@ Project-local profiles in `.pi/agents/` are not enabled by default. Calling the 
 
 ## Web tools
 
-`extensions/opencode-web-tools.ts` provides two dependency-free, OpenCode-inspired tools:
+`extensions/direct-web-tools.ts` provides two dependency-free tools without search APIs, MCP search providers, or API keys:
 
-- `web_search` — searches through Exa by default or Parallel when `PI_WEB_SEARCH_PROVIDER=parallel`. `EXA_API_KEY` and `PARALLEL_API_KEY` are optional service credentials.
+- `web_search` — retrieves Bing's public HTML search-results page directly, parses result links and snippets, and returns normalized Markdown. Bing can block automation or change its undocumented markup, which will make search temporarily unavailable.
 - `web_fetch` — fetches public HTTP(S) pages, JSON, text, and supported images; HTML is converted to readable Markdown or text. Private/local destinations and redirects are blocked.
 
-Text output is capped at Pi's standard 2,000-line/50 KB limit. `web_fetch` rejects network responses over 5 MiB and images over 1 MiB.
+Both tools use the same hardened public-HTTP path. Text output is capped at Pi's standard 2,000-line/50 KB limit. `web_fetch` rejects network responses over 5 MiB and images over 1 MiB.
 
 ## Skill invocation toggle
 

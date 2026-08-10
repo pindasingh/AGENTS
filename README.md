@@ -41,6 +41,6 @@ Pi's mutable and sensitive runtime data is intentionally not tracked here:
 - `herdr-agent-state.ts` — Herdr's Pi lifecycle integration. Herdr may regenerate this file; because Pi links to this repository, review and commit any generated update.
 - `skill-toggle.ts` — toggles every discovered skill between agent-invocable and manual-only by updating its `disable-model-invocation` frontmatter through `/toggle-skills`.
 - `subagent/` — adds the `subagent` tool, including isolated single, parallel, and chained Pi subprocesses, plus `/context-viewer` for a toggleable primary/subagent context viewer (`/context-tree` remains as a legacy alias).
-- `opencode-web-tools.ts` — OpenCode-inspired `web_search` and `web_fetch` tools using built-in runtime APIs only.
+- `direct-web-tools.ts` — dependency-free `web_search` and `web_fetch` tools; search parses Bing's public HTML results directly, without search APIs, MCP search providers, or API keys.
 
 The matching subagent profiles are in `pi/agents/`, and workflow templates are in `pi/prompts/`.
