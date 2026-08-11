@@ -9,7 +9,9 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Parallel streaming**: All parallel tasks stream updates simultaneously
 - **Markdown rendering**: Final output rendered with proper formatting (expanded view)
 - **Usage tracking**: Shows turns, tokens, cost, and context occupancy per agent
+- **Agent catalogue**: Advertises the currently available user-agent names and descriptions to the model before it calls the tool
 - **Context viewer**: Toggle a live primary → subagent → nested-subagent context tree with `/context-viewer`
+- **Invalid-name alert**: The companion `../subagent-explorer-alert.ts` extension records and displays any request for the nonexistent `explorer` agent without rewriting it
 - **Abort support**: Ctrl+C propagates to kill subagent processes
 
 ## Structure
