@@ -10,7 +10,7 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Markdown rendering**: Final output rendered with proper formatting (expanded view)
 - **Usage tracking**: Shows turns, tokens, cost, and context occupancy per agent
 - **Agent catalogue**: Advertises the currently available user-agent names and descriptions to the model before it calls the tool
-- **Context viewer**: Toggle a live primary → subagent → nested-subagent context tree with `/context-viewer`
+- **Context viewer**: Toggle a live primary → subagent context tree with `/context-viewer`
 - **Invalid-name alert**: The companion `../subagent-explorer-alert.ts` extension records and displays any request for the nonexistent `explorer` agent without rewriting it
 - **Abort support**: Ctrl+C propagates to kill subagent processes
 
@@ -24,13 +24,10 @@ pi/
 │   ├── agents.ts            # Agent discovery logic
 │   └── context-viewer.ts    # Primary/subagent context widget
 ├── agents/
-│   ├── scout.md             # Fast reconnaissance
-│   ├── planner.md           # Implementation planning
-│   ├── reviewer.md          # Code review
-│   └── worker.md            # General-purpose work
+│   ├── scout.md             # Focused read-only reconnaissance
+│   ├── reviewer.md          # Review and verification
+│   └── worker.md            # Primary-like bounded implementation
 └── prompts/
-    ├── implement.md             # scout → planner → worker
-    ├── scout-and-plan.md        # scout → planner
     └── implement-and-review.md  # worker → reviewer → worker
 ```
 
@@ -42,7 +39,7 @@ After changing a linked extension, profile, or prompt, run Pi's `/reload` comman
 
 ## Security Model
 
-This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration.
+This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration. Child processes always start with `--exclude-tools subagent`, so a subagent cannot recursively delegate to another subagent. The worker profile also uses an explicit tool allowlist that omits `subagent`, providing the same boundary when an older already-running parent extension reads the profile before spawning a new worker.
 
 **Project-local agents** (`.pi/agents/*.md`) are repo-controlled prompts that can instruct the model to read files, run bash commands, etc.
 
@@ -66,13 +63,11 @@ Run 2 scouts in parallel: one to find models, one to find providers
 
 ### Chained workflow
 ```
-Use a chain: first have scout find the read tool, then have planner suggest improvements
+Use a chain: first have worker implement the bounded task, then have reviewer review and test it
 ```
 
 ### Workflow prompts
 ```
-/implement add Redis caching to the session store
-/scout-and-plan refactor auth to support OAuth
 /implement-and-review add input validation to API endpoints
 ```
 
@@ -102,8 +97,8 @@ Use a chain: first have scout find the read tool, then have planner suggest impr
 - `/context-tree` remains available as a legacy alias
 - Renders below the editor without taking focus
 - Shows current tokens, context-window size, percentage, model, and running/completed/failed state
-- Discovers nested subagent calls from child Pi JSON lifecycle events
 - Reconstructs completed runs from the active session branch after resume
+- Prevents recursive child delegation by excluding the `subagent` tool from every child process
 - Primary occupancy uses Pi's live context estimate; child occupancy uses the latest child assistant response and may show `?` when the model's context window cannot be resolved
 
 **Parallel mode streaming**:
@@ -129,6 +124,7 @@ name: my-agent
 description: What this agent does
 tools: read, grep, find, ls
 model: claude-haiku-4-5
+thinking: low
 ---
 
 System prompt for the agent goes here.
@@ -140,23 +136,22 @@ System prompt for the agent goes here.
 
 Project agents override user agents with the same name when `agentScope: "both"`.
 
+`thinking` is mandatory. Profiles without one of `off`, `minimal`, `low`, or `medium` are not loaded. The calling agent cannot supply or override thinking; the selected profile determines it statically. A `model` value must not include Pi's `:<thinking>` suffix because thinking is configured separately; profiles that use such a suffix are not loaded.
+
 ## Sample Agents
 
-| Agent | Purpose | Model | Tools |
-|-------|---------|-------|-------|
-| `scout` | Fast codebase recon | Pi default | read, grep, find, ls, bash |
-| `planner` | Implementation plans | Pi default | read, grep, find, ls |
-| `reviewer` | Code review | Pi default | read, grep, find, ls, bash |
-| `worker` | General-purpose | Pi default | (all default) |
+| Agent | Purpose | Model | Thinking | Tools |
+|-------|---------|-------|----------|-------|
+| `scout` | Focused read-only codebase discovery | Pi default | low | read, grep, find, ls |
+| `reviewer` | Independent review plus tests, builds, lint, and type checks | Pi default | medium | read, grep, find, ls, bash |
+| `worker` | Primary-like bounded implementation without delegation | Pi default | low | read, bash, edit, write, grep, find, ls, web_search, web_fetch |
 
-The bundled profiles intentionally omit a pinned model so child processes use the locally configured Pi default provider and model.
+The bundled profiles intentionally omit a pinned model so child processes use the locally configured Pi default provider and model. Each profile must set an explicit thinking level; the extension accepts only `off`, `minimal`, `low`, or `medium` and refuses to load profiles with missing or invalid values.
 
 ## Workflow Prompts
 
 | Prompt | Flow |
 |--------|------|
-| `/implement <query>` | scout → planner → worker |
-| `/scout-and-plan <query>` | scout → planner |
 | `/implement-and-review <query>` | worker → reviewer → worker |
 
 ## Error Handling
