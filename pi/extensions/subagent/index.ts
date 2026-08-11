@@ -343,7 +343,16 @@ async function runSingleAgent(
 		};
 	}
 
-	const args: string[] = ["--mode", "json", "-p", "--no-session"];
+	const args: string[] = [
+		"--mode",
+		"json",
+		"-p",
+		"--no-session",
+		"--thinking",
+		agent.thinking,
+		"--exclude-tools",
+		"subagent",
+	];
 	if (agent.model) args.push("--model", agent.model);
 	if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
 
@@ -537,6 +546,10 @@ const SubagentParams = Type.Object({
 
 export default function (pi: ExtensionAPI) {
 	const contextViewer = new ContextViewer();
+	const availableUserAgents = discoverAgents(process.cwd(), "user").agents;
+	const availableUserAgentNames = availableUserAgents.map((agent) => agent.name).join(", ") || "none";
+	const availableUserAgentCatalog =
+		availableUserAgents.map((agent) => `${agent.name} (${agent.description})`).join("; ") || "none";
 	const handleContextViewerCommand = async (args: string, ctx: ExtensionCommandContext): Promise<void> => {
 		const action = args.trim().toLowerCase() || "toggle";
 		if (action === "open") contextViewer.open(ctx);
@@ -567,11 +580,16 @@ export default function (pi: ExtensionAPI) {
 		name: "subagent",
 		label: "Subagent",
 		description: [
+			`Available user agents: ${availableUserAgentCatalog}. Use these exact names; scout is the reconnaissance/exploration agent.`,
 			"Delegate tasks to specialized subagents with isolated context.",
 			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
 			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
 			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
 		].join(" "),
+		promptSnippet: `Delegate work to available agents: ${availableUserAgentNames}`,
+		promptGuidelines: [
+			`For subagent calls using the default user scope, use only these advertised agent names: ${availableUserAgentNames}. Use scout for reconnaissance or exploration.`,
+		],
 		parameters: SubagentParams,
 
 		async execute(toolCallId, params, signal, onUpdate, ctx) {

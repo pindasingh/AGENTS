@@ -261,7 +261,7 @@ export function getBlockedDependencyCommandReason(command: string, depth = 0): s
 
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
-    if (ctx.hasUI) ctx.ui.setStatus("dependency-install-guard", "deps: install locked");
+    if (ctx.hasUI) ctx.ui.setStatus("dependency-install-guard", undefined);
   });
 
   pi.on("before_agent_start", (event) => ({

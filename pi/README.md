@@ -8,16 +8,15 @@ These resources depend on Pi's extension and discovery APIs and are therefore Pi
 
 Available profiles:
 
-- `scout` — codebase reconnaissance
-- `planner` — implementation planning
-- `reviewer` — code review
-- `worker` — general-purpose work with the default tools
+- `scout` — focused read-only codebase discovery at low thinking
+- `reviewer` — independent review and applicable verification commands at medium thinking
+- `worker` — primary-like implementation of bounded delegated work at low thinking, without subagent delegation
 
-Available workflow templates:
+Available workflow template:
 
-- `/implement <task>` — scout → planner → worker
-- `/scout-and-plan <task>` — scout → planner
 - `/implement-and-review <task>` — worker → reviewer → worker
+
+Subagent profile thinking is mandatory, static, and limited to `off`, `minimal`, `low`, or `medium`; callers cannot override it. Every child process excludes the `subagent` tool, preventing recursive delegation.
 
 Project-local profiles in `.pi/agents/` are not enabled by default. Calling the tool with `agentScope: "project"` or `"both"` enables them and may require interactive confirmation.
 
@@ -41,6 +40,6 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 ## Context viewer
 
-Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary context occupancy and nested subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
+Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
 After changing a linked extension, profile, or prompt, use Pi's `/reload` command.
