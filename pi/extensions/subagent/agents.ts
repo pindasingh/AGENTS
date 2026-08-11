@@ -7,12 +7,23 @@ import * as path from "node:path";
 import { CONFIG_DIR_NAME, getAgentDir, parseFrontmatter } from "@earendil-works/pi-coding-agent";
 
 export type AgentScope = "user" | "project" | "both";
+export type SubagentThinkingLevel = "off" | "minimal" | "low" | "medium";
+
+const SUBAGENT_THINKING_LEVELS = new Set<SubagentThinkingLevel>(["off", "minimal", "low", "medium"]);
+const MODEL_THINKING_SUFFIX = /:(?:off|minimal|low|medium|high|xhigh|max)$/;
+
+function parseThinkingLevel(value: string | undefined): SubagentThinkingLevel | undefined {
+	return value && SUBAGENT_THINKING_LEVELS.has(value as SubagentThinkingLevel)
+		? (value as SubagentThinkingLevel)
+		: undefined;
+}
 
 export interface AgentConfig {
 	name: string;
 	description: string;
 	tools?: string[];
 	model?: string;
+	thinking: SubagentThinkingLevel;
 	systemPrompt: string;
 	source: "user" | "project";
 	filePath: string;
@@ -55,6 +66,11 @@ function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig
 			continue;
 		}
 
+		const thinking = parseThinkingLevel(frontmatter.thinking);
+		if (!thinking || (frontmatter.model && MODEL_THINKING_SUFFIX.test(frontmatter.model))) {
+			continue;
+		}
+
 		const tools = frontmatter.tools
 			?.split(",")
 			.map((t: string) => t.trim())
@@ -65,6 +81,7 @@ function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig
 			description: frontmatter.description,
 			tools: tools && tools.length > 0 ? tools : undefined,
 			model: frontmatter.model,
+			thinking,
 			systemPrompt: body,
 			source,
 			filePath,
