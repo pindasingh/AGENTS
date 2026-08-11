@@ -554,10 +554,6 @@ export default function (pi: ExtensionAPI) {
 		description: "Open or close the primary/subagent context viewer (open|close|toggle)",
 		handler: handleContextViewerCommand,
 	});
-	pi.registerCommand("context-tree", {
-		description: "Legacy alias for /context-viewer",
-		handler: handleContextViewerCommand,
-	});
 
 	pi.on("session_start", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
 	pi.on("agent_start", (_event, ctx) => contextViewer.updatePrimary(ctx, true));
