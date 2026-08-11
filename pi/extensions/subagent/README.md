@@ -94,7 +94,6 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 
 **Context viewer**:
 - `/context-viewer` or `/context-viewer toggle` toggles the viewer; `/context-viewer open` and `/context-viewer close` set it explicitly
-- `/context-tree` remains available as a legacy alias
 - Renders below the editor without taking focus
 - Shows current tokens, context-window size, percentage, model, and running/completed/failed state
 - Reconstructs completed runs from the active session branch after resume

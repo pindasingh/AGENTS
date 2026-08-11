@@ -40,6 +40,6 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 ## Context viewer
 
-Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch. `/context-tree` remains available as a legacy alias.
+Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
 After changing a linked extension, profile, or prompt, use Pi's `/reload` command.
