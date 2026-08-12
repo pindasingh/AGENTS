@@ -25,7 +25,7 @@ pi/
 │   └── context-viewer.ts    # Primary/subagent context widget
 ├── agents/
 │   ├── scout.md             # Focused read-only reconnaissance
-│   ├── reviewer.md          # Review and verification
+│   ├── reviewer.md          # Read-only review
 │   └── worker.md            # Primary-like bounded implementation
 └── prompts/
     └── implement-and-review.md  # worker → reviewer → worker
@@ -63,7 +63,7 @@ Run 2 scouts in parallel: one to find models, one to find providers
 
 ### Chained workflow
 ```
-Use a chain: first have worker implement the bounded task, then have reviewer review and test it
+Use a chain: first have worker implement the bounded task, then have reviewer review it
 ```
 
 ### Workflow prompts
@@ -142,7 +142,7 @@ Project agents override user agents with the same name when `agentScope: "both"`
 | Agent | Purpose | Model | Thinking | Tools |
 |-------|---------|-------|----------|-------|
 | `scout` | Focused read-only codebase discovery | Pi default | low | read, grep, find, ls |
-| `reviewer` | Independent review plus tests, builds, lint, and type checks | Pi default | medium | read, grep, find, ls, bash |
+| `reviewer` | Read-only quality and security review | Pi default | medium | read, grep, find, ls, bash |
 | `worker` | Primary-like bounded implementation without delegation | Pi default | low | read, bash, edit, write, grep, find, ls, web_search, web_fetch |
 
 The bundled profiles intentionally omit a pinned model so child processes use the locally configured Pi default provider and model. Each profile must set an explicit thinking level; the extension accepts only `off`, `minimal`, `low`, or `medium` and refuses to load profiles with missing or invalid values.
