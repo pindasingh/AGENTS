@@ -9,7 +9,7 @@ These resources depend on Pi's extension and discovery APIs and are therefore Pi
 Available profiles:
 
 - `scout` — focused read-only codebase discovery at low thinking
-- `reviewer` — independent review and applicable verification commands at medium thinking
+- `reviewer` — read-only quality and security review
 - `worker` — primary-like implementation of bounded delegated work at low thinking, without subagent delegation
 
 Available workflow template:
