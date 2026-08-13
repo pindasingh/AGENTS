@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Signal Graph"
+  short_description: "Model architecture in a typed TypeScript DSL"
+  default_prompt: "Build this system as a type-checked TypeScript Signal architecture with HTTP, messaging, storage, external dependencies, and end-to-end flows."

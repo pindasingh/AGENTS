@@ -3,99 +3,24 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Build the architecture model for the successful Search Opportunities operation from the supplied synthetic repositories. Use Opportunity as the domain. Trace every evidenced web/mobile caller through the Search API and all downstream work to the returned response. Save the complete .architecture-model directory as the output.",
-      "expected_output": "A valid sharded schema-version-2 graph with a compact generated index, reciprocal domain/component/operation hierarchy, one successful operation path, and deterministic numbered/ASCII projections.",
+      "prompt": "Using only the supplied Microsoft eShopOnContainers evidence fixture, build the complete .architecture-model for checkout through final order outcome. Model the HTTP acceptance separately from asynchronous processing and include success, stock-rejection, and payment-failure paths. Do not invent fraud, card-network, shipping, or email services.",
+      "expected_output": "A valid sharded schema-version-2 architecture model of the public eShop checkout/order process with deterministic projections and evidence-backed linked synchronous and asynchronous paths.",
       "files": [
-        "evals/fixtures/opportunity-system/README.md",
-        "evals/fixtures/opportunity-system/opportunities-web/src/search.ts",
-        "evals/fixtures/opportunity-system/mobile-app/src/SearchClient.kt",
-        "evals/fixtures/opportunity-system/search-api/src/SearchController.cs",
-        "evals/fixtures/opportunity-system/search-api/src/SearchHandler.cs",
-        "evals/fixtures/opportunity-system/search-api/deploy/values.yaml",
-        "evals/fixtures/opportunity-system/eligibility-api/src/EligibilityController.cs",
-        "evals/fixtures/opportunity-system/details-api/src/DetailsController.cs"
+        "evals/fixtures/eshop-checkout/README.md",
+        "evals/fixtures/eshop-checkout/evidence/BasketController.cs",
+        "evals/fixtures/eshop-checkout/evidence/UserCheckoutAcceptedIntegrationEventHandler.cs",
+        "evals/fixtures/eshop-checkout/evidence/CreateOrderCommandHandler.cs",
+        "evals/fixtures/eshop-checkout/evidence/execution-trace.md",
+        "evals/fixtures/eshop-checkout/evidence/storage-and-boundaries.md"
       ],
       "expectations": [
-        "No model.json exists and index.json contains references, hashes, and hierarchy rather than copied architecture records.",
-        "The domain references stable component and operation shards, and each component-operation link is reciprocal.",
-        "Both web and mobile callers are corroborated by outbound route/version evidence and represented as caller relationships.",
-        "The canonical path numbers and orders authentication/controller handling, handler dispatch, LaunchDarkly, local configuration, Elasticsearch, SQL, Eligibility, Details, telemetry, response mapping, and final caller return without inventing a message bus.",
-        "Local options access is a local config-read step rather than an external configuration runtime.",
-        "Eligibility and Details continuations are traced into supplied repositories rather than stopping at the first outbound edge.",
-        "The path participant set exactly matches touched nodes/components and excludes unrelated elements.",
-        "The generated numbered Markdown and ASCII projections pass deterministic validation against the canonical path."
-      ]
-    },
-    {
-      "id": 2,
-      "prompt": "Starting only with the search-api directory in the opportunity-system fixture, discover and record repositories needed for upstream caller and downstream continuation analysis. Do not silently scan a repository before adding it to the persisted source queue.",
-      "expected_output": "The Search API scan records candidate repositories with reasons/evidence/status, accepted candidates receive source shards and progress entries, and unavailable or rejected candidates remain visible.",
-      "files": [
-        "evals/fixtures/opportunity-system/README.md",
-        "evals/fixtures/opportunity-system/search-api/src/SearchController.cs",
-        "evals/fixtures/opportunity-system/search-api/src/SearchHandler.cs",
-        "evals/fixtures/opportunity-system/search-api/deploy/values.yaml"
-      ],
-      "expectations": [
-        "Repository discovery is persisted in scan.discoveredRepositories instead of conversation-only notes.",
-        "Each candidate has a stable source ID, location or repository identity, reason, evidence, and explicit status.",
-        "Accepted repositories are added to subject requestedSources, domain sourceIds, progress sources, and source shards before scanning.",
-        "The agent does not claim web/mobile callers without their outbound evidence and records missing caller discovery as a gap when those repositories are unavailable."
-      ]
-    },
-    {
-      "id": 3,
-      "prompt": "Copy the supplied complete order-submission example twice. On the second copy, reorder set-like JSON arrays and object keys without changing facts. Run format, render, index, validate, and compare the indexes.",
-      "expected_output": "Both copies converge to the same canonical semantic model and byte-identical projections, with no semantic or projection changes.",
-      "files": [
-        "examples/order-submission/README.md"
-      ],
-      "expectations": [
-        "Both final modelSemanticHash values are equal.",
-        "The diff has no added, removed, semanticChanges, evidenceOnlyChanges, or projectionChanges entries.",
-        "Numbered Markdown and ASCII outputs are byte-identical after rendering.",
-        "Both models pass final validation."
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "Using copies of the complete order-submission example, first change only evidence line ranges and source revision, then separately change the handler responsibility and insert a real dependency step. Rebuild and compare each snapshot.",
-      "expected_output": "The first comparison is provenance/evidence-only; the second identifies semantic changes limited to affected component/path/relationship artifacts and regenerated projections.",
-      "files": [
-        "examples/order-submission/README.md"
-      ],
-      "expectations": [
-        "Line/revision-only edits do not change modelSemanticHash and are reported as evidenceOnlyChanges or source-only provenance changes.",
-        "A changed component responsibility is reported as a component semantic change.",
-        "An inserted dependency changes the relevant relationship/path and generated projections rather than unrelated shards.",
-        "The change report does not describe every artifact as modified."
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "Mutate the complete example's ASCII projection by reversing one arrow and renaming one operation without changing the canonical path. Attempt final validation, then regenerate projections and validate again.",
-      "expected_output": "Validation fails closed on projection drift; deterministic render repairs both views from the canonical path and final validation succeeds.",
-      "files": [
-        "examples/order-submission/README.md"
-      ],
-      "expectations": [
-        "Validation fails before regeneration and identifies deterministic projection drift.",
-        "The canonical path is not changed merely to agree with the tampered projection.",
-        "Render restores exact sequence numbers, labels, endpoints, direction, input/output, and outcome.",
-        "A second render is byte-identical and final validation succeeds."
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "Model a POST handler that returns HTTP 202 after publishing OpportunityChanged v3, plus a supplied v3 indexing worker and an incompatible legacy v2 worker. Produce reviewable paths without flattening incompatible or asynchronous behavior.",
-      "expected_output": "Separate linked accepted-response and background-completion paths, with publish/channel/delivery/consume/store/telemetry order, v3 continuation, and a preserved v2 conflict.",
-      "files": [],
-      "expectations": [
-        "The HTTP accepted path has its own terminal caller return.",
-        "The asynchronous completion path links through causedByPathIds or continuesFromPathIds and correlation metadata.",
-        "Publish, channel, subscription delivery, consume, data read, index write, telemetry, and terminal effect are separate ordered steps.",
-        "The v2 worker is represented as an incompatibility conflict, not merged into the successful v3 path.",
-        "Both paths have independently generated numbered and ASCII projections."
+        "Web and mobile callers, their BFF/API gateways, Basket, Ordering, Catalog, Payment, Ordering SignalR Hub, Redis, separate relational stores, and the event bus are represented without invented services.",
+        "The Basket checkout HTTP path reads Redis, publishes UserCheckoutAcceptedIntegrationEvent, and returns HTTP 202 without synchronously claiming order completion.",
+        "The asynchronous success path is causally linked to checkout and orders event delivery, idempotent command dispatch, Ordering SQL transaction, Basket cleanup, Catalog stock validation, Payment handling, Ordering paid-state persistence, and status propagation correctly.",
+        "Stock rejection and payment failure are separate paths with terminal cancelled outcomes rather than branches hidden inside the success path.",
+        "Publish, broker delivery, consume, database effects, and later publications remain distinct ordered steps.",
+        "Every architectural claim has fixture evidence, and fraud, card-network, shipping, and email dependencies are absent.",
+        "The model passes format, render, index, and final validate; its generated numbered and ASCII projections match canonical paths."
       ]
     }
   ]

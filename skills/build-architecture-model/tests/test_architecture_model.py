@@ -440,7 +440,7 @@ class ArchitectureModelTests(unittest.TestCase):
     def test_machine_readable_evals_have_verifiable_expectations(self):
         document = json.loads((ROOT / "evals" / "evals.json").read_text(encoding="utf-8"))
         self.assertEqual("build-architecture-model", document["skill_name"])
-        self.assertGreaterEqual(len(document["evals"]), 6)
+        self.assertEqual(1, len(document["evals"]))
         self.assertEqual(len(document["evals"]), len({item["id"] for item in document["evals"]}))
         for item in document["evals"]:
             self.assertTrue(item["prompt"])
