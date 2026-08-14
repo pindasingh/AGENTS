@@ -1,0 +1,33 @@
+{
+  "certainty": "observed",
+  "coverage": {
+    "gapIds": [],
+    "operationPathIds": [
+      "path.submit-order.success"
+    ],
+    "reason": "Successful request path",
+    "status": "covered"
+  },
+  "evidence": [
+    {
+      "observation": "Fixture evidence",
+      "path": "src/Orders.cs",
+      "sourceId": "source.orders-api"
+    }
+  ],
+  "id": "interface.api.submit-order",
+  "kind": "http",
+  "method": "POST",
+  "ownerNodeId": "runtime.api",
+  "path": "/api/orders",
+  "purpose": "Submits an order",
+  "rules": [],
+  "schemaVersion": 2,
+  "sourceFindings": [
+    {
+      "sourceId": "source.orders-api",
+      "unitId": "orders-api"
+    }
+  ],
+  "version": "v1"
+}

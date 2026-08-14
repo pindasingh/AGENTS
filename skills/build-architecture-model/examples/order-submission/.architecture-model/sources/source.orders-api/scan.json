@@ -1,0 +1,38 @@
+{
+  "components": {},
+  "discoveredRepositories": [
+    {
+      "evidence": [
+        "src/api/orders.ts"
+      ],
+      "id": "source.orders-web",
+      "location": "../orders-web",
+      "reason": "Caller search found a compatible generated web client",
+      "repository": "https://example.invalid/orders-web.git",
+      "status": "accepted"
+    }
+  ],
+  "gaps": [],
+  "id": "source.orders-api",
+  "operations": {},
+  "schemaVersion": 2,
+  "source": {
+    "branch": "main",
+    "coverage": {
+      "excluded": [],
+      "included": [
+        "src/**"
+      ],
+      "limitations": []
+    },
+    "location": "../orders-api",
+    "repository": "https://example.invalid/orders-api.git",
+    "revision": "abc123",
+    "status": "complete"
+  },
+  "units": {
+    "orders-api": {
+      "kind": "runtime"
+    }
+  }
+}

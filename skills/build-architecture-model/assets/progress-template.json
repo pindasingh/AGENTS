@@ -1,0 +1,27 @@
+{
+  "activeSourceId": null,
+  "pathReviews": {
+    "path.submit-order.success": {
+      "gates": {
+        "asciiDiagramGenerated": false,
+        "canonicalPathValidated": false,
+        "numberedSequenceGenerated": false,
+        "projectionsValidated": false
+      },
+      "stage": "pending"
+    }
+  },
+  "schemaVersion": 2,
+  "sources": {
+    "source.orders-api": {
+      "gates": {
+        "conflictsReviewed": false,
+        "gapsReviewed": false,
+        "graphUpdated": false,
+        "scanValidated": false,
+        "scanWritten": false
+      },
+      "stage": "pending"
+    }
+  }
+}

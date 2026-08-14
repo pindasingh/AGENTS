@@ -1,0 +1,17 @@
+{
+  "description": "Submits and persists an order",
+  "domainId": "domain.ordering",
+  "id": "operation.submit-order",
+  "name": "Submit order",
+  "ownerComponentIds": [
+    "component.api.submit-handler",
+    "component.client.order-form"
+  ],
+  "pathIds": [
+    "path.submit-order.success"
+  ],
+  "schemaVersion": 2,
+  "triggerInterfaceIds": [
+    "interface.api.submit-order"
+  ]
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>{{SUBJECT_NAME}} architecture</title></head>
+<body>
+  <main>
+    <h1>{{SUBJECT_NAME}} architecture</h1>
+    <p>{{SUBJECT_DESCRIPTION}}</p>
+    <!-- Repeat one section per confirmed Software System. -->
+    <section>
+      <h2>{{SYSTEM_NAME}}</h2>
+      <p>{{SYSTEM_RESPONSIBILITY}}</p>
+      <ul>
+        <li><a href="{{CONTEXT_HREF}}">Level 1 — {{SYSTEM_NAME}} System Context</a></li>
+        <li><a href="{{CONTAINER_HREF}}">Level 2 — {{SYSTEM_NAME}} Containers</a></li>
+        {{OPTIONAL_VIEW_LINKS}}
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

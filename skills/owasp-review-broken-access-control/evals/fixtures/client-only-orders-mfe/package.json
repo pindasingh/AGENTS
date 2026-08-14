@@ -1,0 +1,12 @@
+{
+  "name": "orders-mfe",
+  "private": true,
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@module-federation/vite": "already-managed-by-workspace",
+    "react": "already-managed-by-workspace",
+    "vite": "already-managed-by-workspace"
+  }
+}

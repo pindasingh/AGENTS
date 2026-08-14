@@ -1,0 +1,81 @@
+{
+  "id": "BAC-001",
+  "title": "Replace with the concise issue title",
+  "category": "Object-Level Authorization — IDOR / BOLA",
+  "component": "Replace with the owning service or module",
+  "classification": "Replace with the precise access-control issue type",
+  "status": "needs-validation",
+  "severity": "medium",
+  "confidence": "medium",
+  "summary": "Replace with a one-sentence explanation of the unauthorized behavior.",
+  "actor": "Replace with the unauthorized actor and starting privilege",
+  "resource": "Replace with the protected resource or fields",
+  "action": "Replace with the unauthorized action and relevant context",
+  "affectedImplementation": {
+    "controllers": [],
+    "classes": [],
+    "methods": [],
+    "endpoints": [],
+    "filesOrArtifacts": []
+  },
+  "expectedAccessRule": {
+    "summary": "State who should be allowed to perform the action.",
+    "language": "pseudo",
+    "pseudocode": "allow when subject satisfies trusted policy\notherwise deny"
+  },
+  "exercise": {
+    "summary": "State in plain language which unauthorized actor attempts which action on which protected resource.",
+    "language": "http",
+    "pseudocode": "actor: authenticated peer user\naction: request another user's resource\nrequest: METHOD /protected/resources/<other-user-test-id>\nexpected: deny with no data or side effects\nevidenced code result: allow"
+  },
+  "failureProof": {
+    "summary": "Explain the smallest source-to-impact flow that demonstrates the failed decision.",
+    "language": "pseudo",
+    "pseudocode": "input = request.controlledValue\nresource = store.load(input)\n# trusted authorization decision is missing\nreturn resource"
+  },
+  "impact": {
+    "summary": "State the concrete confidentiality, integrity, availability, or business impact.",
+    "language": "yaml",
+    "pseudocode": "actor: lower-privilege subject\naction: unauthorized action\nresource: protected resource\nresult: concrete security impact"
+  },
+  "severityRationale": "Explain reachability, privilege, scope, sensitivity, repeatability, and compensating controls.",
+  "coverageIds": ["A01-CV-03"],
+  "accessPathIds": ["PATH-001"],
+  "mappings": {
+    "owasp": ["A01:2025"],
+    "asvs": [],
+    "wstg": [],
+    "apiTop10": [],
+    "cwe": []
+  },
+  "remediation": {
+    "summary": "Describe the policy and trusted enforcement point that must change.",
+    "language": "pseudo",
+    "pseudocode": "resource = store.loadWithinAuthorizedScope(\n  input, authoritativeSubject, trustedContext\n)\nif resource is absent: deny\nperform allowed action"
+  },
+  "regressionTests": [
+    {
+      "type": "allowed",
+      "description": "Exercise the operation as the intended actor in the allowed context.",
+      "expected": "The operation succeeds only for the authorized resource and fields."
+    },
+    {
+      "type": "denied",
+      "description": "Exercise the operation as a peer, lower role, or other tenant using synthetic data.",
+      "expected": "The operation is denied with no sensitive response or side effect."
+    }
+  ],
+  "attackPath": [
+    "Replace with the caller-controlled entry step.",
+    "Replace with the missing or bypassed trusted decision and resulting impact."
+  ],
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "relative/path.ext:line-line (symbol)",
+      "observation": "Replace with what this exact anchor establishes.",
+      "revision": "unknown"
+    }
+  ],
+  "limitations": []
+}

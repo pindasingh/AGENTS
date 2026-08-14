@@ -1,0 +1,27 @@
+{
+  "skill_name": "build-signal-graph",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Using only the supplied Microsoft eShopOnContainers evidence fixture, build the complete TypeScript Signal architecture for checkout through final order outcome. Model the HTTP acceptance separately from asynchronous processing and include success, stock-rejection, and payment-failure flows. Do not invent fraud, card-network, shipping, or email services.",
+      "expected_output": "A strict, type-checked TypeScript Signal model of the public eShop checkout/order process with typed declarations and linked synchronous and asynchronous flows.",
+      "files": [
+        "evals/fixtures/eshop-checkout/README.md",
+        "evals/fixtures/eshop-checkout/evidence/BasketController.cs",
+        "evals/fixtures/eshop-checkout/evidence/UserCheckoutAcceptedIntegrationEventHandler.cs",
+        "evals/fixtures/eshop-checkout/evidence/CreateOrderCommandHandler.cs",
+        "evals/fixtures/eshop-checkout/evidence/execution-trace.md",
+        "evals/fixtures/eshop-checkout/evidence/storage-and-boundaries.md"
+      ],
+      "expectations": [
+        "Web and mobile callers, their BFF/API gateways, Basket, Ordering, Catalog, Payment, Ordering SignalR Hub, Redis, separate relational stores, and the event bus are typed declarations without invented services.",
+        "The Basket checkout flow reads Redis, publishes UserCheckoutAcceptedIntegrationEvent, and responds HTTP 202 without synchronously claiming order completion.",
+        "The asynchronous success flows preserve causal linkage and order event delivery, idempotent command dispatch, Ordering SQL transaction, Basket cleanup, Catalog stock validation, Payment handling, Ordering paid-state persistence, and status propagation correctly.",
+        "Stock rejection and payment failure are separate named flows with terminal cancelled effects.",
+        "Messages, topics, subscriptions, consumers, publish, deliver, consume, reads, writes, requests, and responses use typed references and occur in the evidenced order.",
+        "Every disputable declaration has fixture evidence, and fraud, card-network, shipping, and email dependencies are absent.",
+        "Strict TypeScript checking succeeds and intentionally incompatible endpoint/message wiring would fail compilation."
+      ]
+    }
+  ]
+}

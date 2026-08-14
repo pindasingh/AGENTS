@@ -1,0 +1,17 @@
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt header-name="Authorization" failed-validation-httpcode="401" output-token-variable-name="callerToken">
+      <openid-config url="https://login.example.test/.well-known/openid-configuration" />
+      <audiences><audience>orders-api</audience></audiences>
+      <required-claims>
+        <claim name="roles" match="any"><value>Orders.Application</value></claim>
+      </required-claims>
+    </validate-jwt>
+    <set-header name="X-Calling-Application" exists-action="override"><value>orders-bff</value></set-header>
+    <set-backend-service base-url="https://orders-api.internal.example.test" />
+  </inbound>
+  <backend><base /></backend>
+  <outbound><base /></outbound>
+  <on-error><base /></on-error>
+</policies>

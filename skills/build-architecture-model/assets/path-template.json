@@ -1,0 +1,75 @@
+{
+  "callers": [],
+  "certainty": "observed",
+  "coverage": {
+    "knownOmissions": [],
+    "status": "partial",
+    "unresolvedGapIds": ["gap.submit-order.caller"]
+  },
+  "description": "Successful submit-order execution",
+  "id": "path.submit-order.success",
+  "kind": "success",
+  "name": "Submit order — successful path",
+  "operationId": "operation.submit-order",
+  "outcome": {
+    "at": "1.1",
+    "description": "Caller discovery is unresolved",
+    "kind": "unresolved"
+  },
+  "participants": [
+    {
+      "id": "runtime.orders-api",
+      "role": "Accepts the request"
+    }
+  ],
+  "schemaVersion": 2,
+  "sequence": [
+    {
+      "evidence": [
+        {
+          "observation": "Defines the submit-order entry point",
+          "path": "src/Api/OrdersController.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "kind": "stage",
+      "name": "Request enters the Orders API",
+      "number": "1",
+      "sourceFindings": [
+        {
+          "operationId": "submit-order",
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    },
+    {
+      "at": "runtime.orders-api",
+      "boundary": "runtime",
+      "certainty": "unknown",
+      "continuation": "unresolved",
+      "evidence": [
+        {
+          "observation": "Caller could not be resolved from supplied sources",
+          "path": "src/Api/OrdersController.cs",
+          "sourceId": "source.orders-api"
+        }
+      ],
+      "gapIds": ["gap.submit-order.caller"],
+      "input": "SubmitOrder request",
+      "kind": "gap",
+      "number": "1.1",
+      "operation": "Stops at unresolved caller boundary",
+      "output": "Unresolved continuation",
+      "parent": "1",
+      "sourceFindings": [
+        {
+          "interfaceId": "submit-order-v2",
+          "sourceId": "source.orders-api",
+          "unitId": "orders-api"
+        }
+      ]
+    }
+  ],
+  "triggerInterfaceIds": ["interface.orders-api.submit-order-v2"]
+}

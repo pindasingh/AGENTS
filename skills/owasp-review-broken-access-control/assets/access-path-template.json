@@ -1,0 +1,36 @@
+{
+  "id": "PATH-001",
+  "entryPoint": "METHOD /protected/resource/{resourceId}",
+  "methodsOrOperations": ["METHOD"],
+  "channel": "Replace with browser, mobile, partner, service, job, or other channel",
+  "authentication": "Replace with expected authentication and credential combination",
+  "actors": ["intended actor", "peer or lower-privilege actor"],
+  "resource": "Replace with the protected resource or function",
+  "actions": ["read"],
+  "inputVectors": ["path.resourceId", "authoritative subject", "tenant context"],
+  "traceStatus": "blocked",
+  "gapIds": ["GAP-001"],
+  "tiers": [
+    {
+      "name": "Replace with concrete tier name",
+      "type": "gateway",
+      "component": "Replace with owning gateway, BFF, service, policy, store, or other component",
+      "entryIdentity": "Identity and authority entering this tier",
+      "exitIdentity": "Identity and authority leaving this tier",
+      "credentials": [],
+      "policies": [],
+      "resourceContext": [],
+      "decision": "State what this tier allows, denies, transforms, delegates, or leaves unchecked",
+      "status": "unverified",
+      "evidence": []
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "source",
+      "location": "relative/path.ext:line-line (symbol)",
+      "observation": "Replace with evidence establishing this entry or trace.",
+      "revision": "unknown"
+    }
+  ]
+}

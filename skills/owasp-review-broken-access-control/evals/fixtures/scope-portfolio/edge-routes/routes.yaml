@@ -1,0 +1,9 @@
+routes:
+  - path: /api/orders/{id}
+    methods: [GET]
+    backend: orders-api
+    authentication: jwt
+  - path: /api/orders/{id}/approve
+    methods: [POST]
+    backend: orders-api
+    authentication: jwt

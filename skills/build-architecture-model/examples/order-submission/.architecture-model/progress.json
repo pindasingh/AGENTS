@@ -1,0 +1,39 @@
+{
+  "activeSourceId": null,
+  "pathReviews": {
+    "path.submit-order.success": {
+      "gates": {
+        "asciiDiagramGenerated": true,
+        "canonicalPathValidated": true,
+        "numberedSequenceGenerated": true,
+        "projectionsValidated": true
+      },
+      "stage": "complete"
+    }
+  },
+  "schemaVersion": 2,
+  "sources": {
+    "source.orders-api": {
+      "gates": {
+        "conflictsReviewed": true,
+        "gapsReviewed": true,
+        "graphUpdated": true,
+        "scanValidated": true,
+        "scanWritten": true
+      },
+      "revision": "abc123",
+      "stage": "complete"
+    },
+    "source.orders-web": {
+      "gates": {
+        "conflictsReviewed": true,
+        "gapsReviewed": true,
+        "graphUpdated": true,
+        "scanValidated": true,
+        "scanWritten": true
+      },
+      "revision": "def456",
+      "stage": "complete"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "certainty": "observed",
+  "domainId": "domain.ordering",
+  "evidence": [
+    {
+      "observation": "Calls POST /api/orders with OrderRequest v1",
+      "path": "src/api/orders.ts",
+      "sourceId": "source.orders-web"
+    }
+  ],
+  "id": "component.client.order-form",
+  "name": "Order form",
+  "operationIds": [
+    "operation.submit-order"
+  ],
+  "ownerNodeId": "runtime.client",
+  "responsibility": "Captures an order",
+  "schemaVersion": 2,
+  "sourceFindings": [
+    {
+      "sourceId": "source.orders-web",
+      "unitId": "orders-web"
+    }
+  ],
+  "technology": [
+    "Fixture"
+  ]
+}

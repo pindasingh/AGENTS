@@ -1,0 +1,26 @@
+{
+  "certainty": "observed",
+  "evidence": [
+    {
+      "observation": "Starts the Orders API",
+      "path": "src/Api/Program.cs",
+      "sourceId": "source.orders-api"
+    }
+  ],
+  "id": "runtime.orders-api",
+  "identity": {
+    "deploymentIdentity": "orders-api"
+  },
+  "kind": "runtime",
+  "name": "Orders API",
+  "responsibility": "Accepts and manages orders",
+  "schemaVersion": 2,
+  "sourceFindings": [
+    {
+      "sourceId": "source.orders-api",
+      "unitId": "orders-api"
+    }
+  ],
+  "subtype": "api",
+  "technology": [".NET 8", "ASP.NET Core"]
+}

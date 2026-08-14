@@ -1,0 +1,37 @@
+{
+  "id": "replace-deployment-view-id",
+  "title": "Deployment — Replace environment name",
+  "diagramType": "Deployment",
+  "description": "Replace with the environment-specific deployment question.",
+  "scope": {
+    "id": "replace-environment-scope-id",
+    "name": "Replace environment name",
+    "type": "Deployment Environment",
+    "description": "Replace environment description.",
+    "evidenceRefs": ["replace-source-id:relative/deployment/path:1-2"]
+  },
+  "elements": [
+    {
+      "id": "replace-deployment-node-id",
+      "name": "Replace deployment node name",
+      "type": "Deployment Node",
+      "description": "Replace node responsibility.",
+      "parent": "replace-environment-scope-id",
+      "evidenceRefs": ["replace-source-id:relative/deployment/path:1-2"]
+    },
+    {
+      "id": "replace-container-instance-id",
+      "name": "Replace Container instance name",
+      "type": "Container Instance",
+      "description": "Replace instance responsibility.",
+      "technology": "Unknown",
+      "parent": "replace-deployment-node-id",
+      "modelElementId": "replace-container-model-id",
+      "evidenceRefs": ["replace-source-id:relative/deployment/path:3-4"]
+    }
+  ],
+  "relationships": [],
+  "navigation": [{"label": "Architecture", "href": "../index.html"}],
+  "links": [],
+  "notes": []
+}

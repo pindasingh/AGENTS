@@ -1,0 +1,48 @@
+{
+  "components": {
+    "order-form": {
+      "owner": "orders-web"
+    }
+  },
+  "discoveredRepositories": [
+    {
+      "evidence": [
+        "src/api/orders.ts"
+      ],
+      "id": "source.orders-api",
+      "location": "../orders-api",
+      "reason": "Generated client route and contract identify the Orders API",
+      "repository": "https://example.invalid/orders-api.git",
+      "status": "accepted"
+    }
+  ],
+  "gaps": [],
+  "id": "source.orders-web",
+  "operations": {
+    "submit-order": {
+      "trigger": "ui.submit-order"
+    }
+  },
+  "schemaVersion": 2,
+  "source": {
+    "branch": "main",
+    "coverage": {
+      "excluded": [
+        "dist/**"
+      ],
+      "included": [
+        "src/**"
+      ],
+      "limitations": []
+    },
+    "location": "../orders-web",
+    "repository": "https://example.invalid/orders-web.git",
+    "revision": "def456",
+    "status": "complete"
+  },
+  "units": {
+    "orders-web": {
+      "kind": "runtime"
+    }
+  }
+}

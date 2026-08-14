@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 2,
+  "subject": {
+    "aliases": [],
+    "description": "Replace with the selected architecture scope",
+    "discoveryRoots": ["../repositories"],
+    "exclusions": [],
+    "id": "domain.replace-with-subject-id",
+    "name": "Replace with subject name",
+    "requestedSources": ["source.replace-with-source-id"]
+  }
+}

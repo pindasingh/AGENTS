@@ -1,0 +1,149 @@
+{
+  "artifacts": {
+    "components": {
+      "component.api.submit-handler": {
+        "contentHash": "sha256:0c924258c63ba2dcbfe502f89512eacdc6bb7ed3d81299f63174f058b2d0046e",
+        "path": "components/component.api.submit-handler.json",
+        "semanticHash": "sha256:db07c010e0350d394ea8575ab312d5524ecf21f69b3b9a06c0c304c8ba57c6b5"
+      },
+      "component.client.order-form": {
+        "contentHash": "sha256:dde8e5b6c6b9ed4f8bbde3da33f09c527866a6fe8a5cc41e4b933647eb3a41d5",
+        "path": "components/component.client.order-form.json",
+        "semanticHash": "sha256:30f72326042793b317afcddff02363f424b71adf3734eecf5191b212b5a04101"
+      }
+    },
+    "conflicts": {},
+    "domains": {
+      "domain.ordering": {
+        "contentHash": "sha256:f3b3b04552daccd1e316c8b17e265b99a85beef0da35cec338bc254adb90649e",
+        "path": "domains/domain.ordering.json",
+        "semanticHash": "sha256:9565328a599b268eb7f19741b52e1aec8a41181dfcf39dd077e3556d693f135a"
+      }
+    },
+    "gaps": {},
+    "interfaces": {
+      "interface.api.submit-order": {
+        "contentHash": "sha256:a2eb7124f78945a846c240ad58ab503d71c0ea99c466a25b42703528c80f0e14",
+        "path": "interfaces/interface.api.submit-order.json",
+        "semanticHash": "sha256:de01f36ab458e7555436be714628500293fcfb8f01ae315c14d69eb64d0f7c75"
+      }
+    },
+    "nodes": {
+      "runtime.api": {
+        "contentHash": "sha256:e03a1120d1ec94dfe5be1d753458eebafdbc01fed9ccefbd1600ea5824264b29",
+        "path": "nodes/runtime.api.json",
+        "semanticHash": "sha256:27985747d90ff45e1db4443f995031b3e48ef7965d5135d8189f2b0d31ed781c"
+      },
+      "runtime.client": {
+        "contentHash": "sha256:1642578604bba24c3986da0c82b2cc15292faae2f1ebca55e79a9adc37d8701a",
+        "path": "nodes/runtime.client.json",
+        "semanticHash": "sha256:2b1b16c96aea3b37c0283b1fd4f4733c47f5e1e2c8c2b4124557b569586b2415"
+      },
+      "store.orders": {
+        "contentHash": "sha256:6e85c5b98fce915fd0f0bf2165583552aeec68216af83735c901ca2337214ebc",
+        "path": "nodes/store.orders.json",
+        "semanticHash": "sha256:0e9c380844283e4c431cbb434020f419af94f01ad88807b8500ceacc0445c062"
+      }
+    },
+    "operations": {
+      "operation.submit-order": {
+        "contentHash": "sha256:af74710733964a3afc89604383ca859c17967d964de75544f16ef29e4985bf6e",
+        "path": "operations/operation.submit-order/operation.json",
+        "semanticHash": "sha256:af74710733964a3afc89604383ca859c17967d964de75544f16ef29e4985bf6e"
+      }
+    },
+    "paths": {
+      "path.submit-order.success": {
+        "contentHash": "sha256:fa464bc714eddedfdbe99a48f50895820096bc709e1dbcbfa809547392a658ba",
+        "path": "operations/operation.submit-order/paths/path.submit-order.success.json",
+        "semanticHash": "sha256:6b4f7883302a0fcc4206cd362289b5ffc0c05e2743dfbc30844277f027eb7a81"
+      }
+    },
+    "relationships": {
+      "relationship.api.write-orders": {
+        "contentHash": "sha256:e4f46b0334746d3483de6632049c0659ecbeca030ddff5263bf41e134b110b71",
+        "path": "relationships/relationship.api.write-orders.json",
+        "semanticHash": "sha256:516e50a1df14ecdbce5fd2b7e75f577c20769d0d9b11968ea23d5d557ccc6dc5"
+      },
+      "relationship.client.submit-order": {
+        "contentHash": "sha256:f11034d08f67d5952ec11873b3cc1191a615e4dd007aa1cf007c62b374e260d3",
+        "path": "relationships/relationship.client.submit-order.json",
+        "semanticHash": "sha256:d1e98bd9e74d9374b3cf39eae518b11f69ec9e615a50d42f0041bd51797ced54"
+      }
+    },
+    "sources": {
+      "source.orders-api": {
+        "contentHash": "sha256:e5ddc50067dbf318145893ab826fa55a9578aa7ad592ce50edb461f4064fb133",
+        "path": "sources/source.orders-api/scan.json",
+        "semanticHash": "sha256:2941d6d32ceba7b3ca88401adab2fdc5ef075608e3de253335db037a3e9bfd80"
+      },
+      "source.orders-web": {
+        "contentHash": "sha256:070cc6aa1af6c14c652b8353d7d732a7fbfd940bf01997919ad6f26d428f6db2",
+        "path": "sources/source.orders-web/scan.json",
+        "semanticHash": "sha256:7f031c7703d19e954157086e0f553662637b7d4ba82ebe70d108e72a77e12169"
+      }
+    }
+  },
+  "decisionsRef": {
+    "contentHash": "sha256:4c556bbefcba6eb0cb57e3f03dab7e401fa33aaf249fc5fca06d8054a932cc7e",
+    "path": "decisions.json",
+    "semanticHash": "sha256:4c556bbefcba6eb0cb57e3f03dab7e401fa33aaf249fc5fca06d8054a932cc7e"
+  },
+  "generatedBy": "architecture_model.py",
+  "hierarchy": {
+    "domains": {
+      "domain.ordering": {
+        "componentIds": [
+          "component.api.submit-handler",
+          "component.client.order-form"
+        ],
+        "operationIds": [
+          "operation.submit-order"
+        ],
+        "sourceIds": [
+          "source.orders-api",
+          "source.orders-web"
+        ]
+      }
+    },
+    "operations": {
+      "operation.submit-order": {
+        "domainId": "domain.ordering",
+        "ownerComponentIds": [
+          "component.api.submit-handler",
+          "component.client.order-form"
+        ],
+        "pathIds": [
+          "path.submit-order.success"
+        ],
+        "triggerInterfaceIds": [
+          "interface.api.submit-order"
+        ]
+      }
+    }
+  },
+  "modelSemanticHash": "sha256:ca2e8ed46ad233fd23b5b36c3b48ba69ca1895a4291f7468fa78bacf03a1f8d7",
+  "progressRef": {
+    "contentHash": "sha256:d8077bcc07a5a8dec75adc55ca372f307e44e683ffe50725b07d450051df8a72",
+    "path": "progress.json",
+    "semanticHash": "sha256:d8077bcc07a5a8dec75adc55ca372f307e44e683ffe50725b07d450051df8a72"
+  },
+  "projections": {
+    "path.submit-order.success": {
+      "numbered-sequence.md": {
+        "contentHash": "sha256:c1a737102619bf193be39a550bbabdb8e5113a004155044f7fd2bf9b5bccf488",
+        "path": "projections/operation.submit-order/path.submit-order.success/numbered-sequence.md"
+      },
+      "sequence-diagram.txt": {
+        "contentHash": "sha256:9bd02e1a6dcddba10d69b3672ab120547c4604e56173825ad249e030478e465d",
+        "path": "projections/operation.submit-order/path.submit-order.success/sequence-diagram.txt"
+      }
+    }
+  },
+  "schemaVersion": 2,
+  "subjectRef": {
+    "contentHash": "sha256:8f9cec0ccf2ac43b148ed9bf7484d393c4c7229b2c5a7aaa58ef6fd77ff71d1c",
+    "path": "subject.json",
+    "semanticHash": "sha256:25c003ce5465a6bbd89e07ed6617f66137cb222e15bf64c6798cdae10df8ce0d"
+  }
+}
