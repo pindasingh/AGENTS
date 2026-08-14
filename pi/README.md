@@ -12,10 +12,6 @@ Available profiles:
 - `reviewer` — read-only quality and security review
 - `worker` — primary-like implementation of bounded delegated work at low thinking, without subagent delegation
 
-Available workflow template:
-
-- `/implement-and-review <task>` — worker → reviewer → worker
-
 Subagent profile thinking is mandatory, static, and limited to `off`, `minimal`, `low`, or `medium`; callers cannot override it. Every child process excludes the `subagent` tool, preventing recursive delegation.
 
 Project-local profiles in `.pi/agents/` are not enabled by default. Calling the tool with `agentScope: "project"` or `"both"` enables them and may require interactive confirmation.
@@ -42,4 +38,4 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
-After changing a linked extension, profile, or prompt, use Pi's `/reload` command.
+After changing a linked extension or profile, use Pi's `/reload` command.

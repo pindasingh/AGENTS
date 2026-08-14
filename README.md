@@ -6,10 +6,8 @@ Canonical, version-controlled resources shared by local coding agents.
 
 - `AGENTS.md` — harness-neutral global operating rules.
 - `skills/` — harness-neutral [Agent Skills](https://agentskills.io/) packages. Pi and other compatible agents can load these.
-- `evals/` — harness-neutral behavioral evaluation cases for global agent rules.
 - `pi/extensions/` — Pi-specific TypeScript extensions.
 - `pi/agents/` — specialist profiles consumed by Pi's `subagent` extension.
-- `pi/prompts/` — Pi-specific prompt templates and workflow commands.
 
 The generic policy and skills stay at the repository root because they are useful across agent harnesses. Pi runtime code and Pi discovery formats stay under `pi/`.
 
@@ -22,7 +20,6 @@ The canonical Pi resources are this repository. The local Pi paths should point 
 ~/.pi/agent/skills     -> <repo>/skills
 ~/.pi/agent/extensions -> <repo>/pi/extensions
 ~/.pi/agent/agents     -> <repo>/pi/agents
-~/.pi/agent/prompts    -> <repo>/pi/prompts
 ```
 
 These links are host provisioning maintained outside agent instructions. Agents must not create, replace, or repair them as part of normal repository work.
@@ -44,4 +41,4 @@ Pi's mutable and sensitive runtime data is intentionally not tracked here:
 - `subagent-explorer-alert.ts` — records a durable, visible session error whenever a model requests the nonexistent `explorer` agent; it does not alias or rewrite the request.
 - `direct-web-tools.ts` — dependency-free `web_search` and `web_fetch` tools; search parses Bing's public HTML results directly, without search APIs, MCP search providers, or API keys.
 
-The matching subagent profiles are in `pi/agents/`, and workflow templates are in `pi/prompts/`.
+The matching subagent profiles are in `pi/agents/`.
