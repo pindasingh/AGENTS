@@ -23,19 +23,17 @@ pi/
 │   ├── index.ts             # Extension entry point and subagent tool
 │   ├── agents.ts            # Agent discovery logic
 │   └── context-viewer.ts    # Primary/subagent context widget
-├── agents/
-│   ├── scout.md             # Focused read-only reconnaissance
-│   ├── reviewer.md          # Read-only review
-│   └── worker.md            # Primary-like bounded implementation
-└── prompts/
-    └── implement-and-review.md  # worker → reviewer → worker
+└── agents/
+    ├── scout.md             # Focused read-only reconnaissance
+    ├── reviewer.md          # Read-only review
+    └── worker.md            # Primary-like bounded implementation
 ```
 
 ## Loading in Pi
 
-This repository is the canonical source for the local Pi resources. Host provisioning maps `~/.pi/agent/extensions`, `agents`, and `prompts` to the corresponding `pi/` directories documented in the repository root [`README.md`](../../../README.md). The complete `subagent/` directory must remain available because `index.ts` imports both `agents.ts` and `context-viewer.ts`.
+This repository is the canonical source for the local Pi resources. Host provisioning maps `~/.pi/agent/extensions` and `agents` to the corresponding `pi/` directories documented in the repository root [`README.md`](../../../README.md). The complete `subagent/` directory must remain available because `index.ts` imports both `agents.ts` and `context-viewer.ts`.
 
-After changing a linked extension, profile, or prompt, run Pi's `/reload` command.
+After changing a linked extension or profile, run Pi's `/reload` command.
 
 ## Security Model
 
@@ -64,11 +62,6 @@ Run 2 scouts in parallel: one to find models, one to find providers
 ### Chained workflow
 ```
 Use a chain: first have worker implement the bounded task, then have reviewer review it
-```
-
-### Workflow prompts
-```
-/implement-and-review add input validation to API endpoints
 ```
 
 ## Tool Modes
@@ -146,12 +139,6 @@ Project agents override user agents with the same name when `agentScope: "both"`
 | `worker` | Primary-like bounded implementation without delegation | Pi default | low | read, bash, edit, write, grep, find, ls, web_search, web_fetch |
 
 The bundled profiles intentionally omit a pinned model so child processes use the locally configured Pi default provider and model. Each profile must set an explicit thinking level; the extension accepts only `off`, `minimal`, `low`, or `medium` and refuses to load profiles with missing or invalid values.
-
-## Workflow Prompts
-
-| Prompt | Flow |
-|--------|------|
-| `/implement-and-review <query>` | worker → reviewer → worker |
 
 ## Error Handling
 
