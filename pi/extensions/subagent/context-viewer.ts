@@ -3,6 +3,7 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { SubagentDetails, SingleResult } from "./index.ts";
 
 const WIDGET_ID = "subagent-context-viewer";
+export const SUBAGENT_JOB_ENTRY_TYPE = "subagent-job-state";
 
 type Theme = ExtensionContext["ui"]["theme"];
 type TuiHandle = { requestRender(): void };
@@ -32,8 +33,8 @@ function contextLabel(result: SingleResult): string {
 }
 
 function resultStatus(result: SingleResult): "running" | "queued" | "success" | "error" {
-	if (result.status === "running" || result.exitCode === -1) return "running";
 	if (result.status === "queued") return "queued";
+	if (result.status === "running" || result.exitCode === -1) return "running";
 	if (result.status === "aborted" || result.status === "failed") return "error";
 	if (result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted") return "error";
 	return "success";
@@ -47,21 +48,41 @@ function statusGlyph(status: ReturnType<typeof resultStatus>): string {
 }
 
 function colorStatus(theme: Theme, status: ReturnType<typeof resultStatus>, text: string): string {
-	if (status === "running") return theme.fg("warning", text);
+	if (status === "running") return theme.fg("success", text);
 	if (status === "error") return theme.fg("error", text);
 	if (status === "success") return theme.fg("success", text);
 	return theme.fg("muted", text);
+}
+
+function invocationProgress(details: SubagentDetails): number {
+	return details.results.reduce((score, result) => {
+		const status = resultStatus(result);
+		return score + (status === "queued" ? 0 : status === "running" ? 1 : 2);
+	}, 0);
+}
+
+function invocationShouldDisplay(details: SubagentDetails): boolean {
+	return details.results.some((result) => resultStatus(result) !== "success");
 }
 
 export class ContextViewer {
 	private visible = false;
 	private primary: PrimaryContext = { tokens: null, contextWindow: 0, percent: null, working: false };
 	private readonly invocations = new Map<string, SubagentDetails>();
+	private readonly latestInvocations = new Map<string, SubagentDetails>();
+	private readonly activeInvocationIds = new Set<string>();
 	private tui: TuiHandle | undefined;
+	private widgetContext: ExtensionContext | undefined;
+	private autoCloseWhenIdle = false;
 
-	open(ctx: ExtensionContext): void {
-		if (this.visible) return;
+	open(ctx: ExtensionContext, autoCloseWhenIdle = false): void {
+		if (this.visible) {
+			if (!autoCloseWhenIdle) this.autoCloseWhenIdle = false;
+			return;
+		}
 		this.visible = true;
+		this.widgetContext = ctx;
+		this.autoCloseWhenIdle = autoCloseWhenIdle;
 		ctx.ui.setWidget(
 			WIDGET_ID,
 			(tui, theme) => {
@@ -78,6 +99,8 @@ export class ContextViewer {
 	close(ctx: ExtensionContext): void {
 		this.visible = false;
 		this.tui = undefined;
+		this.widgetContext = undefined;
+		this.autoCloseWhenIdle = false;
 		ctx.ui.setWidget(WIDGET_ID, undefined);
 	}
 
@@ -93,6 +116,8 @@ export class ContextViewer {
 
 	reset(): void {
 		this.invocations.clear();
+		this.latestInvocations.clear();
+		this.activeInvocationIds.clear();
 		this.requestRender();
 	}
 
@@ -108,23 +133,73 @@ export class ContextViewer {
 		this.requestRender();
 	}
 
-	updateInvocation(toolCallId: string, details: SubagentDetails): void {
+	startInvocation(toolCallId: string, details: SubagentDetails): void {
+		this.activeInvocationIds.add(toolCallId);
+		this.latestInvocations.set(toolCallId, details);
 		this.invocations.set(toolCallId, details);
 		this.requestRender();
 	}
 
+	updateInvocation(toolCallId: string, details: SubagentDetails): void {
+		this.latestInvocations.set(toolCallId, details);
+		if (this.activeInvocationIds.has(toolCallId) && invocationShouldDisplay(details)) {
+			this.invocations.set(toolCallId, details);
+		} else {
+			this.invocations.delete(toolCallId);
+		}
+		this.requestRender();
+		this.maybeAutoClose();
+	}
+
 	restoreFromBranch(ctx: ExtensionContext): void {
 		this.invocations.clear();
+		this.activeInvocationIds.clear();
 		for (const entry of ctx.sessionManager.getBranch()) {
 			if (entry.type !== "message" || entry.message.role !== "toolResult" || entry.message.toolName !== "subagent") continue;
 			const details = entry.message.details as SubagentDetails | undefined;
-			if (details?.results) this.invocations.set(entry.message.toolCallId, details);
+			if (details?.results) {
+				this.activeInvocationIds.add(entry.message.toolCallId);
+				this.invocations.set(entry.message.toolCallId, details);
+			}
+		}
+
+		// Completion may be appended while another branch is active. Search the whole
+		// session, but only apply state for tool calls present on the active branch.
+		for (const entry of ctx.sessionManager.getEntries()) {
+			if (entry.type !== "custom" || entry.customType !== SUBAGENT_JOB_ENTRY_TYPE) continue;
+			const data = entry.data as { toolCallId?: unknown; details?: SubagentDetails } | undefined;
+			if (typeof data?.toolCallId !== "string" || !data.details?.results || !this.invocations.has(data.toolCallId)) continue;
+			this.invocations.set(data.toolCallId, data.details);
+			this.latestInvocations.set(data.toolCallId, data.details);
+		}
+
+		// Live state is retained even while viewing another branch, so returning to
+		// the originating branch cannot regress from running/completed to queued.
+		for (const [toolCallId, liveDetails] of this.latestInvocations) {
+			const restoredDetails = this.invocations.get(toolCallId);
+			if (
+				restoredDetails &&
+				liveDetails.jobId === restoredDetails.jobId &&
+				invocationProgress(liveDetails) > invocationProgress(restoredDetails)
+			) {
+				this.invocations.set(toolCallId, liveDetails);
+			}
+		}
+		for (const [toolCallId, details] of this.invocations) {
+			if (!invocationShouldDisplay(details)) this.invocations.delete(toolCallId);
 		}
 		this.updatePrimary(ctx, false);
+		this.maybeAutoClose();
 	}
 
 	private requestRender(): void {
 		if (this.visible) this.tui?.requestRender();
+	}
+
+	private maybeAutoClose(): void {
+		if (this.autoCloseWhenIdle && this.invocations.size === 0 && this.widgetContext) {
+			this.close(this.widgetContext);
+		}
 	}
 
 	private render(width: number, theme: Theme): string[] {
@@ -132,14 +207,14 @@ export class ContextViewer {
 		const primaryContext = this.primary.contextWindow
 			? `ctx:${formatTokens(this.primary.tokens)}/${formatTokens(this.primary.contextWindow)}${this.primary.percent === null ? "" : ` ${Math.round(this.primary.percent)}%`}`
 			: `ctx:${formatTokens(this.primary.tokens)}`;
-		const primaryStatus = this.primary.working ? theme.fg("warning", "●") : theme.fg("success", "●");
+		const primaryStatus = this.primary.working ? theme.fg("success", "●") : theme.fg("muted", "●");
 		lines.push(
 			`${theme.fg("accent", theme.bold("Context viewer"))} ${theme.fg("dim", "(/context-viewer to close)")}`,
 			`${primaryStatus} ${theme.fg("toolTitle", "primary")} ${theme.fg("muted", primaryContext)}${this.primary.model ? ` ${theme.fg("dim", this.primary.model)}` : ""}`,
 		);
 
 		const entries = Array.from(this.invocations.values());
-		if (entries.length === 0) lines.push(theme.fg("dim", "  └─ no subagent runs in this branch"));
+		if (entries.length === 0) lines.push(theme.fg("dim", "  └─ no active subagent jobs"));
 		for (let index = 0; index < entries.length; index += 1) {
 			this.renderDetails(lines, entries[index], "  ", index === entries.length - 1, theme);
 		}
@@ -150,7 +225,8 @@ export class ContextViewer {
 	private renderDetails(lines: string[], details: SubagentDetails, prefix: string, last: boolean, theme: Theme): void {
 		if (lines.length >= 200) return;
 		const connector = last ? "└─" : "├─";
-		lines.push(`${prefix}${theme.fg("muted", connector)} ${theme.fg("accent", details.mode)}`);
+		const job = details.jobId ? ` ${theme.fg("toolTitle", details.jobId)}` : "";
+		lines.push(`${prefix}${theme.fg("muted", connector)} ${theme.fg("accent", details.mode)}${job}`);
 		const childPrefix = `${prefix}${last ? "  " : "│ "}`;
 		for (let index = 0; index < details.results.length; index += 1) {
 			this.renderResult(lines, details.results[index], childPrefix, index === details.results.length - 1, theme);
@@ -162,9 +238,10 @@ export class ContextViewer {
 		const status = resultStatus(result);
 		const connector = last ? "└─" : "├─";
 		const step = result.step ? ` step ${result.step}` : "";
+		const pid = result.pid ? ` pid:${result.pid}` : "";
 		const model = result.model ? ` ${theme.fg("dim", result.model)}` : "";
 		lines.push(
-			`${prefix}${theme.fg("muted", connector)} ${colorStatus(theme, status, statusGlyph(status))} ${theme.fg("toolTitle", result.agent)}${theme.fg("muted", step)} ${theme.fg("muted", contextLabel(result))}${model}`,
+			`${prefix}${theme.fg("muted", connector)} ${colorStatus(theme, status, statusGlyph(status))} ${theme.fg("toolTitle", result.agent)}${theme.fg("muted", step)} ${theme.fg("muted", contextLabel(result))}${theme.fg("dim", pid)}${model}`,
 		);
 		const nestedPrefix = `${prefix}${last ? "  " : "│ "}`;
 		for (let index = 0; index < (result.nested ?? []).length; index += 1) {
@@ -175,7 +252,7 @@ export class ContextViewer {
 				const nestedConnector = nestedLast ? "└─" : "├─";
 				const glyph =
 					nested.status === "running"
-						? theme.fg("warning", "●")
+						? theme.fg("success", "●")
 						: nested.status === "failed"
 							? theme.fg("error", "✗")
 							: theme.fg("success", "✓");
