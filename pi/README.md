@@ -34,6 +34,28 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 `extensions/skill-toggle.ts` applies the selection directly to each discovered skill's source file, including package or external skills. Manual-only adds `disable-model-invocation: true`; agent-invocable removes that field. Press `Ctrl+S` to apply and reload Pi, or `Esc` to cancel. Manual invocation also requires Pi's `enableSkillCommands` setting.
 
+## OpenCode Zen models
+
+Pi includes an `opencode` provider for OpenCode Zen. Authenticate interactively so the API key is stored only in Pi's user-level `~/.pi/agent/auth.json` file and never in this repository:
+
+```text
+/login opencode
+```
+
+Alternatively, set `OPENCODE_API_KEY` in the environment before launching Pi. Do not put the key in a committed settings or models file.
+
+When `enabledModels` is used in `~/.pi/agent/settings.json`, provider/model entries must use the `opencode/` prefix, for example:
+
+```json
+{
+  "enabledModels": [
+    "opencode/deepseek-v4-flash",
+    "opencode/deepseek-v4-pro",
+    "opencode/glm-5.2"
+  ]
+}
+```
+
 ## Context viewer
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
