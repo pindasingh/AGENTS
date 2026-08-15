@@ -7,11 +7,11 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Isolated context**: Each subagent runs in a separate `pi` process
 - **Non-blocking delegation**: The parent tool call returns immediately while subagents continue in the background
 - **Automatic hand-back**: Completion queues a custom follow-up message and starts a parent turn to pick the result back up
-- **Live context view**: Background progress remains visible in the context viewer
+- **Live context view**: Delegation automatically opens a background-progress widget below the editor
 - **Result hand-back**: Final output is preserved in model context through a custom completion message
 - **Usage tracking**: The live context viewer shows turns, tokens, cost, and context occupancy per agent
 - **Agent catalogue**: Advertises the currently available user-agent names and descriptions to the model before it calls the tool
-- **Context viewer**: Toggle a live primary → subagent context tree with `/context-viewer`
+- **Context viewer**: Shows a live primary → job → subagent context tree, including child process IDs; toggle it with `/context-viewer`
 - **Invalid-name alert**: The companion `../subagent-explorer-alert.ts` extension records and displays any request for the nonexistent `explorer` agent without rewriting it
 - **Job control**: `/subagents` lists running work; `/subagents cancel <id>` and `/subagents cancel-all` stop it
 
@@ -81,10 +81,12 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 - Final output and failure diagnostics arrive in a custom completion message
 
 **Context viewer**:
+- Automatically opens as soon as a valid background delegation starts, so queued and running work is visible without a command
 - `/context-viewer` or `/context-viewer toggle` toggles the viewer; `/context-viewer open` and `/context-viewer close` set it explicitly
-- Renders below the editor without taking focus
-- Shows current tokens, context-window size, percentage, model, and running/completed/failed state
-- Reconstructs completed runs from the active session branch after resume
+- Renders below the editor without taking focus; an automatically opened viewer closes when all jobs succeed, while a manually opened viewer remains until closed
+- Uses green for running work and red for failures; successful jobs are removed immediately instead of accumulating as history
+- Shows the background job ID, child process ID once spawned, current tokens, context-window size, percentage, model, and queued/running/failed state
+- Persists compact final job state session-wide for restoration and hand-back without displaying successful history
 - Prevents recursive child delegation by excluding the `subagent` tool from every child process
 - Primary occupancy uses Pi's live context estimate; child occupancy uses the latest child assistant response and may show `?` when the model's context window cannot be resolved
 
@@ -93,7 +95,7 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 - `/context-viewer` shows live child state while work continues
 - The completion follow-up returns each task's final output to the parent model, capped at 50 KB per parallel task
 - Failure diagnostics from stderr/error messages are handed back when a child exits before producing output
-- Session shutdown or extension reload aborts all jobs owned by that session
+- Session shutdown or extension reload records active jobs as aborted, then stops all jobs owned by that session
 
 ## Agent Definitions
 

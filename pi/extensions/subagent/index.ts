@@ -30,7 +30,7 @@ import {
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
-import { ContextViewer } from "./context-viewer.ts";
+import { ContextViewer, SUBAGENT_JOB_ENTRY_TYPE } from "./context-viewer.ts";
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
@@ -40,6 +40,8 @@ const PER_TASK_OUTPUT_CAP = 50 * 1024;
 interface BackgroundJob {
 	controller: AbortController;
 	description: string;
+	toolCallId: string;
+	details?: SubagentDetails;
 }
 
 function formatTokens(count: number): string {
@@ -166,6 +168,7 @@ export interface SingleResult {
 	agentSource: "user" | "project" | "unknown";
 	task: string;
 	exitCode: number;
+	pid?: number;
 	status?: "queued" | "running" | "complete" | "failed" | "aborted";
 	messages: Message[];
 	stderr: string;
@@ -181,6 +184,7 @@ export interface SubagentDetails {
 	mode: "single" | "parallel" | "chain";
 	agentScope: AgentScope;
 	projectAgentsDir: string | null;
+	jobId?: string;
 	results: SingleResult[];
 }
 
@@ -203,6 +207,7 @@ function summarizeNestedDetails(details: SubagentDetails, depth = 0, budget = { 
 		mode: details.mode,
 		agentScope: details.agentScope,
 		projectAgentsDir: details.projectAgentsDir,
+		jobId: details.jobId,
 		results: details.results.flatMap((result) => {
 			if (budget.nodes <= 0) return [];
 			budget.nodes -= 1;
@@ -218,6 +223,24 @@ function summarizeNestedDetails(details: SubagentDetails, depth = 0, budget = { 
 								details: nested.details ? summarizeNestedDetails(nested.details, depth + 1, budget) : undefined,
 							})),
 			}];
+		}),
+	};
+}
+
+function terminalizePendingDetails(details: SubagentDetails, error: unknown, aborted: boolean): SubagentDetails {
+	const message = error instanceof Error ? error.message : String(error);
+	return {
+		...details,
+		results: details.results.map((result) => {
+			if (result.status !== "queued" && result.status !== "running" && result.exitCode !== -1) return result;
+			return {
+				...result,
+				exitCode: 1,
+				status: aborted ? "aborted" : "failed",
+				stopReason: aborted ? "aborted" : "error",
+				errorMessage: result.errorMessage ?? message,
+				stderr: result.stderr || message,
+			};
 		}),
 	};
 }
@@ -406,7 +429,11 @@ async function runSingleAgent(
 				shell: false,
 				stdio: ["ignore", "pipe", "pipe"],
 			});
+			currentResult.pid = proc.pid;
+			emitUpdate();
 			let buffer = "";
+			let processClosed = false;
+			let killTimer: ReturnType<typeof setTimeout> | undefined;
 
 			const processLine = (line: string) => {
 				if (!line.trim()) return;
@@ -478,20 +505,25 @@ async function runSingleAgent(
 			});
 
 			proc.on("close", (code) => {
+				processClosed = true;
+				if (killTimer) clearTimeout(killTimer);
 				if (buffer.trim()) processLine(buffer);
 				resolve(code ?? 0);
 			});
 
 			proc.on("error", () => {
+				processClosed = true;
+				if (killTimer) clearTimeout(killTimer);
 				resolve(1);
 			});
 
 			if (signal) {
 				const killProc = () => {
 					wasAborted = true;
+					if (processClosed) return;
 					proc.kill("SIGTERM");
-					setTimeout(() => {
-						if (!proc.killed) proc.kill("SIGKILL");
+					killTimer = setTimeout(() => {
+						if (!processClosed) proc.kill("SIGKILL");
 					}, 5000);
 				};
 				if (signal.aborted) killProc();
@@ -613,8 +645,17 @@ export default function (pi: ExtensionAPI) {
 	pi.on("model_select", (_event, ctx) => contextViewer.updatePrimary(ctx));
 	pi.on("session_tree", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
 	pi.on("session_shutdown", (_event, ctx) => {
+		for (const job of backgroundJobs.values()) {
+			if (job.details) {
+				const terminalDetails = terminalizePendingDetails(job.details, new Error("Session shutdown"), true);
+				pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
+					toolCallId: job.toolCallId,
+					details: summarizeNestedDetails(terminalDetails),
+				});
+			}
+			job.controller.abort();
+		}
 		runtimeActive = false;
-		for (const job of backgroundJobs.values()) job.controller.abort();
 		backgroundJobs.clear();
 		contextViewer.close(ctx);
 	});
@@ -646,16 +687,27 @@ export default function (pi: ExtensionAPI) {
 			const hasTasks = (params.tasks?.length ?? 0) > 0;
 			const hasSingle = Boolean(params.agent && params.task);
 			const modeCount = Number(hasChain) + Number(hasTasks) + Number(hasSingle);
+			let detailsJobId: string | undefined;
+			let latestDetails: SubagentDetails | undefined;
 
+			const buildDetails =
+				(mode: "single" | "parallel" | "chain") =>
+				(results: SingleResult[]): SubagentDetails => ({
+					mode,
+					agentScope,
+					projectAgentsDir: discovery.projectAgentsDir,
+					jobId: detailsJobId,
+					results,
+				});
 			const makeDetails =
 				(mode: "single" | "parallel" | "chain") =>
 				(results: SingleResult[]): SubagentDetails => {
-					const details = {
-						mode,
-						agentScope,
-						projectAgentsDir: discovery.projectAgentsDir,
-						results,
-					} satisfies SubagentDetails;
+					const details = buildDetails(mode)(results);
+					latestDetails = details;
+					if (detailsJobId) {
+						const job = backgroundJobs.get(detailsJobId);
+						if (job) job.details = details;
+					}
 					contextViewer.updateInvocation(toolCallId, details);
 					return details;
 				};
@@ -678,6 +730,17 @@ export default function (pi: ExtensionAPI) {
 						},
 					],
 					details: makeDetails("single")([]),
+				};
+			}
+			if (hasTasks && params.tasks!.length > MAX_PARALLEL_TASKS) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Too many parallel tasks (${params.tasks!.length}). Max is ${MAX_PARALLEL_TASKS}.`,
+						},
+					],
+					details: makeDetails("parallel")([]),
 				};
 			}
 
@@ -707,6 +770,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			const jobId = `subagent-${nextJobNumber++}`;
+			detailsJobId = jobId;
 			const controller = new AbortController();
 			const taskPreview = params.task && params.task.length > 120 ? `${params.task.slice(0, 120)}...` : params.task;
 			const invocationDescription = params.chain?.length
@@ -714,7 +778,29 @@ export default function (pi: ExtensionAPI) {
 				: params.tasks?.length
 					? `parallel (${params.tasks.length} tasks)`
 					: `${params.agent}: ${taskPreview}`;
-			backgroundJobs.set(jobId, { controller, description: invocationDescription });
+			backgroundJobs.set(jobId, { controller, description: invocationDescription, toolCallId });
+
+			const queuedResult = (agentName: string, task: string, step?: number): SingleResult => ({
+				agent: agentName,
+				agentSource: agents.find((agent) => agent.name === agentName)?.source ?? "unknown",
+				task,
+				exitCode: -1,
+				messages: [],
+				stderr: "",
+				usage: emptyUsage(),
+				status: "queued",
+				step,
+			});
+			const initialMode = hasChain ? "chain" : hasTasks ? "parallel" : "single";
+			const initialResults = params.chain?.length
+				? params.chain.map((item, index) => queuedResult(item.agent, item.task, index + 1))
+				: params.tasks?.length
+					? params.tasks.map((item) => queuedResult(item.agent, item.task))
+					: [queuedResult(params.agent!, params.task!)];
+			const initialDetails = makeDetails(initialMode)(initialResults);
+			contextViewer.startInvocation(toolCallId, initialDetails);
+			if (ctx.mode === "tui") contextViewer.open(ctx, true);
+			contextViewer.updatePrimary(ctx);
 
 			const executeInvocation = async (): Promise<AgentToolResult<SubagentDetails>> => {
 			if (params.chain && params.chain.length > 0) {
@@ -727,9 +813,9 @@ export default function (pi: ExtensionAPI) {
 
 					// Create update callback that includes all previous results
 					const chainUpdate: OnUpdateCallback = (partial) => {
-						// Combine completed results with current streaming result.
+						// Combine completed results with the current result and queued future steps.
 						const currentResult = partial.details?.results[0];
-						if (currentResult) makeDetails("chain")([...results, currentResult]);
+						if (currentResult) makeDetails("chain")([...results, currentResult, ...initialResults.slice(i + 1)]);
 					};
 
 					const result = await runSingleAgent(
@@ -741,7 +827,7 @@ export default function (pi: ExtensionAPI) {
 						i + 1,
 						controller.signal,
 						chainUpdate,
-						makeDetails("chain"),
+						buildDetails("chain"),
 						resolveContextWindow,
 					);
 					results.push(result);
@@ -749,9 +835,18 @@ export default function (pi: ExtensionAPI) {
 					const isError = isFailedResult(result);
 					if (isError) {
 						const errorMsg = getResultOutput(result);
+						const skippedReason = `Skipped because chain step ${i + 1} (${step.agent}) failed`;
+						const skippedResults = initialResults.slice(i + 1).map((queued) => ({
+							...queued,
+							exitCode: 1,
+							status: "aborted" as const,
+							stopReason: "aborted" as const,
+							errorMessage: skippedReason,
+							stderr: skippedReason,
+						}));
 						return {
 							content: [{ type: "text", text: `Chain stopped at step ${i + 1} (${step.agent}): ${errorMsg}` }],
-							details: makeDetails("chain")(results),
+							details: makeDetails("chain")([...results, ...skippedResults]),
 						};
 					}
 					previousOutput = getFinalOutput(result.messages);
@@ -763,60 +858,51 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			if (params.tasks && params.tasks.length > 0) {
-				if (params.tasks.length > MAX_PARALLEL_TASKS)
-					return {
-						content: [
-							{
-								type: "text",
-								text: `Too many parallel tasks (${params.tasks.length}). Max is ${MAX_PARALLEL_TASKS}.`,
-							},
-						],
-						details: makeDetails("parallel")([]),
-					};
-
-				// Track all results for streaming updates
-				const allResults: SingleResult[] = new Array(params.tasks.length);
-
-				// Initialize placeholder results
-				for (let i = 0; i < params.tasks.length; i++) {
-					allResults[i] = {
-						agent: params.tasks[i].agent,
-						agentSource: "unknown",
-						task: params.tasks[i].task,
-						exitCode: -1, // -1 = still running
-						messages: [],
-						stderr: "",
-						usage: emptyUsage(),
-						status: "queued",
-					};
-				}
+				// Track all results for streaming updates, preserving queued tasks.
+				const allResults = initialResults.map((result) => ({ ...result }));
 
 				const emitParallelUpdate = () => {
 					makeDetails("parallel")([...allResults]);
 				};
 
 				const results = await mapWithConcurrencyLimit(params.tasks, MAX_CONCURRENCY, async (t, index) => {
-					const result = await runSingleAgent(
-						ctx.cwd,
-						agents,
-						t.agent,
-						t.task,
-						t.cwd,
-						undefined,
-						controller.signal,
-						// Per-task update callback
-						(partial) => {
-							if (partial.details?.results[0]) {
-								allResults[index] = partial.details.results[0];
-								emitParallelUpdate();
-							}
-						},
-						makeDetails("parallel"),
-						resolveContextWindow,
-					);
-					allResults[index] = result;
-					emitParallelUpdate();
-					return result;
+					try {
+						if (controller.signal.aborted) throw new Error("Subagent was aborted");
+						const result = await runSingleAgent(
+							ctx.cwd,
+							agents,
+							t.agent,
+							t.task,
+							t.cwd,
+							undefined,
+							controller.signal,
+							// Per-task update callback
+							(partial) => {
+								if (partial.details?.results[0]) {
+									allResults[index] = partial.details.results[0];
+									emitParallelUpdate();
+								}
+							},
+							buildDetails("parallel"),
+							resolveContextWindow,
+						);
+						allResults[index] = result;
+						emitParallelUpdate();
+						return result;
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						const failedResult: SingleResult = {
+							...allResults[index],
+							exitCode: 1,
+							status: controller.signal.aborted ? "aborted" : "failed",
+							stopReason: controller.signal.aborted ? "aborted" : "error",
+							errorMessage: allResults[index].errorMessage ?? message,
+							stderr: allResults[index].stderr || message,
+						};
+						allResults[index] = failedResult;
+						emitParallelUpdate();
+						return failedResult;
+					}
 				});
 
 				const successCount = results.filter((r) => !isFailedResult(r)).length;
@@ -877,6 +963,12 @@ export default function (pi: ExtensionAPI) {
 				.then((result) => {
 					backgroundJobs.delete(jobId);
 					if (!runtimeActive) return;
+					if (result.details) {
+						pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
+							toolCallId,
+							details: summarizeNestedDetails(result.details),
+						});
+					}
 					const output = result.content
 						.filter((part): part is { type: "text"; text: string } => part.type === "text")
 						.map((part) => part.text)
@@ -896,6 +988,15 @@ export default function (pi: ExtensionAPI) {
 				.catch((error: unknown) => {
 					backgroundJobs.delete(jobId);
 					if (!runtimeActive) return;
+					if (latestDetails) {
+						const terminalDetails = terminalizePendingDetails(latestDetails, error, controller.signal.aborted);
+						latestDetails = terminalDetails;
+						contextViewer.updateInvocation(toolCallId, terminalDetails);
+						pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
+							toolCallId,
+							details: summarizeNestedDetails(terminalDetails),
+						});
+					}
 					const message = error instanceof Error ? error.message : String(error);
 					pi.sendMessage(
 						{
@@ -915,7 +1016,7 @@ export default function (pi: ExtensionAPI) {
 						text: `Delegated as background job ${jobId}. Do not wait or duplicate its scope; continue independent work. Its completion will automatically resume you in a follow-up turn.`,
 					},
 				],
-				details: makeDetails(hasChain ? "chain" : hasTasks ? "parallel" : "single")([]),
+				details: makeDetails(initialMode)(initialResults),
 			};
 		},
 
@@ -990,6 +1091,15 @@ export default function (pi: ExtensionAPI) {
 
 			if (details.mode === "single" && details.results.length === 1) {
 				const r = details.results[0];
+				const isQueued = r.status === "queued";
+				if (isQueued) {
+					const job = details.jobId ? ` ${theme.fg("accent", details.jobId)}` : "";
+					return new Text(
+						`${theme.fg("warning", "○")} ${theme.fg("toolTitle", theme.bold(r.agent))}${job}\n${theme.fg("muted", "Running in background · live progress shown below the editor")}`,
+						0,
+						0,
+					);
+				}
 				const isError = isFailedResult(r);
 				const icon = isError ? theme.fg("error", "✗") : theme.fg("success", "✓");
 				const displayItems = getDisplayItems(r.messages);
@@ -1060,8 +1170,26 @@ export default function (pi: ExtensionAPI) {
 			};
 
 			if (details.mode === "chain") {
-				const successCount = details.results.filter((r) => r.exitCode === 0).length;
-				const icon = successCount === details.results.length ? theme.fg("success", "✓") : theme.fg("error", "✗");
+				const pendingCount = details.results.filter(
+					(r) => r.status === "queued" || r.status === "running" || r.exitCode === -1,
+				).length;
+				const successCount = details.results.filter(
+					(r) => r.exitCode !== -1 && !isFailedResult(r),
+				).length;
+				const failCount = details.results.length - pendingCount - successCount;
+				const icon = pendingCount > 0
+					? theme.fg("warning", "⏳")
+					: failCount > 0
+						? theme.fg("error", "✗")
+						: theme.fg("success", "✓");
+				const chainStatus = pendingCount > 0
+					? `${successCount + failCount}/${details.results.length} done, ${pendingCount} pending`
+					: `${successCount}/${details.results.length} steps`;
+				const chainResultIcon = (result: SingleResult): string => {
+					if (result.status === "queued") return theme.fg("muted", "○");
+					if (result.status === "running" || result.exitCode === -1) return theme.fg("warning", "●");
+					return isFailedResult(result) ? theme.fg("error", "✗") : theme.fg("success", "✓");
+				};
 
 				if (expanded) {
 					const container = new Container();
@@ -1070,14 +1198,14 @@ export default function (pi: ExtensionAPI) {
 							icon +
 								" " +
 								theme.fg("toolTitle", theme.bold("chain ")) +
-								theme.fg("accent", `${successCount}/${details.results.length} steps`),
+								theme.fg("accent", chainStatus),
 							0,
 							0,
 						),
 					);
 
 					for (const r of details.results) {
-						const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
+						const rIcon = chainResultIcon(r);
 						const displayItems = getDisplayItems(r.messages);
 						const finalOutput = getFinalOutput(r.messages);
 
@@ -1127,13 +1255,15 @@ export default function (pi: ExtensionAPI) {
 					icon +
 					" " +
 					theme.fg("toolTitle", theme.bold("chain ")) +
-					theme.fg("accent", `${successCount}/${details.results.length} steps`);
+					theme.fg("accent", chainStatus);
 				for (const r of details.results) {
-					const rIcon = r.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
+					const rIcon = chainResultIcon(r);
 					const displayItems = getDisplayItems(r.messages);
 					text += `\n\n${theme.fg("muted", `─── Step ${r.step}: `)}${theme.fg("accent", r.agent)} ${rIcon}`;
-					if (displayItems.length === 0) text += `\n${theme.fg("muted", "(no output)")}`;
-					else text += `\n${renderDisplayItems(displayItems, 5)}`;
+					if (displayItems.length === 0) {
+						const emptyLabel = r.status === "queued" ? "(queued...)" : r.status === "running" ? "(running...)" : "(no output)";
+						text += `\n${theme.fg("muted", emptyLabel)}`;
+					} else text += `\n${renderDisplayItems(displayItems, 5)}`;
 				}
 				const usageStr = formatUsageStats(aggregateUsage(details.results));
 				if (usageStr) text += `\n\n${theme.fg("dim", `Total: ${usageStr}`)}`;
