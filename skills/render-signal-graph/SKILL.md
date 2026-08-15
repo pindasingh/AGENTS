@@ -1,6 +1,6 @@
 ---
 name: render-signal-graph
-description: Render a compiled TypeScript Signal architecture model into a rich, self-contained interactive HTML architecture canvas. Use after build-signal-graph whenever a user asks for architecture visualization, component relationships, operation impact, endpoint-to-persistence/message/downstream tracing, path highlighting, or an HTML projection of a Signal model.
+description: Render a data-only JSON projection of a TypeScript Signal architecture model into a rich, self-contained interactive HTML architecture canvas. Use after build-signal-graph whenever a user asks for architecture visualization, component relationships, operation impact, endpoint-to-persistence/message/downstream tracing, path highlighting, or an HTML projection of a Signal model.
 compatibility: Requires already-installed TypeScript compiler (tsc) and Node.js; no third-party packages.
 license: See LICENSE
 ---
@@ -42,15 +42,16 @@ An endpoint selection must reveal everything that operation touches; highlightin
 
 1. Confirm the model uses the sibling `build-signal-graph` DSL and passes strict TypeScript checking.
 2. Reject legacy/ambiguous steps that omit the executor or operation label for persistence and publication.
-3. Compile `signal.ts` and root `architecture.ts` with the existing `tsc`.
-4. Compile [scripts/render.ts](scripts/render.ts) with the existing `tsc`; do not install loaders, React, layout libraries, or templates.
-5. Run the compiled renderer against the compiled architecture module.
-6. Open the generated HTML and test component selection, interaction selection, all path choices, reset, arrow attachment, parallel-edge readability, loops, desktop width, narrow width, and keyboard access.
+3. Compile `signal.ts` and root `architecture.ts` with the existing `tsc` to type-check them. Do not execute the compiled model.
+4. Write `architecture.json` as a data-only projection of the root architecture object. Replace every declaration or flow reference with `{ "$ref": "ExportName" }`; do not put JavaScript, imports, or expressions in this file.
+5. Compile [scripts/render.ts](scripts/render.ts) with the existing `tsc`; do not install loaders, React, layout libraries, or templates.
+6. Run the compiled renderer against `architecture.json`. The renderer parses JSON and never loads the architecture as executable code.
+7. Open the generated HTML and test component selection, interaction selection, all path choices, reset, arrow attachment, parallel-edge readability, loops, desktop width, narrow width, and keyboard access.
 
 ```sh
 tsc --strict --target ES2022 --module commonjs --outDir .architecture-build architecture/signal.ts architecture/architecture.ts
 tsc --strict --target ES2022 --module commonjs --outDir .architecture-build/render /absolute/path/to/render-signal-graph/scripts/render.ts
-node .architecture-build/render/render.js .architecture-build/architecture.js architecture/index.html
+node .architecture-build/render/render.js architecture/architecture.json architecture/index.html
 ```
 
 ## Output
@@ -71,7 +72,8 @@ Write one `architecture/index.html` containing:
 
 Fail rather than guessing when:
 
-- the module has no architecture object;
+- the JSON has no architecture object;
+- the JSON contains a reference that does not name a root declaration or flow;
 - one object is exported under multiple keys;
 - a relationship points outside the root architecture;
 - an operation lacks an explicit executor or meaningful action label;

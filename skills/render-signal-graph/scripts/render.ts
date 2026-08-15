@@ -1,6 +1,6 @@
 declare const require: (id: string) => any
 declare const process: { argv: string[]; cwd(): string; exitCode?: number }
-const fs = require("fs") as { writeFileSync(path: string, data: string): void; mkdirSync(path: string, options: { recursive: boolean }): void }
+const fs = require("fs") as { readFileSync(path: string, encoding: string): string; writeFileSync(path: string, data: string): void; mkdirSync(path: string, options: { recursive: boolean }): void }
 const path = require("path") as { resolve(...parts: string[]): string; dirname(value: string): string }
 
 type Evidence = { repository: string; revision: string; path: string; symbol?: string; observation: string; certainty: string }
@@ -15,6 +15,30 @@ type PathView = { id: string; name: string; flows: string[] }
 const escapeHtml = (value: unknown): string => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!))
 const safeJson = (value: unknown): string => JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, c => ({ "<": "\\u003c", ">": "\\u003e", "&": "\\u0026", "\u2028": "\\u2028", "\u2029": "\\u2029" }[c] || c))
 const short = (value: string, limit: number): string => value.length <= limit ? value : `${value.slice(0, limit - 1)}…`
+
+export function parseArchitecture(source: string): Record<string, Decl | Flow> {
+  const serialized: unknown = JSON.parse(source)
+  if (!serialized || typeof serialized !== "object" || Array.isArray(serialized)) throw new Error("Architecture JSON must contain an object")
+  const input = serialized as Record<string, unknown>
+  const model: Record<string, Decl | Flow> = Object.create(null)
+  for (const key of Object.keys(input)) {
+    const value = input[key]
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Invalid declaration ${key}`)
+    model[key] = Object.create(null) as Decl
+  }
+  const decode = (value: unknown): any => {
+    if (Array.isArray(value)) return value.map(decode)
+    if (!value || typeof value !== "object") return value
+    const object = value as Record<string, unknown>
+    if (Object.keys(object).length === 1 && typeof object.$ref === "string") {
+      if (!Object.prototype.hasOwnProperty.call(model, object.$ref)) throw new Error(`Unknown architecture reference: ${object.$ref}`)
+      return model[object.$ref]
+    }
+    return Object.fromEntries(Object.entries(object).map(([key, item]) => [key, decode(item)]))
+  }
+  for (const key of Object.keys(input)) Object.assign(model[key], decode(input[key]))
+  return model
+}
 
 export function renderArchitecture(model: Record<string, Decl | Flow>): string {
   if (!model || typeof model !== "object") throw new Error("Architecture module must export an object")
@@ -147,9 +171,9 @@ export function renderArchitecture(model: Record<string, Decl | Flow>): string {
 }
 
 export function run(argv: string[]): void {
-  if (argv.length !== 2) throw new Error("Usage: node render.js <compiled-architecture.js> <architecture/index.html>")
+  if (argv.length !== 2) throw new Error("Usage: node render.js <architecture.json> <architecture/index.html>")
   const input = path.resolve(process.cwd(), argv[0]), output = path.resolve(process.cwd(), argv[1])
-  const loaded = require(input), model = loaded.default || loaded.architecture || loaded
+  const model = parseArchitecture(fs.readFileSync(input, "utf8"))
   const html = renderArchitecture(model)
   fs.mkdirSync(path.dirname(output), { recursive: true })
   fs.writeFileSync(output, html)
