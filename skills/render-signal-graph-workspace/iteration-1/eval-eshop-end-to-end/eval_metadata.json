@@ -1,0 +1,17 @@
+{
+  "eval_id": "eshop-end-to-end",
+  "eval_name": "eShop build and render",
+  "prompt": "Build the evidence-constrained eShopOnContainers Signal TypeScript architecture and render that exact model as a self-contained HTML architecture explorer.",
+  "expectations": [
+    "Inspectable source, HTML, and successful validation are preserved.",
+    "Required eShop boundaries are modeled and forbidden invented services are absent.",
+    "HTTP acceptance precedes and links to asynchronous processing.",
+    "The successful order continuation preserves evidenced operations and ordering.",
+    "Stock rejection and payment failure are separate terminal flows.",
+    "Relationships and contract changes are type checked without unsafe casts.",
+    "Evidence is sufficient and claims do not exceed the fixture.",
+    "HTML is complete, deterministic, self-contained, and navigable.",
+    "HTML escaping, CSP, and fail-closed references are enforced.",
+    "TypeScript remains authoritative and artifacts support regression review."
+  ]
+}

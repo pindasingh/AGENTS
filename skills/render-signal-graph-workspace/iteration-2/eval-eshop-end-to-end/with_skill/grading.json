@@ -1,0 +1,19 @@
+{
+  "expectations": [
+    {"text":"Inspectable source, HTML, and successful validation are preserved.","passed":true,"evidence":"signal.ts, architecture.ts, architecture/index.html, validation.txt, screenshot, and accessibility audit are preserved; strict compilation and rendering pass."},
+    {"text":"Required eShop boundaries are modeled and forbidden invented services are absent.","passed":true,"evidence":"Both callers/gateways, Basket, Ordering, Catalog, Payment, SignalR, Redis, separate SQL stores, and broker-backed event bus are present; forbidden services are absent."},
+    {"text":"HTTP acceptance precedes and links to asynchronous processing.","passed":true,"evidence":"Two HTTP acceptance flows end with responses; OrderCreation continues from them through typed flow references."},
+    {"text":"The successful order continuation preserves evidenced operations and ordering.","passed":true,"evidence":"OrderCreation, StockConfirmedContinuation, and PaymentSuccess form an explicit causal chain covering idempotent creation, SQL persistence, submitted/started events, basket deletion, catalog validation, payment, paid persistence, and SignalR."},
+    {"text":"Stock rejection and payment failure are separate terminal flows.","passed":true,"evidence":"StockRejection branches from OrderCreation at awaiting validation; PaymentFailure branches from StockConfirmedContinuation at payment request; both persist and propagate cancellation."},
+    {"text":"Relationships and contract changes are type checked without unsafe casts.","passed":true,"evidence":"Strict tsc succeeds; no unsafe any is present; derive, continue, delete, broker, and flow references are typed."},
+    {"text":"Evidence is sufficient and claims do not exceed the fixture.","passed":true,"evidence":"Messaging declarations now carry evidence; the required payment-failure path is explicitly inferred and states that the selected execution excerpt does not prove a concrete handler."},
+    {"text":"HTML is complete, deterministic, self-contained, and navigable.","passed":true,"evidence":"The standalone explorer has topology, broker linkage, searchable declarations and flows, full-width ordered flows, schemas, evidence, and continuation links; repeated renders are byte-identical."},
+    {"text":"HTML escaping, CSP, and fail-closed references are enforced.","passed":true,"evidence":"Security tests pass; browser accessibility audit reports zero violations; long topology labels are bounded and nested-interactive SVG semantics were corrected."},
+    {"text":"TypeScript remains authoritative and artifacts support regression review.","passed":true,"evidence":"Authoritative TypeScript, disposable HTML, validation, screenshot, audit, grading, and benchmark artifacts are versioned under iteration-2."}
+  ],
+  "summary":{"passed":10,"failed":0,"total":10,"pass_rate":1.0},
+  "execution_metrics":{"tool_calls":{},"total_tool_calls":0,"total_steps":0,"errors_encountered":0,"output_chars":0,"transcript_chars":0},
+  "claims":[],
+  "user_notes_summary":{"uncertainties":["The payment-failure handler remains an inferred eval-required variant because the selected execution excerpt proves only payment success.","Automated contrast analysis is incomplete for SVG text because connectors overlap nodes, but it reports no violation."],"needs_review":["Human review of iteration-2 architecture/index.html remains the final qualitative acceptance step."],"workarounds":[]},
+  "eval_feedback":{"suggestions":[],"overall":"Iteration 2 passes all ten end-to-end expectations and improves the versioned benchmark from 90% to 100%."}
+}

@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "skill_name": "render-signal-graph",
+    "skill_path": "skills/render-signal-graph",
+    "executor_model": "current-session",
+    "analyzer_model": "current-session",
+    "timestamp": "2026-03-23T00:00:00Z",
+    "evals_run": ["eshop-end-to-end"],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": "eshop-end-to-end",
+      "eval_name": "eShop build and render",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.9,
+        "passed": 9,
+        "failed": 1,
+        "total": 10,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {"text":"Inspectable source, HTML, and successful validation are preserved.","passed":true,"evidence":"All required artifacts exist and validation passes."},
+        {"text":"Required eShop boundaries are modeled and forbidden invented services are absent.","passed":true,"evidence":"Required declarations present; forbidden services absent."},
+        {"text":"HTTP acceptance precedes and links to asynchronous processing.","passed":true,"evidence":"Separate acceptance and continuation flows are linked."},
+        {"text":"The successful order continuation preserves evidenced operations and ordering.","passed":true,"evidence":"Ordered flow covers persistence, cleanup, stock, payment, paid state, and status."},
+        {"text":"Stock rejection and payment failure are separate terminal flows.","passed":true,"evidence":"Both variants persist and propagate cancellation."},
+        {"text":"Relationships and contract changes are type checked without unsafe casts.","passed":true,"evidence":"Strict tsc and unsafe-any scan pass."},
+        {"text":"Evidence is sufficient and claims do not exceed the fixture.","passed":false,"evidence":"Declaration-local evidence is incomplete and payment-failure certainty needs clearer qualification."},
+        {"text":"HTML is complete, deterministic, self-contained, and navigable.","passed":true,"evidence":"Standalone explorer is present and deterministic."},
+        {"text":"HTML escaping, CSP, and fail-closed references are enforced.","passed":true,"evidence":"Renderer security tests pass."},
+        {"text":"TypeScript remains authoritative and artifacts support regression review.","passed":true,"evidence":"Source and disposable projection are both preserved."}
+      ],
+      "notes": ["First versioned baseline; timing and token metrics were not recoverable because subagent execution failed."]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 0.9, "stddev": 0, "min": 0.9, "max": 0.9},
+      "time_seconds": {"mean": 0, "stddev": 0, "min": 0, "max": 0},
+      "tokens": {"mean": 0, "stddev": 0, "min": 0, "max": 0}
+    },
+    "delta": {"pass_rate": "baseline", "time_seconds": "not captured", "tokens": "not captured"}
+  },
+  "notes": [
+    "This is the first inspectable version baseline, not a with/without-skill comparison.",
+    "Future iterations must rerun the same eShop fixture, preserve outputs under iteration-N, and compare against this 90% baseline.",
+    "The current discriminating failure is evidence coverage and certainty, not compilation or rendering."
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Render Signal Graph"
+  short_description: "Render a typed Signal architecture as standalone HTML"
+  default_prompt: "Render the compiled Signal TypeScript architecture into a secure, self-contained architecture/index.html explorer."
