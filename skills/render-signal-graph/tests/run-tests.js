@@ -13,9 +13,19 @@ try {
   run("tsc", ["--strict", "--target", "ES2022", "--module", "commonjs", "--outDir", path.join(temp, "model"), path.join(build, "assets/signal.ts"), path.join(build, "assets/architecture.ts"), path.join(build, "tests/runtime.ts")])
   run("node", [path.join(temp, "model/tests/runtime.js")])
   run("tsc", ["--strict", "--target", "ES2022", "--module", "commonjs", "--outDir", path.join(temp, "renderer"), path.join(skill, "scripts/render.ts")])
-  const { renderArchitecture } = require(path.join(temp, "renderer/render.js"))
+  const renderer = path.join(temp, "renderer/render.js")
+  const { parseArchitecture, renderArchitecture } = require(renderer)
   const model = require(path.join(temp, "model/assets/architecture.js")).default
-  const htmlA = renderArchitecture(model), htmlB = renderArchitecture(model)
+  const names = new Map(Object.entries(model).map(([key, value]) => [value, key]))
+  const serialize = value => {
+    if (names.has(value)) return { $ref: names.get(value) }
+    if (Array.isArray(value)) return value.map(serialize)
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, serialize(item)]))
+    return value
+  }
+  const json = JSON.stringify(Object.fromEntries(Object.entries(model).map(([key, value]) => [key, Object.fromEntries(Object.entries(value).map(([field, item]) => [field, serialize(item)]))])))
+  const parsed = parseArchitecture(json)
+  const htmlA = renderArchitecture(parsed), htmlB = renderArchitecture(parsed)
   assert.strictEqual(htmlA, htmlB, "rendering must be deterministic")
   assert(htmlA.includes("Architecture interaction map") && htmlA.includes("end-to-end paths"))
   assert(htmlA.includes("data-edge=") && htmlA.includes("data-paths=") && htmlA.includes("data-node="))
@@ -24,6 +34,18 @@ try {
   assert.strictEqual((htmlA.match(/data-node="OrdersApi"/g) || []).length, 1, "one component identity must produce one box")
   assert(!htmlA.includes("class=\"card declaration\""), "renderer must not fall back to a declaration-card inventory")
   assert(htmlA.includes("default-src 'none'"))
+  const jsonPath = path.join(temp, "architecture.json"), outputPath = path.join(temp, "architecture.html")
+  fs.writeFileSync(jsonPath, json)
+  run("node", [renderer, jsonPath, outputPath])
+  assert.strictEqual(fs.readFileSync(outputPath, "utf8"), htmlA, "CLI must render the data-only JSON model")
+
+  const marker = path.join(temp, "executed")
+  const executable = path.join(temp, "architecture.js")
+  fs.writeFileSync(executable, `require("fs").writeFileSync(${JSON.stringify(marker)}, "executed")\nmodule.exports = {}`)
+  const rejected = cp.spawnSync("node", [renderer, executable, outputPath], { cwd: skill, encoding: "utf8" })
+  assert.notStrictEqual(rejected.status, 0, "executable architecture input must be rejected")
+  assert(!fs.existsSync(marker), "renderer must never execute architecture input")
+  assert.throws(() => parseArchitecture('{"Actor":{"kind":"actor","name":"A"},"Flow":{"kind":"flow","name":"bad","steps":[],"continuesFrom":[{"$ref":"Missing"}]}}'), /Unknown architecture reference/)
 
   const hostile = `<img src=x onerror="alert(1)">&'`
   const actor = Object.freeze({ kind: "actor", name: hostile })
