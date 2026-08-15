@@ -5,14 +5,15 @@ Delegate tasks to specialized subagents with isolated context windows.
 ## Features
 
 - **Isolated context**: Each subagent runs in a separate `pi` process
-- **Streaming output**: See tool calls and progress as they happen
-- **Parallel streaming**: All parallel tasks stream updates simultaneously
-- **Markdown rendering**: Final output rendered with proper formatting (expanded view)
-- **Usage tracking**: Shows turns, tokens, cost, and context occupancy per agent
+- **Non-blocking delegation**: The parent tool call returns immediately while subagents continue in the background
+- **Automatic hand-back**: Completion queues a custom follow-up message and starts a parent turn to pick the result back up
+- **Live context view**: Background progress remains visible in the context viewer
+- **Result hand-back**: Final output is preserved in model context through a custom completion message
+- **Usage tracking**: The live context viewer shows turns, tokens, cost, and context occupancy per agent
 - **Agent catalogue**: Advertises the currently available user-agent names and descriptions to the model before it calls the tool
 - **Context viewer**: Toggle a live primary → subagent context tree with `/context-viewer`
 - **Invalid-name alert**: The companion `../subagent-explorer-alert.ts` extension records and displays any request for the nonexistent `explorer` agent without rewriting it
-- **Abort support**: Ctrl+C propagates to kill subagent processes
+- **Job control**: `/subagents` lists running work; `/subagents cancel <id>` and `/subagents cancel-all` stop it
 
 ## Structure
 
@@ -37,7 +38,7 @@ After changing a linked extension or profile, run Pi's `/reload` command.
 
 ## Security Model
 
-This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration. Child processes always start with `--exclude-tools subagent`, so a subagent cannot recursively delegate to another subagent. The worker profile also uses an explicit tool allowlist that omits `subagent`, providing the same boundary when an older already-running parent extension reads the profile before spawning a new worker.
+This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration. The tool returns a background job id immediately, leaving the parent responsive. When the child finishes, the extension injects its result as a custom follow-up message with `triggerTurn: true`; if the parent is busy, Pi queues that hand-back, otherwise it starts the next parent turn immediately. Child processes always start with `--exclude-tools subagent`, so a subagent cannot recursively delegate to another subagent. The worker profile also uses an explicit tool allowlist that omits `subagent`, providing the same boundary when an older already-running parent extension reads the profile before spawning a new worker.
 
 **Project-local agents** (`.pi/agents/*.md`) are repo-controlled prompts that can instruct the model to read files, run bash commands, etc.
 
@@ -74,16 +75,10 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 
 ## Output Display
 
-**Collapsed view** (default):
-- Status icon (✓/✗/⏳) and agent name
-- Last 5-10 items (tool calls and text)
-- Usage stats: `3 turns ↑input ↓output RcacheRead WcacheWrite $cost ctx:contextTokens model`
-
-**Expanded view** (Ctrl+O):
-- Full task text
-- All tool calls with formatted arguments
-- Final output rendered as Markdown
-- Per-task usage (for chain/parallel)
+**Delegation receipt**:
+- Returns immediately with a background job id
+- Tells the parent not to wait or duplicate the delegated scope
+- Final output and failure diagnostics arrive in a custom completion message
 
 **Context viewer**:
 - `/context-viewer` or `/context-viewer toggle` toggles the viewer; `/context-viewer open` and `/context-viewer close` set it explicitly
@@ -93,18 +88,12 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 - Prevents recursive child delegation by excluding the `subagent` tool from every child process
 - Primary occupancy uses Pi's live context estimate; child occupancy uses the latest child assistant response and may show `?` when the model's context window cannot be resolved
 
-**Parallel mode streaming**:
-- Shows all tasks with live status (⏳ running, ✓ done, ✗ failed)
-- Updates as each task makes progress
-- Shows "2/3 done, 1 running" status
-- Returns each completed task's final output to the parent model, capped at 50 KB per task
-- Returns failure diagnostics from stderr/error messages when a child exits before producing output
-
-**Tool call formatting** (mimics built-in tools):
-- `$ command` for bash
-- `read ~/path:1-10` for read
-- `grep /pattern/ in ~/path` for grep
-- etc.
+**Background completion**:
+- The tool result immediately returns a job id instead of blocking the parent turn
+- `/context-viewer` shows live child state while work continues
+- The completion follow-up returns each task's final output to the parent model, capped at 50 KB per parallel task
+- Failure diagnostics from stderr/error messages are handed back when a child exits before producing output
+- Session shutdown or extension reload aborts all jobs owned by that session
 
 ## Agent Definitions
 
@@ -149,7 +138,7 @@ The bundled profiles intentionally omit a pinned model so child processes use th
 
 ## Limitations
 
-- Output truncated to last 10 items in collapsed view (expand to see all)
+- The completed tool card remains a delegation receipt; live progress moves to `/context-viewer`, and final output arrives in the follow-up message
 - Parallel model-visible output is capped at 50 KB per task; full results remain in tool details
 - Agents discovered fresh on each invocation (allows editing mid-session)
 - A child context percentage is unavailable when its provider/model cannot be resolved in the parent's model registry

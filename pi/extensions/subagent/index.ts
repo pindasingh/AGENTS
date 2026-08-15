@@ -37,6 +37,11 @@ const MAX_CONCURRENCY = 4;
 const COLLAPSED_ITEM_COUNT = 10;
 const PER_TASK_OUTPUT_CAP = 50 * 1024;
 
+interface BackgroundJob {
+	controller: AbortController;
+	description: string;
+}
+
 function formatTokens(count: number): string {
 	if (count < 1000) return count.toString();
 	if (count < 10000) return `${(count / 1000).toFixed(1)}k`;
@@ -546,6 +551,9 @@ const SubagentParams = Type.Object({
 
 export default function (pi: ExtensionAPI) {
 	const contextViewer = new ContextViewer();
+	const backgroundJobs = new Map<string, BackgroundJob>();
+	let nextJobNumber = 1;
+	let runtimeActive = true;
 	const availableUserAgents = discoverAgents(process.cwd(), "user").agents;
 	const availableUserAgentNames = availableUserAgents.map((agent) => agent.name).join(", ") || "none";
 	const availableUserAgentCatalog =
@@ -568,20 +576,55 @@ export default function (pi: ExtensionAPI) {
 		handler: handleContextViewerCommand,
 	});
 
+	pi.registerCommand("subagents", {
+		description: "List or cancel background subagent jobs: /subagents [cancel <id>|cancel-all]",
+		handler: async (args, ctx) => {
+			const [action, jobId] = args.trim().split(/\s+/, 2);
+			if (action === "cancel-all") {
+				for (const job of backgroundJobs.values()) job.controller.abort();
+				ctx.ui.notify(`Cancelling ${backgroundJobs.size} subagent job(s).`, "info");
+				return;
+			}
+			if (action === "cancel") {
+				const job = jobId ? backgroundJobs.get(jobId) : undefined;
+				if (!job) {
+					ctx.ui.notify(`Unknown subagent job: ${jobId || "(missing id)"}`, "warning");
+					return;
+				}
+				job.controller.abort();
+				ctx.ui.notify(`Cancelling ${jobId}.`, "info");
+				return;
+			}
+			if (backgroundJobs.size === 0) {
+				ctx.ui.notify("No subagent jobs are running.", "info");
+				return;
+			}
+			ctx.ui.notify(
+				Array.from(backgroundJobs, ([id, job]) => `${id}: ${job.description}`).join("\n"),
+				"info",
+			);
+		},
+	});
+
 	pi.on("session_start", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
 	pi.on("agent_start", (_event, ctx) => contextViewer.updatePrimary(ctx, true));
 	pi.on("message_end", (_event, ctx) => contextViewer.updatePrimary(ctx));
 	pi.on("agent_settled", (_event, ctx) => contextViewer.updatePrimary(ctx, false));
 	pi.on("model_select", (_event, ctx) => contextViewer.updatePrimary(ctx));
 	pi.on("session_tree", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
-	pi.on("session_shutdown", (_event, ctx) => contextViewer.close(ctx));
+	pi.on("session_shutdown", (_event, ctx) => {
+		runtimeActive = false;
+		for (const job of backgroundJobs.values()) job.controller.abort();
+		backgroundJobs.clear();
+		contextViewer.close(ctx);
+	});
 
 	pi.registerTool({
 		name: "subagent",
 		label: "Subagent",
 		description: [
 			`Available user agents: ${availableUserAgentCatalog}. Use these exact names; scout is the reconnaissance/exploration agent.`,
-			"Delegate tasks to specialized subagents with isolated context.",
+			"Delegate tasks to specialized subagents with isolated context. Delegation runs in the background and completion automatically resumes the parent in a follow-up turn.",
 			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
 			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
 			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
@@ -589,10 +632,11 @@ export default function (pi: ExtensionAPI) {
 		promptSnippet: `Delegate work to available agents: ${availableUserAgentNames}`,
 		promptGuidelines: [
 			`For subagent calls using the default user scope, use only these advertised agent names: ${availableUserAgentNames}. Use scout for reconnaissance or exploration.`,
+			"The subagent tool runs asynchronously. After delegation, continue only independent work; do not duplicate or overlap the delegated scope. A completion message will automatically start a follow-up turn so you can pick the result back up.",
 		],
 		parameters: SubagentParams,
 
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
+		async execute(toolCallId, params, _signal, _onUpdate, ctx) {
 			const agentScope: AgentScope = params.agentScope ?? "user";
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
@@ -662,6 +706,17 @@ export default function (pi: ExtensionAPI) {
 				}
 			}
 
+			const jobId = `subagent-${nextJobNumber++}`;
+			const controller = new AbortController();
+			const taskPreview = params.task && params.task.length > 120 ? `${params.task.slice(0, 120)}...` : params.task;
+			const invocationDescription = params.chain?.length
+				? `chain (${params.chain.length} steps)`
+				: params.tasks?.length
+					? `parallel (${params.tasks.length} tasks)`
+					: `${params.agent}: ${taskPreview}`;
+			backgroundJobs.set(jobId, { controller, description: invocationDescription });
+
+			const executeInvocation = async (): Promise<AgentToolResult<SubagentDetails>> => {
 			if (params.chain && params.chain.length > 0) {
 				const results: SingleResult[] = [];
 				let previousOutput = "";
@@ -674,10 +729,7 @@ export default function (pi: ExtensionAPI) {
 					const chainUpdate: OnUpdateCallback = (partial) => {
 						// Combine completed results with current streaming result.
 						const currentResult = partial.details?.results[0];
-						if (currentResult) {
-							const details = makeDetails("chain")([...results, currentResult]);
-							onUpdate?.({ content: partial.content, details });
-						}
+						if (currentResult) makeDetails("chain")([...results, currentResult]);
 					};
 
 					const result = await runSingleAgent(
@@ -687,7 +739,7 @@ export default function (pi: ExtensionAPI) {
 						taskWithContext,
 						step.cwd,
 						i + 1,
-						signal,
+						controller.signal,
 						chainUpdate,
 						makeDetails("chain"),
 						resolveContextWindow,
@@ -700,7 +752,6 @@ export default function (pi: ExtensionAPI) {
 						return {
 							content: [{ type: "text", text: `Chain stopped at step ${i + 1} (${step.agent}): ${errorMsg}` }],
 							details: makeDetails("chain")(results),
-							isError: true,
 						};
 					}
 					previousOutput = getFinalOutput(result.messages);
@@ -741,15 +792,7 @@ export default function (pi: ExtensionAPI) {
 				}
 
 				const emitParallelUpdate = () => {
-					const running = allResults.filter((r) => r.exitCode === -1).length;
-					const done = allResults.filter((r) => r.exitCode !== -1).length;
-					const details = makeDetails("parallel")([...allResults]);
-					onUpdate?.({
-						content: [
-							{ type: "text", text: `Parallel: ${done}/${allResults.length} done, ${running} running...` },
-						],
-						details,
-					});
+					makeDetails("parallel")([...allResults]);
 				};
 
 				const results = await mapWithConcurrencyLimit(params.tasks, MAX_CONCURRENCY, async (t, index) => {
@@ -760,7 +803,7 @@ export default function (pi: ExtensionAPI) {
 						t.task,
 						t.cwd,
 						undefined,
-						signal,
+						controller.signal,
 						// Per-task update callback
 						(partial) => {
 							if (partial.details?.results[0]) {
@@ -803,8 +846,8 @@ export default function (pi: ExtensionAPI) {
 					params.task,
 					params.cwd,
 					undefined,
-					signal,
-					onUpdate,
+					controller.signal,
+					undefined,
 					makeDetails("single"),
 					resolveContextWindow,
 				);
@@ -814,7 +857,6 @@ export default function (pi: ExtensionAPI) {
 					return {
 						content: [{ type: "text", text: `Agent ${result.stopReason || "failed"}: ${errorMsg}` }],
 						details: makeDetails("single")([result]),
-						isError: true,
 					};
 				}
 				return {
@@ -827,6 +869,53 @@ export default function (pi: ExtensionAPI) {
 			return {
 				content: [{ type: "text", text: `Invalid parameters. Available agents: ${available}` }],
 				details: makeDetails("single")([]),
+			};
+			};
+
+			void Promise.resolve()
+				.then(executeInvocation)
+				.then((result) => {
+					backgroundJobs.delete(jobId);
+					if (!runtimeActive) return;
+					const output = result.content
+						.filter((part): part is { type: "text"; text: string } => part.type === "text")
+						.map((part) => part.text)
+						.join("\n") || "(no output)";
+					const failed = result.details?.results.some(isFailedResult) ?? false;
+					const status = failed ? "failed" : "completed";
+					pi.sendMessage(
+						{
+							customType: "subagent-completion",
+							content: `Background subagent job ${jobId} ${status}.\n\n${output}\n\nPick up this delegated result now.`,
+							display: true,
+							details: { jobId, result: result.details },
+						},
+						{ triggerTurn: true, deliverAs: "followUp" },
+					);
+				})
+				.catch((error: unknown) => {
+					backgroundJobs.delete(jobId);
+					if (!runtimeActive) return;
+					const message = error instanceof Error ? error.message : String(error);
+					pi.sendMessage(
+						{
+							customType: "subagent-completion",
+							content: `Background subagent job ${jobId} failed: ${message}`,
+							display: true,
+							details: { jobId },
+						},
+						{ triggerTurn: true, deliverAs: "followUp" },
+					);
+				});
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Delegated as background job ${jobId}. Do not wait or duplicate its scope; continue independent work. Its completion will automatically resume you in a follow-up turn.`,
+					},
+				],
+				details: makeDetails(hasChain ? "chain" : hasTasks ? "parallel" : "single")([]),
 			};
 		},
 
