@@ -1,9 +1,0 @@
-{
-  "componentIds": ["component.orders-api.submit-handler"],
-  "description": "Software supporting order fulfilment",
-  "id": "domain.fulfilment",
-  "name": "Fulfilment",
-  "operationIds": ["operation.submit-order"],
-  "schemaVersion": 2,
-  "sourceIds": ["source.orders-api"]
-}

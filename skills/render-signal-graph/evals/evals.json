@@ -1,0 +1,30 @@
+{
+  "skill_name": "render-signal-graph",
+  "evals": [
+    {
+      "id": "eshop-end-to-end",
+      "prompt": "Using only the supplied Microsoft eShopOnContainers evidence fixture, apply build-signal-graph to create the complete authoritative TypeScript Signal model for checkout through final order outcome, then apply render-signal-graph to produce a self-contained architecture/index.html. Model HTTP 202 acceptance separately from asynchronous processing; include web/mobile ingress, success, stock-rejection, and payment-failure flows; and do not invent fraud, card-network, shipping, or email services. Preserve signal.ts, architecture.ts, architecture/index.html, and validation results for inspection.",
+      "expected_output": "An inspectable, strictly type-checked TypeScript architecture and deterministic offline HTML projection derived from the same live object-reference model.",
+      "files": [
+        "../build-signal-graph/evals/fixtures/eshop-checkout/README.md",
+        "../build-signal-graph/evals/fixtures/eshop-checkout/evidence/BasketController.cs",
+        "../build-signal-graph/evals/fixtures/eshop-checkout/evidence/UserCheckoutAcceptedIntegrationEventHandler.cs",
+        "../build-signal-graph/evals/fixtures/eshop-checkout/evidence/CreateOrderCommandHandler.cs",
+        "../build-signal-graph/evals/fixtures/eshop-checkout/evidence/execution-trace.md",
+        "../build-signal-graph/evals/fixtures/eshop-checkout/evidence/storage-and-boundaries.md"
+      ],
+      "expectations": [
+        "The saved artifacts include signal.ts, architecture.ts, architecture/index.html, and validation results with a successful strict TypeScript check and render command.",
+        "Web and mobile callers, distinct BFF/API gateways, Basket, Ordering, Catalog, Payment, Ordering SignalR Hub, Redis, separate relational stores, and event-bus infrastructure are modeled without invented fraud, card-network, shipping, or email services.",
+        "Basket checkout reads Redis, publishes UserCheckoutAcceptedIntegrationEvent, and returns HTTP 202 before any asynchronous order creation; asynchronous flows explicitly continue from acceptance rather than implying that the caller waits.",
+        "The successful continuation preserves idempotent Ordering dispatch, Ordering SQL persistence, Basket cleanup, Catalog validation and SQL update, stock confirmation, Payment handling, paid-state persistence, and SignalR status propagation in evidenced order.",
+        "Stock rejection and payment failure are separate linked flows that persist and propagate terminal cancelled outcomes.",
+        "HTTP, schemas, messages, topics, subscriptions, consumers, stores, publication, delivery, consumption, reads, writes, responses, contract derivations, and continuation links use typed object references without any or unsafe casts.",
+        "Disputable declarations and flows carry fixture evidence, unsupported dependencies are absent, and uncertainty is not presented as observed fact.",
+        "The generated output is one deterministic, self-contained HTML file with no external assets; it includes counts, directional topology, inventories, search/filtering, ordered flows, continuation links, contracts, schemas, and evidence.",
+        "All model-controlled HTML text is escaped, a restrictive CSP is present, unresolved object references fail rendering, and rendering the same model twice is byte-identical.",
+        "The handoff treats architecture.ts as authority and architecture/index.html as a disposable projection, with enough preserved output for human review and future version-to-version regression comparison."
+      ]
+    }
+  ]
+}

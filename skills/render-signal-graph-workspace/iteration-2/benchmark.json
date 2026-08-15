@@ -1,0 +1,19 @@
+{
+  "metadata":{"skill_name":"render-signal-graph","skill_path":"skills/render-signal-graph","executor_model":"current-session","analyzer_model":"current-session","timestamp":"2026-03-23T00:00:00Z","evals_run":["eshop-end-to-end"],"runs_per_configuration":1},
+  "runs":[
+    {"eval_id":"eshop-end-to-end","eval_name":"eShop build and render — iteration 2","configuration":"with_skill","run_number":1,"result":{"pass_rate":1.0,"passed":10,"failed":0,"total":10,"time_seconds":0,"tokens":0,"tool_calls":0,"errors":0},"expectations":[
+      {"text":"Inspectable source, HTML, and successful validation are preserved.","passed":true,"evidence":"All source, projection, validation, browser, and grading artifacts exist."},
+      {"text":"Required eShop boundaries are modeled and forbidden invented services are absent.","passed":true,"evidence":"Required boundaries present; forbidden services absent."},
+      {"text":"HTTP acceptance precedes and links to asynchronous processing.","passed":true,"evidence":"Typed continuation chain begins after separate HTTP response flows."},
+      {"text":"The successful order continuation preserves evidenced operations and ordering.","passed":true,"evidence":"Three linked flows preserve creation, stock, and payment ordering."},
+      {"text":"Stock rejection and payment failure are separate terminal flows.","passed":true,"evidence":"Branches now attach to their precise predecessor stages."},
+      {"text":"Relationships and contract changes are type checked without unsafe casts.","passed":true,"evidence":"Strict tsc and unsafe-any scan pass."},
+      {"text":"Evidence is sufficient and claims do not exceed the fixture.","passed":true,"evidence":"Evidence coverage increased and payment failure is marked inferred."},
+      {"text":"HTML is complete, deterministic, self-contained, and navigable.","passed":true,"evidence":"Browser-inspected deterministic standalone explorer."},
+      {"text":"HTML escaping, CSP, and fail-closed references are enforced.","passed":true,"evidence":"Security tests and zero-violation accessibility audit pass."},
+      {"text":"TypeScript remains authoritative and artifacts support regression review.","passed":true,"evidence":"Iteration artifacts and comparison benchmark are preserved."}
+    ],"notes":["Timing and token metrics remain unavailable; quality metrics and artifacts are version-comparable."]}
+  ],
+  "run_summary":{"with_skill":{"pass_rate":{"mean":1.0,"stddev":0,"min":1.0,"max":1.0},"time_seconds":{"mean":0,"stddev":0,"min":0,"max":0},"tokens":{"mean":0,"stddev":0,"min":0,"max":0}},"delta":{"pass_rate":"+0.10 vs iteration 1","time_seconds":"not captured","tokens":"not captured"}},
+  "notes":["Pass rate improved from 0.90 to 1.00 on the same evidence-constrained eShop eval.","Resolved defects: branch causality, submitted status, basket delete semantics, broker linkage, evidence certainty/coverage, flow search/layout, topology label clipping, and SVG nested-interactive accessibility.","One run per version does not measure model variance; future benchmark runs should repeat the same eval when independent executors are available."]
+}

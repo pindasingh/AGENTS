@@ -1,0 +1,19 @@
+{
+  "expectations": [
+    {"text":"Inspectable source, HTML, and successful validation are preserved.","passed":true,"evidence":"outputs contains signal.ts, architecture.ts, architecture/index.html, and validation.txt; strict tsc and rendering pass."},
+    {"text":"Required eShop boundaries are modeled and forbidden invented services are absent.","passed":true,"evidence":"The model contains both callers/gateways, Basket, Ordering, Catalog, Payment, SignalR, Redis, two SQL stores, and event-bus declarations; forbidden service names are absent."},
+    {"text":"HTTP acceptance precedes and links to asynchronous processing.","passed":true,"evidence":"Both acceptance flows read Redis, publish checkout accepted, then respond; asynchronous flows use typed continue steps and continuesFrom references."},
+    {"text":"The successful order continuation preserves evidenced operations and ordering.","passed":true,"evidence":"SuccessfulOrder orders checkout consumption, Ordering SQL write, OrderStarted/Basket cleanup, Catalog validation/write, stock confirmation, Payment, paid write, and SignalR propagation."},
+    {"text":"Stock rejection and payment failure are separate terminal flows.","passed":true,"evidence":"StockRejection and PaymentFailure are separate flows and each writes Ordering SQL, publishes OrderCancelled, and reaches the SignalR cancelled consumer."},
+    {"text":"Relationships and contract changes are type checked without unsafe casts.","passed":true,"evidence":"Strict tsc passes; validation.txt records no unsafe any; derive, continue, and all wiring retain typed object references."},
+    {"text":"Evidence is sufficient and claims do not exceed the fixture.","passed":false,"evidence":"Major boundaries and flows cite fixture evidence, but many message, subscription, and consumer declarations have no declaration-local evidence; the model also presents the required payment-failure variant more definitively than the selected execution excerpt proves."},
+    {"text":"HTML is complete, deterministic, self-contained, and navigable.","passed":true,"evidence":"The 56,785-byte standalone page includes counts, SVG topology, declaration cards, filtering, ordered flows, continuation links, contracts, schemas, and evidence; two renders have identical SHA-256."},
+    {"text":"HTML escaping, CSP, and fail-closed references are enforced.","passed":true,"evidence":"Renderer tests pass hostile-text escaping, restrictive CSP, duplicate identity rejection, and out-of-root reference rejection."},
+    {"text":"TypeScript remains authoritative and artifacts support regression review.","passed":true,"evidence":"The HTML labels itself a disposable projection; authoritative source and validation artifacts are preserved in the versioned iteration workspace."}
+  ],
+  "summary":{"passed":9,"failed":1,"total":10,"pass_rate":0.9},
+  "execution_metrics":{"tool_calls":{},"total_tool_calls":0,"total_steps":0,"errors_encountered":0,"output_chars":77723,"transcript_chars":0},
+  "claims":[],
+  "user_notes_summary":{"uncertainties":["Declaration-local evidence coverage is incomplete.","The fixture requires payment failure but the selected execution excerpt documents success."],"needs_review":["Inspect architecture/index.html and decide whether evidence should be repeated on every messaging declaration."],"workarounds":[]},
+  "eval_feedback":{"suggestions":[{"assertion":"Evidence is sufficient and claims do not exceed the fixture.","reason":"Split declaration evidence coverage from uncertainty handling so regressions identify the precise defect."}],"overall":"The first end-to-end run establishes an inspectable 90% baseline; future revisions should rerun this same fixture and compare pass rate and artifacts."}
+}

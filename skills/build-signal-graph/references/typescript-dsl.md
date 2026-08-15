@@ -1,18 +1,19 @@
 # TypeScript Signal DSL
 
-The DSL makes architecture readable as code and makes invalid relationships type errors. Its vocabulary is deliberately architectural rather than a generic graph schema.
+The DSL makes architecture readable as code and invalid relationships type errors. Its vocabulary is architectural rather than a generic graph schema. Object identity is authoritative: one declaration becomes one architecture box wherever it participates.
 
-## Declarations
+## Components and ownership
 
 ```ts
 const Ordering = system({ name: "Ordering" })
 const OrdersApi = service({ system: Ordering, name: "Orders API" })
 const Orders = store({ system: Ordering, name: "Orders", engine: "PostgreSQL" })
+const Broker = external({ name: "RabbitMQ" })
 ```
 
-Use direct object references for ownership and relationships. Renaming a declaration is then a normal TypeScript refactor rather than an ID migration.
+Use direct references. Do not reproduce names as IDs.
 
-## HTTP
+## HTTP contracts
 
 ```ts
 const SubmitOrder = endpoint({
@@ -25,38 +26,110 @@ const SubmitOrder = endpoint({
 })
 ```
 
-An endpoint describes both sides of one request/response contract. A flow calls `step.request` and later `step.respond`; no `mode` property exists.
+The endpoint is a contract attached to its owner. In an architecture projection, `step.request` creates a labelled arrow to that owner rather than another endpoint box:
+
+```ts
+const submitted = step.request({
+  from: WebBff,
+  to: SubmitOrder,
+  input,
+})
+```
+
+## Explicit persistence interactions
+
+The executor and operation are mandatory because data lineage alone does not prove which component performs an effect:
+
+```ts
+const cached = step.read({
+  by: OrdersApi,
+  from: OrdersCache,
+  forStep: submitted,
+  schema: Order,
+  operation: "GET cached order",
+})
+
+const persisted = step.write({
+  by: OrdersApi,
+  value: submitted,
+  to: Orders,
+  operation: "INSERT order",
+})
+
+step.delete({
+  by: BasketApi,
+  value: checkout,
+  from: BasketCache,
+  operation: "EVICT checked-out basket",
+})
+```
+
+Keep `GET`, `SET`, `EVICT`, `INSERT`, `UPDATE`, and `DELETE` as separate steps. Do not combine them into one slash-separated operation.
 
 ## Messaging
 
 ```ts
-const OrderCreated = message({
-  name: "order.created",
-  schema: Schema.Struct({ orderId: Schema.String }),
-})
-const Events = topic({ system: Ordering, name: "order-events", messages: [OrderCreated] })
+const OrderCreated = message({ name: "order.created", schema: OrderEvent })
+const Events = topic({ system: Ordering, broker: Broker, name: "order-events", messages: [OrderCreated] })
 const ShippingOrders = subscription({ name: "shipping-orders", topic: Events, message: OrderCreated })
 const Shipping = consumer({ name: "shipping", service: ShippingWorker, subscription: ShippingOrders })
 ```
 
-Keep publication, delivery, and consumption separate. The distinction represents fan-out and subscription topology without reducing the whole system to messaging.
-
-## Flows
+Publisher identity is explicit:
 
 ```ts
-const SubmitOrderFlow = flow("submit-order", ({ step }) => {
-  const request = step.request(Customer, SubmitOrder, input)
-  const persisted = step.write(request, Orders)
-  step.respond(persisted, SubmitOrder)
-  const published = step.publish(orderCreated, OrderCreated, Events)
-  const delivered = step.deliver(published, ShippingOrders)
-  step.consume(delivered, Shipping)
+step.publish({
+  by: OrdersApi,
+  value: orderEvent,
+  message: OrderCreated,
+  to: Events,
+  operation: "publish order.created",
 })
 ```
 
-A flow is an ordered architectural scenario, not application implementation. Include boundary crossings and durable effects; omit ordinary calculations. Use separate flows when branching would hide materially different outcomes.
+A separately modeled continuation starts from its message/topic and retains a typed causal link to its predecessor flow:
+
+```ts
+const ProcessCreatedOrder = flow("process-created-order", ({ step }) => {
+  const event = step.continue({ message: OrderCreated, from: Events })
+  const delivered = step.deliver({ value: event, to: ShippingOrders })
+  step.consume({ value: delivered, by: Shipping })
+}, { continuesFrom: [SubmitOrder] })
+```
+
+Publication, delivery, and consumption remain separate model facts. A renderer may project the broker/topic and consumer service as the visible boxes while retaining message and subscription identities as interaction provenance.
+
+## Contract transformation
+
+Use `derive` only when an evidenced boundary operation changes one architectural contract into another:
+
+```ts
+const event = step.derive({
+  by: OrdersApi,
+  value: persisted,
+  schema: OrderCreated.schema,
+  operation: "create order-created event",
+})
+```
+
+Ordinary implementation calculations do not belong in the architecture model.
+
+## Path variants
+
+A flow is one ordered architectural scenario or scenario segment. Use separate flows for materially different callers and outcomes. Connect asynchronous segments through `continuesFrom` so tools can construct complete root-to-leaf paths:
+
+```text
+Web acceptance ─┐
+                ├─▶ Order creation ─▶ Stock confirmed ─┬─▶ Payment succeeded
+Mobile acceptance┘                                     └─▶ Payment failed
+                                  └─▶ Stock rejected
+```
+
+This lets an interactive projection select `POST /orders` and highlight everything that path touches across HTTP, persistence, transport, workers, downstream APIs, and terminal effects.
 
 ## Evidence
+
+Attach evidence to declarations and disputed interactions. Step methods accept `evidence` alongside `operation`.
 
 ```ts
 const source = evidence({
@@ -64,13 +137,13 @@ const source = evidence({
   revision: "4f12c9a",
   path: "src/http/orders.ts",
   symbol: "submitOrder",
-  observation: "Registers POST /orders and calls the order application service",
+  observation: "Registers POST /orders and writes the order",
   certainty: "observed",
 })
 ```
 
-Attach evidence where it supports a declaration. Do not create parallel evidence ledgers or synthetic stable IDs.
+Do not create a parallel evidence ledger or synthetic stable IDs.
 
 ## Extending the DSL
 
-Prefer a named architectural constructor or step over metadata flags. Add a new concept only when it has distinct ownership, contract, or flow semantics that TypeScript can enforce. Do not add generic `node`, `edge`, `kind`, or `mode` escape hatches merely to make an awkward model compile.
+Prefer a named architectural constructor or step over metadata flags. Add a concept only when it has distinct ownership, contract, or flow semantics that TypeScript can enforce. Do not add generic nodes or edges merely to make an awkward model compile.
