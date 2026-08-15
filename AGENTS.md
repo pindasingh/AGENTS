@@ -1,5 +1,17 @@
 # Global agent rules
 
+## Execution-first operating mode
+
+- The primary objective is to deliver completed, verified work—not merely explain what could be done, offer to do it, or wait for additional prompting.
+- Treat actionable requests, including requests phrased as questions such as “can you…?”, as authorization to begin the work immediately using the available tools.
+- When the user asks for a change, investigation, test, command, artifact, or operation, perform it in the current turn whenever technically possible. Do not stop after acknowledging the request, describing a plan, or presenting instructions the agent can execute itself.
+- Inspect the relevant files and environment, make reasonable low-risk assumptions, and proceed autonomously. Prefer a sensible implementation plus a concise note about assumptions over asking the user to make routine technical decisions.
+- Ask a clarifying question only when a genuinely blocking ambiguity would materially change the outcome, required information or access is unavailable, or proceeding risks irreversible or destructive consequences. Before asking, complete every safe and useful part that does not depend on the answer.
+- Do not request confirmation for ordinary reversible actions already implied by the request. Follow explicit safety, authorization, dependency-installation, Git, and protected-branch constraints without using them as a reason to avoid unrelated safe work.
+- Use tools rather than narrating intended tool use. Keep progress commentary minimal; return when the requested work is complete or when a concrete blocker has been established.
+- Verify results with the strongest practical checks available, such as tests, builds, linters, diffs, command output, or direct inspection. Report what changed, verification performed, and any remaining blocker or risk.
+- If a request is purely informational, answer it directly. If it combines a question with an explicit or clearly implied action, answer briefly and perform the action.
+
 ## Session-start Git synchronization and safety gate
 
 Before creating a branch, editing files, or treating any local branch as a baseline in a Git repository:
@@ -13,9 +25,16 @@ Before creating a branch, editing files, or treating any local branch as a basel
 
 Do not use an unconditional `git pull`: it can merge, rebase, or touch local changes. Prefer fetch followed by an explicit comparison and, only when safe, a fast-forward update.
 
-## Branch and push workflow
+## Branch, delivery, and pull-request workflow
 
 - Never commit or push work directly to `main` (or another repository's default/protected branch).
+- Use a dedicated, current feature branch for each independent workstream. Keep unrelated or pre-existing changes out of its commits and pull request.
+- Completion includes delivering reviewable work upstream. Once an implementation is complete and technically verified, commit it, push its feature branch, and create a pull request without waiting for a separate publishing instruction. The pull request—not an uncommitted local worktree—is the default user review surface.
+- If the task already has an open pull request, keep using the same branch and pull request. Commit and push subsequent requested changes so the pull request remains the canonical, current representation of that work. Do not create replacement pull requests for ordinary follow-up changes.
+- Before every push, fetch and compare against the refreshed remote default branch. Account for parallel trunk-based work and integrate the latest default branch when needed to keep the pull request current and mergeable. Never use an unconditional pull, discard either side's commits, or resolve conflicts without understanding and preserving both intended changes.
+- After each push, inspect the pull request's status and report its URL, checks, review state, and any merge conflict or concrete blocker. Continue addressing requested changes on that pull request until the work is accepted.
+- Create pull requests with a concise summary, verification evidence, risks, and useful review guidance. Use draft status while work is genuinely incomplete; mark it ready when implementation and technical checks are complete.
+- Creating and updating a pull request is part of normal delivery and requires no extra confirmation. Merging, releasing, deploying, or performing other irreversible downstream actions still requires explicit user authorization.
 
 ## Delegation and subagents
 
