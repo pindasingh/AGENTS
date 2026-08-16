@@ -12,25 +12,47 @@ A pushed branch is not a complete handoff: collaborators need a pull request to 
 
 1. Inspect the complete branch diff and commit range against the refreshed remote default branch.
 2. Verify the branch is not the default branch, has been pushed, and identify the destination repository, head repository owner, branch, and intended base explicitly. This matters for forks and similarly named repositories.
+   Obtain repository and ref values from Git or `gh` output into variables; never paste repository-, branch-, user-, or generated text into shell source. Before using them, require repository owners and names to match `^[A-Za-z0-9_.-]+$`, branch and base names to match `^[A-Za-z0-9._/-]+$`, and PR numbers to match `^[0-9]+$`. Stop if any value fails validation.
+   ```bash
+   repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+   branch=$(git branch --show-current)
+   # Set head_owner and base from trusted command output, then validate every value.
+   if ! [[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ &&
+           $head_owner =~ ^[A-Za-z0-9_.-]+$ &&
+           $branch =~ ^[A-Za-z0-9._/-]+$ && $base =~ ^[A-Za-z0-9._/-]+$ ]]; then
+     printf 'Unsafe repository or ref value\n' >&2
+     exit 1
+   fi
+   ```
 3. Check for an existing PR using the exact destination repository and qualified head branch:
    ```bash
-   gh pr list --repo "<owner/repo>" --head "<head-owner>:<branch>" --state all \
+   head_ref="${head_owner}:${branch}"
+   gh pr list --repo "$repo" --head "$head_ref" --state all \
      --json number,state,isDraft,title,url,baseRefName,headRefName
    ```
    Prefer an open PR when historical closed or merged PRs also exist for a reused branch. Confirm that its `baseRefName` is the intended comparison base before updating it; do not silently retarget a PR whose base differs.
 4. If an open PR exists, update its title or body when they no longer describe the final diff. Do not create a duplicate:
    ```bash
-   gh pr edit "<number>" --repo "<owner/repo>" \
-     --title "<clear title>" --body "<final PR body>"
+   title_file=$(mktemp)
+   body_file=$(mktemp)
+   # Write the title and body to these files without constructing shell source.
+   IFS= read -r pr_title < "$title_file"
+   gh pr edit "$pr_number" --repo "$repo" \
+     --title "$pr_title" --body-file "$body_file"
    ```
 5. If no open PR exists, create one. Completed and verified work should be ready for review; add `--draft` only while work is genuinely incomplete or readiness is uncertain:
    ```bash
-   gh pr create --repo "<owner/repo>" --base "<default-branch>" --head "<head-owner>:<branch>" \
-     --title "<clear title>" --body "<final PR body>"
+   title_file=$(mktemp)
+   body_file=$(mktemp)
+   # Write the title and body to these files without constructing shell source.
+   IFS= read -r pr_title < "$title_file"
+   gh pr create --repo "$repo" --base "$base" --head "$head_ref" \
+     --title "$pr_title" --body-file "$body_file"
    ```
+   Create `title_file` and `body_file` with a text editor or another API that passes content as data, not by generating and executing shell source. Treat their contents as untrusted. Do not use `eval`, `sh -c`, interpolated here-documents, or commands assembled in strings.
    Promote an existing draft once the work is complete and verified:
    ```bash
-   gh pr ready "<number>" --repo "<owner/repo>"
+   gh pr ready "$pr_number" --repo "$repo"
    ```
 6. Ensure the PR body describes the final branch rather than the conversation or only the latest commit. Include:
    - concise summary of the outcome;
@@ -40,7 +62,7 @@ A pushed branch is not a complete handoff: collaborators need a pull request to 
    - useful guidance that helps reviewers focus on important behavior or decisions.
 7. Read the PR back and inspect its checks, review decision, and merge-conflict status before reporting:
    ```bash
-   gh pr view "<number>" --repo "<owner/repo>" \
+   gh pr view "$pr_number" --repo "$repo" \
      --json number,url,state,isDraft,baseRefName,headRefName,mergeStateStatus,reviewDecision,statusCheckRollup
    ```
 
