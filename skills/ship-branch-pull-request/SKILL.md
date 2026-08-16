@@ -21,12 +21,12 @@ A pushed branch is not a complete handoff: collaborators need a pull request to 
 4. If an open PR exists, update its title or body when they no longer describe the final diff. Do not create a duplicate:
    ```bash
    gh pr edit "<number>" --repo "<owner/repo>" \
-     --title "<clear title>" --body-file "<project-root>/.tmp/pr-body.md"
+     --title "<clear title>" --body "<final PR body>"
    ```
 5. If no open PR exists, create one. Completed and verified work should be ready for review; add `--draft` only while work is genuinely incomplete or readiness is uncertain:
    ```bash
    gh pr create --repo "<owner/repo>" --base "<default-branch>" --head "<head-owner>:<branch>" \
-     --title "<clear title>" --body-file "<project-root>/.tmp/pr-body.md"
+     --title "<clear title>" --body "<final PR body>"
    ```
    Promote an existing draft once the work is complete and verified:
    ```bash
@@ -60,5 +60,4 @@ A clean working tree, successful push, or commit hash alone does not satisfy del
 - Never create duplicate PRs for the same head branch.
 - Do not reopen a merged or intentionally closed PR automatically; inspect branch history and create the appropriate new PR only when the branch contains unmerged work.
 - Respect explicit user instructions not to create a PR or to use a specific draft/ready state.
-- Keep temporary PR-body files under the active project root's `.tmp/` directory. If no ignore rule covers it, add an internal `.tmp/.gitignore`; remove only the PR-body file created for the current task after use.
 - If branch or repository identity is ambiguous, inspect Git remotes and GitHub metadata before acting; do not guess across repositories.
