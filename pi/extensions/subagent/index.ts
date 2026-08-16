@@ -29,7 +29,8 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
+import { type AgentConfig, type AgentScope, discoverAgents, type SubagentThinkingLevel } from "./agents.ts";
+import { ChildActivityTracker } from "./activity.ts";
 import { ContextViewer, SUBAGENT_JOB_ENTRY_TYPE } from "./context-viewer.ts";
 
 const MAX_PARALLEL_TASKS = 8;
@@ -167,6 +168,8 @@ export interface SingleResult {
 	agent: string;
 	agentSource: "user" | "project" | "unknown";
 	task: string;
+	activity?: string;
+	thinking?: SubagentThinkingLevel;
 	exitCode: number;
 	pid?: number;
 	status?: "queued" | "running" | "complete" | "failed" | "aborted";
@@ -227,7 +230,7 @@ function summarizeNestedDetails(details: SubagentDetails, depth = 0, budget = { 
 	};
 }
 
-function terminalizePendingDetails(details: SubagentDetails, error: unknown, aborted: boolean): SubagentDetails {
+export function terminalizePendingDetails(details: SubagentDetails, error: unknown, aborted: boolean): SubagentDetails {
 	const message = error instanceof Error ? error.message : String(error);
 	return {
 		...details,
@@ -237,6 +240,7 @@ function terminalizePendingDetails(details: SubagentDetails, error: unknown, abo
 				...result,
 				exitCode: 1,
 				status: aborted ? "aborted" : "failed",
+				activity: aborted ? "Aborted" : "Failed",
 				stopReason: aborted ? "aborted" : "error",
 				errorMessage: result.errorMessage ?? message,
 				stderr: result.stderr || message,
@@ -367,6 +371,7 @@ async function runSingleAgent(
 			stderr: `Unknown agent: "${agentName}". Available agents: ${available}.`,
 			usage: emptyUsage(),
 			status: "failed",
+			activity: "Failed",
 			step,
 		};
 	}
@@ -396,6 +401,8 @@ async function runSingleAgent(
 		stderr: "",
 		usage: emptyUsage(),
 		status: "running",
+		activity: `Starting ${task}`,
+		thinking: agent.thinking,
 		nested: [],
 		model: agent.model,
 		step,
@@ -434,6 +441,13 @@ async function runSingleAgent(
 			let buffer = "";
 			let processClosed = false;
 			let killTimer: ReturnType<typeof setTimeout> | undefined;
+			const activityTracker = new ChildActivityTracker(task);
+
+			const setActivity = (activity: string) => {
+				if (currentResult.activity === activity) return;
+				currentResult.activity = activity;
+				emitUpdate();
+			};
 
 			const processLine = (line: string) => {
 				if (!line.trim()) return;
@@ -443,6 +457,9 @@ async function runSingleAgent(
 				} catch {
 					return;
 				}
+
+				const nextActivity = activityTracker.update(event);
+				if (nextActivity) setActivity(nextActivity);
 
 				if (event.type === "message_end" && event.message) {
 					const msg = event.message as Message;
@@ -533,6 +550,7 @@ async function runSingleAgent(
 
 		currentResult.exitCode = exitCode;
 		currentResult.status = wasAborted ? "aborted" : exitCode === 0 && currentResult.stopReason !== "error" ? "complete" : "failed";
+		currentResult.activity = wasAborted ? "Aborted" : currentResult.status === "complete" ? "Completed" : "Failed";
 		emitUpdate();
 		if (wasAborted) throw new Error("Subagent was aborted");
 		return currentResult;
@@ -780,17 +798,22 @@ export default function (pi: ExtensionAPI) {
 					: `${params.agent}: ${taskPreview}`;
 			backgroundJobs.set(jobId, { controller, description: invocationDescription, toolCallId });
 
-			const queuedResult = (agentName: string, task: string, step?: number): SingleResult => ({
-				agent: agentName,
-				agentSource: agents.find((agent) => agent.name === agentName)?.source ?? "unknown",
-				task,
-				exitCode: -1,
-				messages: [],
-				stderr: "",
-				usage: emptyUsage(),
-				status: "queued",
-				step,
-			});
+			const queuedResult = (agentName: string, task: string, step?: number): SingleResult => {
+				const agent = agents.find((candidate) => candidate.name === agentName);
+				return {
+					agent: agentName,
+					agentSource: agent?.source ?? "unknown",
+					task,
+					exitCode: -1,
+					messages: [],
+					stderr: "",
+					usage: emptyUsage(),
+					status: "queued",
+					activity: `Queued: ${task}`,
+					thinking: agent?.thinking,
+					step,
+				};
+			};
 			const initialMode = hasChain ? "chain" : hasTasks ? "parallel" : "single";
 			const initialResults = params.chain?.length
 				? params.chain.map((item, index) => queuedResult(item.agent, item.task, index + 1))
@@ -840,6 +863,7 @@ export default function (pi: ExtensionAPI) {
 							...queued,
 							exitCode: 1,
 							status: "aborted" as const,
+							activity: "Skipped after earlier chain failure",
 							stopReason: "aborted" as const,
 							errorMessage: skippedReason,
 							stderr: skippedReason,
@@ -895,6 +919,7 @@ export default function (pi: ExtensionAPI) {
 							...allResults[index],
 							exitCode: 1,
 							status: controller.signal.aborted ? "aborted" : "failed",
+							activity: controller.signal.aborted ? "Aborted" : "Failed",
 							stopReason: controller.signal.aborted ? "aborted" : "error",
 							errorMessage: allResults[index].errorMessage ?? message,
 							stderr: allResults[index].stderr || message,
@@ -933,8 +958,11 @@ export default function (pi: ExtensionAPI) {
 					params.cwd,
 					undefined,
 					controller.signal,
-					undefined,
-					makeDetails("single"),
+					(partial) => {
+						const currentResult = partial.details?.results[0];
+						if (currentResult) makeDetails("single")([currentResult]);
+					},
+					buildDetails("single"),
 					resolveContextWindow,
 				);
 				const isError = isFailedResult(result);

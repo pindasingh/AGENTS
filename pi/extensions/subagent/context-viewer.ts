@@ -1,6 +1,7 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { SubagentDetails, SingleResult } from "./index.ts";
+import { conciseTaskTitle, MAX_TASK_TITLE_WIDTH } from "./task-title.ts";
 
 const WIDGET_ID = "subagent-context-viewer";
 export const SUBAGENT_JOB_ENTRY_TYPE = "subagent-job-state";
@@ -63,6 +64,35 @@ function invocationProgress(details: SubagentDetails): number {
 
 function invocationShouldDisplay(details: SubagentDetails): boolean {
 	return details.results.some((result) => resultStatus(result) !== "success");
+}
+
+export function renderSubagentResultLines(result: SingleResult, prefix: string, last: boolean, theme: Theme, width: number): string[] {
+	const status = resultStatus(result);
+	const connector = last ? "└─" : "├─";
+	const step = result.step ? ` step ${result.step}` : "";
+	const agent = conciseTaskTitle(result.agent) || "subagent";
+	const thinking = conciseTaskTitle(result.thinking ?? "");
+	const safeModel = conciseTaskTitle(result.model ?? "");
+	const thinkingLabel = thinking ? ` [${thinking}]` : "";
+	const leading = `${prefix}${theme.fg("muted", connector)} ${colorStatus(theme, status, statusGlyph(status))} ${theme.fg("toolTitle", agent)}${theme.fg("muted", step)}${theme.fg("dim", thinkingLabel)}`;
+	const model = safeModel ? ` ${theme.fg("dim", safeModel)}` : "";
+	const telemetry = ` ${theme.fg("muted", contextLabel(result))}${model}`;
+	const activity = conciseTaskTitle(result.activity || result.task);
+	const separator = " — ";
+	const hasActivity = activity && visibleWidth(activity) > 0;
+
+	if (visibleWidth(leading + telemetry) > width) {
+		const available = Math.min(MAX_TASK_TITLE_WIDTH, Math.max(0, width - visibleWidth(leading + separator)));
+		const activityLabel = hasActivity && available > 0 ? separator + theme.fg("text", truncateToWidth(activity, available, "…")) : "";
+		const telemetryPrefix = `${prefix}${last ? "  " : "│ "}  `;
+		const context = theme.fg("muted", contextLabel(result));
+		const telemetryModel = safeModel && visibleWidth(telemetryPrefix + context + model) <= width ? model : "";
+		return [leading + activityLabel, telemetryPrefix + context + telemetryModel].map((line) => truncateToWidth(line, Math.max(1, width)));
+	}
+
+	const available = Math.min(MAX_TASK_TITLE_WIDTH, Math.max(0, width - visibleWidth(leading + separator + telemetry)));
+	const activityLabel = hasActivity && available > 0 ? separator + theme.fg("text", truncateToWidth(activity, available, "…")) : "";
+	return [truncateToWidth(leading + activityLabel + telemetry, Math.max(1, width))];
 }
 
 export class ContextViewer {
@@ -208,46 +238,40 @@ export class ContextViewer {
 			? `ctx:${formatTokens(this.primary.tokens)}/${formatTokens(this.primary.contextWindow)}${this.primary.percent === null ? "" : ` ${Math.round(this.primary.percent)}%`}`
 			: `ctx:${formatTokens(this.primary.tokens)}`;
 		const primaryStatus = this.primary.working ? theme.fg("success", "●") : theme.fg("muted", "●");
+		const primaryModel = conciseTaskTitle(this.primary.model ?? "");
 		lines.push(
 			`${theme.fg("accent", theme.bold("Context viewer"))} ${theme.fg("dim", "(/context-viewer to close)")}`,
-			`${primaryStatus} ${theme.fg("toolTitle", "primary")} ${theme.fg("muted", primaryContext)}${this.primary.model ? ` ${theme.fg("dim", this.primary.model)}` : ""}`,
+			`${primaryStatus} ${theme.fg("toolTitle", "primary")} ${theme.fg("muted", primaryContext)}${primaryModel ? ` ${theme.fg("dim", primaryModel)}` : ""}`,
 		);
 
 		const entries = Array.from(this.invocations.values());
 		if (entries.length === 0) lines.push(theme.fg("dim", "  └─ no active subagent jobs"));
 		for (let index = 0; index < entries.length; index += 1) {
-			this.renderDetails(lines, entries[index], "  ", index === entries.length - 1, theme);
+			this.renderDetails(lines, entries[index], "  ", index === entries.length - 1, theme, width);
 		}
 		const bounded = lines.length > 200 ? [...lines.slice(0, 199), theme.fg("warning", "… context tree truncated at 200 lines")] : lines;
 		return bounded.map((line) => truncateToWidth(line, Math.max(1, width)));
 	}
 
-	private renderDetails(lines: string[], details: SubagentDetails, prefix: string, last: boolean, theme: Theme): void {
+	private renderDetails(lines: string[], details: SubagentDetails, prefix: string, last: boolean, theme: Theme, width: number): void {
 		if (lines.length >= 200) return;
 		const connector = last ? "└─" : "├─";
 		const job = details.jobId ? ` ${theme.fg("toolTitle", details.jobId)}` : "";
 		lines.push(`${prefix}${theme.fg("muted", connector)} ${theme.fg("accent", details.mode)}${job}`);
 		const childPrefix = `${prefix}${last ? "  " : "│ "}`;
 		for (let index = 0; index < details.results.length; index += 1) {
-			this.renderResult(lines, details.results[index], childPrefix, index === details.results.length - 1, theme);
+			this.renderResult(lines, details.results[index], childPrefix, index === details.results.length - 1, theme, width);
 		}
 	}
 
-	private renderResult(lines: string[], result: SingleResult, prefix: string, last: boolean, theme: Theme): void {
+	private renderResult(lines: string[], result: SingleResult, prefix: string, last: boolean, theme: Theme, width: number): void {
 		if (lines.length >= 200) return;
-		const status = resultStatus(result);
-		const connector = last ? "└─" : "├─";
-		const step = result.step ? ` step ${result.step}` : "";
-		const pid = result.pid ? ` pid:${result.pid}` : "";
-		const model = result.model ? ` ${theme.fg("dim", result.model)}` : "";
-		lines.push(
-			`${prefix}${theme.fg("muted", connector)} ${colorStatus(theme, status, statusGlyph(status))} ${theme.fg("toolTitle", result.agent)}${theme.fg("muted", step)} ${theme.fg("muted", contextLabel(result))}${theme.fg("dim", pid)}${model}`,
-		);
+		lines.push(...renderSubagentResultLines(result, prefix, last, theme, width));
 		const nestedPrefix = `${prefix}${last ? "  " : "│ "}`;
 		for (let index = 0; index < (result.nested ?? []).length; index += 1) {
 			const nested = result.nested![index];
 			const nestedLast = index === result.nested!.length - 1;
-			if (nested.details) this.renderDetails(lines, nested.details, nestedPrefix, nestedLast, theme);
+			if (nested.details) this.renderDetails(lines, nested.details, nestedPrefix, nestedLast, theme, width);
 			else {
 				const nestedConnector = nestedLast ? "└─" : "├─";
 				const glyph =

@@ -9,9 +9,9 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Automatic hand-back**: Completion queues a custom follow-up message and starts a parent turn to pick the result back up
 - **Live context view**: Delegation automatically opens a background-progress widget below the editor
 - **Result hand-back**: Final output is preserved in model context through a custom completion message
-- **Usage tracking**: The live context viewer shows turns, tokens, cost, and context occupancy per agent
+- **Usage tracking**: The live context viewer shows thinking level, turns, tokens, cost, and context occupancy per agent
 - **Agent catalogue**: Advertises the currently available user-agent names and descriptions to the model before it calls the tool
-- **Context viewer**: Shows a live primary → job → subagent context tree, including child process IDs; toggle it with `/context-viewer`
+- **Context viewer**: Shows a live primary → job → subagent context tree with changing activity titles; toggle it with `/context-viewer`
 - **Invalid-name alert**: The companion `../subagent-explorer-alert.ts` extension records and displays any request for the nonexistent `explorer` agent without rewriting it
 - **Job control**: `/subagents` lists running work; `/subagents cancel <id>` and `/subagents cancel-all` stop it
 
@@ -85,7 +85,7 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 - `/context-viewer` or `/context-viewer toggle` toggles the viewer; `/context-viewer open` and `/context-viewer close` set it explicitly
 - Renders below the editor without taking focus; an automatically opened viewer closes when all jobs succeed, while a manually opened viewer remains until closed
 - Uses green for running work and red for failures; successful jobs are removed immediately instead of accumulating as history
-- Shows the background job ID, child process ID once spawned, current tokens, context-window size, percentage, model, and queued/running/failed state
+- Shows each agent's configured thinking level and changing high-level activity (for example thinking, reading a file, running a command, or writing its response) ahead of context usage, model, and queued/running/failed state; process IDs are not displayed
 - Persists compact final job state session-wide for restoration and hand-back without displaying successful history
 - Prevents recursive child delegation by excluding the `subagent` tool from every child process
 - Primary occupancy uses Pi's live context estimate; child occupancy uses the latest child assistant response and may show `?` when the model's context window cannot be resolved
