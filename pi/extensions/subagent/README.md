@@ -86,6 +86,8 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 
 All modes accept an optional repository-relative `artifactDir` inside `.work/`, for example `.work/auth-refactor/artifacts`. Use it for substantive delegated work whose final facts must survive parent compaction. The extension stores terminal final output—not the complete child transcript—in UTC timestamp-prefixed Markdown files and returns their paths in both result details and the completion hand-back. An individual artifact output is capped at 1 MiB with an explicit truncation marker to prevent unbounded scratch writes.
 
+Artifact commits use hidden staging files under `.work/`, open-handle identity checks before and after content writes, repeated directory-identity checks, atomic no-overwrite hard links, and all-result rollback on failure. Existing and concurrently replaced symlink/junction components are rejected; no terminal artifact data is committed outside the validated `.work/` tree.
+
 ## Output Display
 
 **Delegation receipt**:
@@ -109,6 +111,7 @@ All modes accept an optional repository-relative `artifactDir` inside `.work/`, 
 - The completion follow-up returns each task's final output to the parent model, capped at 50 KB per parallel task
 - When `artifactDir` is set, terminal final outputs and relevant failure diagnostics are written before hand-back; filenames sort by completion time
 - Artifact capture is opt-in so routine delegation does not dump every result to disk, and each artifact is marked as evidence rather than authoritative instructions
+- Chain artifacts store the authored task template rather than the `{previous}`-expanded task, avoiding duplication of prior agent output
 - The parent should verify key facts and fold them plus relevant artifact paths into cumulative `.work/<task>/state.md`; recovery reads that snapshot first rather than scanning every artifact
 - Failure diagnostics from stderr/error messages are handed back when a child exits before producing output
 - Session shutdown or extension reload records active jobs as aborted, then stops all jobs owned by that session

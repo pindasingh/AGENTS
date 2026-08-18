@@ -185,6 +185,128 @@ test("installed Pi exposes artifactDir on the loaded subagent tool", async (t) =
 	assert.ok(tool.promptGuidelines.some((guideline: string) => /artifactDir/.test(guideline)));
 });
 
+test("rolls back every result when a later multi-result commit fails", async (t) => {
+	const root = await fixture();
+	t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+	await assert.rejects(
+		persistSubagentArtifacts({
+			cwd: root,
+			artifactDir: ".work/task/artifacts",
+			jobId: "subagent-atomic",
+			results: [
+				{ agent: "scout", task: "first", output: "first result", exitCode: 0 },
+				{ agent: "reviewer", task: "second", output: "second result", exitCode: 0 },
+			],
+			testHooks: {
+				beforeCommit: (_pendingPath, index) => {
+					if (index === 1) throw new Error("injected commit failure");
+				},
+			},
+		}),
+		/injected commit failure/,
+	);
+	const files = await fs.promises.readdir(path.join(root, ".work", "task", "artifacts"));
+	assert.deepEqual(files, []);
+	assert.doesNotMatch((await fs.promises.readdir(path.join(root, ".work"))).join("\n"), /artifact-staging/);
+});
+
+test("preserves final assistant evidence separately from failure diagnostics", async (t) => {
+	const root = await fixture();
+	t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+	const artifacts = await persistSubagentArtifacts({
+		cwd: root,
+		artifactDir: ".work/task/artifacts",
+		jobId: "subagent-failed",
+		results: [
+			{
+				agent: "worker",
+				task: "Investigate flaky test",
+				output: "Key finding: the retry counter is shared.",
+				diagnostics: "Process exited after reporting the finding.",
+				status: "failed",
+				exitCode: 1,
+			},
+		],
+	});
+	const content = await fs.promises.readFile(path.join(root, artifacts[0].path), "utf8");
+	assert.match(content, /## Key output[\s\S]*retry counter is shared/);
+	assert.match(content, /## Failure diagnostics[\s\S]*Process exited/);
+});
+
+test("detects staging replacement between validation and content write", async (t) => {
+	const root = await fixture();
+	t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+	const outside = await fs.promises.mkdtemp(path.join(os.tmpdir(), "subagent-staging-race-outside-"));
+	t.after(() => fs.promises.rm(outside, { recursive: true, force: true }));
+	const displaced = path.join(root, "displaced-staging");
+	let unsupported: unknown;
+	await assert.rejects(
+		persistSubagentArtifacts({
+			cwd: root,
+			artifactDir: ".work/task/artifacts",
+			jobId: "subagent-staging-race",
+			results: [{ agent: "scout", task: "trace", output: "sensitive key fact", exitCode: 0 }],
+			testHooks: {
+				beforeContentWrite: async (pendingPath) => {
+					const staging = path.dirname(pendingPath);
+					try {
+						await fs.promises.rename(staging, displaced);
+						await fs.promises.symlink(outside, staging, process.platform === "win32" ? "junction" : "dir");
+					} catch (error) {
+						unsupported = error;
+						throw error;
+					}
+				},
+			},
+		}),
+	);
+	if (unsupported instanceof Error && "code" in unsupported && (unsupported.code === "EPERM" || unsupported.code === "EACCES")) {
+		t.skip("directory replacement is not permitted on this platform");
+		return;
+	}
+	assert.deepEqual(await fs.promises.readdir(outside), []);
+	for (const filename of await fs.promises.readdir(displaced)) {
+		const content = await fs.promises.readFile(path.join(displaced, filename), "utf8");
+		assert.equal(content, "", "a displaced pending file must be scrubbed before close");
+	}
+});
+
+test("detects target replacement before commit without writing artifact data outside .work", async (t) => {
+	const root = await fixture();
+	t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
+	const outside = await fs.promises.mkdtemp(path.join(os.tmpdir(), "subagent-race-outside-"));
+	t.after(() => fs.promises.rm(outside, { recursive: true, force: true }));
+	const artifactDir = path.join(root, ".work", "task", "artifacts");
+	const displaced = path.join(root, "displaced-artifacts");
+	let unsupported: unknown;
+	await assert.rejects(
+		persistSubagentArtifacts({
+			cwd: root,
+			artifactDir: ".work/task/artifacts",
+			jobId: "subagent-race",
+			results: [{ agent: "scout", task: "trace", output: "sensitive key fact", exitCode: 0 }],
+			testHooks: {
+				beforeCommit: async () => {
+					try {
+						await fs.promises.rename(artifactDir, displaced);
+						await fs.promises.symlink(outside, artifactDir, process.platform === "win32" ? "junction" : "dir");
+					} catch (error) {
+						unsupported = error;
+						throw error;
+					}
+				},
+			},
+		}),
+	);
+	if (unsupported instanceof Error && "code" in unsupported && (unsupported.code === "EPERM" || unsupported.code === "EACCES")) {
+		t.skip("directory replacement is not permitted on this platform");
+		return;
+	}
+	assert.deepEqual(await fs.promises.readdir(outside), []);
+	assert.deepEqual(await fs.promises.readdir(displaced), []);
+	assert.doesNotMatch((await fs.promises.readdir(path.join(root, ".work"))).join("\n"), /artifact-staging/);
+});
+
 test("rejects symbolic-link components in artifact paths", async (t) => {
 	const root = await fixture();
 	t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
@@ -200,5 +322,14 @@ test("rejects symbolic-link components in artifact paths", async (t) => {
 		}
 		throw error;
 	}
-	await assert.rejects(resolveArtifactDirectory(root, ".work/linked/artifacts"), /symbolic link/);
+	await assert.rejects(
+		persistSubagentArtifacts({
+			cwd: root,
+			artifactDir: ".work/linked/artifacts",
+			jobId: "subagent-link",
+			results: [{ agent: "scout", task: "trace", output: "result", exitCode: 0 }],
+		}),
+		/symbolic link/,
+	);
+	assert.deepEqual(await fs.promises.readdir(outside), []);
 });

@@ -278,11 +278,27 @@ function isFailedResult(result: SingleResult): boolean {
 	return result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";
 }
 
+function isTerminalResult(result: SingleResult): boolean {
+	return (
+		result.status === "complete" ||
+		result.status === "failed" ||
+		result.status === "aborted" ||
+		(result.exitCode !== -1 && result.status !== "queued" && result.status !== "running")
+	);
+}
+
+function getFailureDiagnostics(result: SingleResult): string {
+	return [result.errorMessage, result.stderr]
+		.filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
+		.join("\n");
+}
+
 function getResultOutput(result: SingleResult): string {
-	if (isFailedResult(result)) {
-		return result.errorMessage || result.stderr || getFinalOutput(result.messages) || "(no output)";
-	}
-	return getFinalOutput(result.messages) || "(no output)";
+	const finalOutput = getFinalOutput(result.messages);
+	if (!isFailedResult(result)) return finalOutput || "(no output)";
+	const diagnostics = getFailureDiagnostics(result);
+	if (finalOutput && diagnostics) return `${finalOutput}\n\nFailure diagnostics:\n${diagnostics}`;
+	return finalOutput || diagnostics || "(no output)";
 }
 
 function truncateParallelOutput(output: string): string {
@@ -386,6 +402,7 @@ async function runSingleAgent(
 			status: "failed",
 			activity: "Failed",
 			step,
+			completedAt: new Date().toISOString(),
 		};
 	}
 
@@ -718,6 +735,7 @@ export default function (pi: ExtensionAPI) {
 		parameters: SubagentParams,
 
 		async execute(toolCallId, params, _signal, _onUpdate, ctx) {
+			const invocationCwd = ctx.cwd;
 			const agentScope: AgentScope = params.agentScope ?? "user";
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
@@ -765,13 +783,14 @@ export default function (pi: ExtensionAPI) {
 
 			const preserveArtifacts = async (details: SubagentDetails): Promise<string[]> => {
 				if (!params.artifactDir) return [];
-				const completedResults = details.results.filter((result) => result.completedAt !== undefined);
+				const completedResults = details.results.filter(isTerminalResult);
 				const artifactInputs: SubagentArtifactInput[] = completedResults.map((result) => ({
 					agent: result.agent,
 					// Chain execution expands {previous} in result.task. Preserve the
 					// authored task instead of duplicating prior agent output here.
 					task: result.step ? (params.chain?.[result.step - 1]?.task ?? result.task) : result.task,
-					output: getResultOutput(result),
+					output: getFinalOutput(result.messages),
+					diagnostics: isFailedResult(result) ? getFailureDiagnostics(result) : undefined,
 					completedAt: result.completedAt,
 					status: result.status,
 					exitCode: result.exitCode,
@@ -781,7 +800,7 @@ export default function (pi: ExtensionAPI) {
 					turns: result.usage.turns,
 				}));
 				const artifacts = await persistSubagentArtifacts({
-					cwd: ctx.cwd,
+					cwd: invocationCwd,
 					artifactDir: params.artifactDir,
 					jobId: details.jobId ?? "subagent",
 					results: artifactInputs,
@@ -1057,7 +1076,6 @@ export default function (pi: ExtensionAPI) {
 				.then(executeInvocation)
 				.then(async (result) => {
 					backgroundJobs.delete(jobId);
-					if (!runtimeActive) return;
 					let artifactNotice = "";
 					if (result.details && params.artifactDir) {
 						try {
@@ -1071,6 +1089,7 @@ export default function (pi: ExtensionAPI) {
 							artifactNotice = `\n\nArtifact persistence failed: ${latestArtifactError}. Preserve the key result in the latest cumulative .work task checkpoint now.`;
 						}
 					}
+					if (!runtimeActive) return;
 					if (result.details) {
 						pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
 							toolCallId,
@@ -1095,12 +1114,11 @@ export default function (pi: ExtensionAPI) {
 				})
 				.catch(async (error: unknown) => {
 					backgroundJobs.delete(jobId);
-					if (!runtimeActive) return;
 					let artifactNotice = "";
+					let terminalDetails: SubagentDetails | undefined;
 					if (latestDetails) {
-						const terminalDetails = terminalizePendingDetails(latestDetails, error, controller.signal.aborted);
+						terminalDetails = terminalizePendingDetails(latestDetails, error, controller.signal.aborted);
 						latestDetails = terminalDetails;
-						contextViewer.updateInvocation(toolCallId, terminalDetails);
 						if (params.artifactDir) {
 							try {
 								const artifactPaths = await preserveArtifacts(terminalDetails);
@@ -1113,6 +1131,10 @@ export default function (pi: ExtensionAPI) {
 								artifactNotice = `\nArtifact persistence also failed: ${latestArtifactError}`;
 							}
 						}
+					}
+					if (!runtimeActive) return;
+					if (terminalDetails) {
+						contextViewer.updateInvocation(toolCallId, terminalDetails);
 						pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
 							toolCallId,
 							details: summarizeNestedDetails(terminalDetails),
