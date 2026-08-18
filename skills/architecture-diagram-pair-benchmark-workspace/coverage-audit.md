@@ -41,16 +41,18 @@ The existing pilot therefore supports directional findings, not a universal winn
 
 ## Comparative gaps to close
 
-1. **Variance:** run each case three times per pair and save `timing.json` immediately from executor completion metadata.
-2. **Rendered-artifact parity:** the current machine has no installed Mermaid renderer. The Mermaid source is authoritative and the Show Me HTML is reviewable, but it is not a rendered Mermaid diagram. Report this as delivered-artifact capability rather than silently treating source and rendering as equivalent.
-3. **Blind usefulness review:** randomize A/B order, ask reviewers the case's architecture questions, and save both preference and answer accuracy. File type can reveal the approach, so blindness means hiding skill identity—not pretending the formats are identical.
+1. **Variance and equal budgets:** run each case three times per pair under equal token, wall-time, and tool-call ceilings. Save `timing.json` immediately from executor completion metadata and report both budgeted completion quality and quality among successful artifacts.
+2. **Rendered-artifact parity:** the current machine has no installed Mermaid renderer. The Mermaid source is authoritative and the Show Me HTML is reviewable, but it is not a rendered Mermaid diagram. Report this as delivered-artifact capability rather than silently treating source and rendering as equivalent. A final rendered comparison requires one pinned renderer that is already available in the execution environment.
+3. **Blind usefulness review:** randomize A/B order independently for at least three judges with mixed format experience, ask the case's architecture questions, and save preference, answer accuracy, and answer time. File type can reveal the approach, so blindness means hiding skill identity—not pretending the formats are identical.
 4. **Machine scoring:** derive required identities, edges, directions, order constraints, and forbidden inventions from each gold manifest. Use programmatic checks for syntax, exact names, and contract/cardinality facts; reserve readability and utility for human review.
 5. **Corpus balance:** use the pinned evidence packs in `materials.md`, including a monolith/project-reference oracle, a large microservice monorepo, an event-driven sequence, and a machine-readable AsyncAPI case.
 6. **Evidence uncertainty:** include anonymized and evidence-ablation controls so famous-sample recall and unsupported inference are measurable.
 7. **Fixture consistency:** resolve the eShop fixture's requirement for a payment-failure variant despite the absence of a payment-failure contract or terminal behavior. The gold rule should require an explicit unresolved branch and forbid invented details.
 8. **Requested-view breadth:** report topology, sequence, impact, and explicit event-topology results separately. State/ER/class requests should be a capability-breadth track, not allowed to distort core architecture-discovery scores.
 
-## Compact next execution
+## Staged next execution
+
+### Phase 1: public-material calibration
 
 Use these four cases from `materials.md`:
 
@@ -59,14 +61,20 @@ Use these four cases from `materials.md`:
 3. eShopOnContainers — checkout acceptance and asynchronous outcome sequence;
 4. AsyncAPI Streetlights — event topology and directionality.
 
-At two pairs and three runs, this is **24 executor runs**. Run all configurations for a case from the same evidence snapshot and exact user prompt. Apply native gates after each run:
+At two pairs and three runs, this is **24 executor runs**. These cases validate the harness and gold-scoring mechanics, but eShop expectations are already present in the skills and the public samples may be familiar to the model. Calibration cannot establish a final winner.
+
+### Phase 2: blind confirmatory comparison
+
+Run the six-case matrix in `blind-protocol.md`: five neutral unseen/renamed architecture cases plus one separately reported format-fit case. At two pairs and three runs, this is **36 executor runs**. Use two-architect adjudicated atomic fact sheets, anonymized submissions, at least three judges, and the decision rule in `rubric.json`.
+
+For both phases, run all configurations for a case from the same evidence snapshot and exact user prompt. Apply native gates after each run:
 
 ```sh
 tsc -p skills/build-signal-graph/tests/tsconfig.json
 node skills/render-signal-graph/tests/run-tests.js
 ```
 
-Then grade against gold manifests, perform reversed-order A/B review, aggregate by pair and requested view, and generate the static review artifact with:
+Then grade against atomic gold manifests, randomize A/B order per judge, aggregate by pair and requested view, and generate the static review artifact with:
 
 ```sh
 python skills/skill-creator/eval-viewer/generate_review.py \

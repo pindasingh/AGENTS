@@ -1,6 +1,6 @@
 # Pilot results
 
-Status: **directional, not a final benchmark**. Each pair was run once on the same curated Microsoft eShopOnContainers evidence for one broad-architecture request and one sequence request. Both output sets were independently type/safety checked and opened offline in a browser. Three-run variance testing and the expanded corpus in `materials.md` remain necessary before treating these results as general.
+Status: **directional calibration, not a final benchmark**. Each pair was run once on the same curated Microsoft eShopOnContainers evidence for one broad-architecture request and one sequence request. Both output sets were independently type/safety checked and opened offline in a browser. The paired skill specifications already contain eShop-specific expectations, so this fixture is benchmark-contaminated and cannot serve as hidden confirmatory evidence. Three-run variance testing and the unseen/renamed matrix in `blind-protocol.md` are required before treating these results as general.
 
 ## Directional result
 
@@ -72,4 +72,4 @@ The pairs optimize for different outcomes:
 - Signal/render is currently stronger when the user wants a type-checked reusable architecture model, offline interaction, and impact-path exploration.
 - Mermaid/Show Me is currently stronger when the user asks for a specific conventional diagram type, especially a sequence diagram, and is more conservative with incomplete evidence in this pilot.
 
-The final winner must be reported by requested view and use case, not only as one global score. The next benchmark iteration should use the balanced corpus in `materials.md`, three runs per case, and the anonymized/evidence-ablation controls.
+The final winner must be reported by requested view and use case, not only as one global score. Use `materials.md` for harness calibration, then run the unseen/renamed six-case confirmatory matrix in `blind-protocol.md` with three replicates, atomic fact sheets, and blinded task-based review.

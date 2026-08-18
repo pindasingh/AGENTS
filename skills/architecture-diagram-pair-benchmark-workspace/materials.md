@@ -1,6 +1,6 @@
 # Benchmark material shortlist
 
-The pilot uses the existing curated eShopOnContainers evidence pack. The following public repositories provide a balanced expansion corpus. Repository metadata, revisions, and license files were verified from GitHub on 2026-08-18.
+The pilot uses the existing curated eShopOnContainers evidence pack. The following public repositories provide a balanced calibration and fixture-construction corpus. Repository metadata, revisions, and license files were verified from GitHub on 2026-08-18. Public and eShop-derived cases are not hidden confirmatory evidence because the model may know them and the paired skill specifications already encode eShop expectations.
 
 ## Recommended core corpus
 
@@ -116,4 +116,4 @@ Keep these variants structurally isomorphic to their source fixture and record e
 | One anonymized fixture | Architecture-neutral control | Same view as source case |
 | One evidence-ablation fixture | Incomplete evidence control | Diagram plus explicit unknowns |
 
-For a compact next iteration, use eShopOnWeb broad architecture, Google microservices-demo broad architecture, eShopOnContainers checkout sequence, and AsyncAPI Streetlights event topology. Run each three times per pair. Expand to the PetClinic architecture-controlled pair and other cases only after this set discriminates reliably. Macro-average by family and requested view.
+For a compact harness calibration, use eShopOnWeb broad architecture, Google microservices-demo broad architecture, eShopOnContainers checkout sequence, and AsyncAPI Streetlights event topology. Run each three times per pair. Expand to the PetClinic architecture-controlled pair and other cases after the scoring machinery behaves reliably. Use the unseen/renamed six-case matrix in `blind-protocol.md` for the confirmatory winner decision. Macro-average by family and requested view.

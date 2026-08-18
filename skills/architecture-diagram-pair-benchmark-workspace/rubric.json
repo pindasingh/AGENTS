@@ -6,66 +6,104 @@
   },
   "quality_score": {
     "semantic_accuracy": {
-      "weight": 0.5,
-      "criteria": {
-        "components_and_boundaries": 0.15,
-        "relationships_direction_and_labels": 0.2,
-        "ordering_and_sync_async_semantics": 0.2,
-        "contracts_stores_and_messages": 0.1,
-        "outcomes_and_terminal_effects": 0.1,
-        "absence_of_unsupported_facts": 0.15,
-        "honest_uncertainty": 0.1
+      "weight": 0.45,
+      "max_points": 45,
+      "criteria_points": {
+        "identities_boundaries_and_ownership": 10,
+        "directed_relationships_and_concrete_operations": 13,
+        "ordering_causality_and_sync_async_semantics": 12,
+        "branches_outcomes_and_terminal_effects": 5,
+        "evidence_discipline_and_absence_of_inventions": 5
+      },
+      "report_separately": [
+        "weighted_fact_recall",
+        "weighted_fact_precision",
+        "unsupported_fact_count",
+        "critical_reversals_or_timing_errors",
+        "unresolved_facts_asserted_as_observed"
+      ]
+    },
+    "projection_fidelity": {
+      "weight": 0.2,
+      "max_points": 20,
+      "criteria_points": {
+        "authoritative_source_facts_retained_in_visual": 8,
+        "identity_uniqueness_and_correct_endpoints": 4,
+        "edge_direction_labels_and_parallel_interactions": 4,
+        "path_order_and_branch_fidelity": 3,
+        "no_visual_implication_unsupported_by_source": 1
       }
     },
     "requested_view_compliance": {
-      "weight": 0.2,
-      "criteria": {
-        "view_type_matches_request": 0.5,
-        "scope_and_detail_match_request": 0.3,
-        "required_output_is_delivered": 0.2
+      "weight": 0.15,
+      "max_points": 15,
+      "criteria_points": {
+        "correct_topology_temporal_impact_or_other_view": 6,
+        "requested_scope_and_detail": 4,
+        "required_outcomes_paths_or_boundaries_visible": 3,
+        "explicit_delivery_and_format_constraints": 2
       }
     },
     "artifact_usefulness": {
       "weight": 0.2,
-      "criteria": {
-        "review_question_accuracy": 0.35,
-        "end_to_end_traceability": 0.25,
-        "readability": 0.2,
-        "navigation_or_source_portability": 0.1,
-        "appropriate_complexity": 0.1
-      }
-    },
-    "technical_integrity": {
-      "weight": 0.1,
-      "criteria": {
-        "projection_matches_authoritative_source": 0.35,
-        "artifact_validates_or_renders": 0.25,
-        "offline_and_self_contained": 0.2,
-        "safe_output": 0.1,
-        "deterministic_or_portable": 0.1
+      "max_points": 20,
+      "criteria_points": {
+        "review_question_answer_accuracy": 10,
+        "time_to_answer": 4,
+        "traceability_to_labels_source_or_evidence": 3,
+        "clarity_and_navigation_without_coaching": 3
       }
     }
   },
-  "hard_failures": [
-    "The artifact cannot be inspected in the requested or documented way.",
-    "The artifact materially invents architecture that the evidence explicitly contradicts.",
-    "A sequence request places asynchronous completion before the evidenced HTTP acceptance response.",
-    "The final artifact contains active untrusted content or an undeclared network dependency."
+  "projection_rule": "Projection fidelity compares the delivered visual with its own authoritative source. A fact absent from both source and visual is scored once as a semantic omission, not again as a projection omission.",
+  "operational_gates": [
+    "The authoritative source parses or type-checks with the pair's already-available native tooling.",
+    "The delivered artifact opens in its documented native viewer.",
+    "The artifact contains no unsafe active content or undeclared network dependency.",
+    "Interactive paths, keyboard behavior, desktop width, and narrow width are exercised when applicable.",
+    "Mermaid source and its rendering use one pinned already-available renderer when rendering is part of the delivered experience."
+  ],
+  "critical_errors_reported_separately": [
+    "invented service or external dependency",
+    "reversed critical interaction",
+    "synchronous response shown after asynchronous completion",
+    "omitted requested terminal outcome",
+    "unsafe active content",
+    "unusable or non-opening artifact"
   ],
   "reported_separately": [
+    "completion_rate",
     "duration_seconds",
     "total_tokens",
+    "tool_calls",
     "artifact_bytes",
     "validation_failures",
-    "review_question_completion_time"
+    "review_question_completion_time",
+    "judge_format_experience_and_preference"
   ],
   "fairness_controls": [
-    "Use the same evidence snapshot and exact user prompt for both configurations.",
-    "Expose only the assigned pair of visualization skills to each executor.",
-    "Do not prescribe TypeScript, HTML, or Mermaid unless output-format compliance is the behavior under test.",
+    "Use the same model and version, system instructions, evidence snapshot, user prompt, and read-only repository/tool access for both configurations.",
+    "Start every run in a fresh session and expose only the assigned visualization pair.",
+    "Apply equal token, wall-time, and tool-call ceilings, then report both quality under that user-cost budget and quality among successfully completed artifacts.",
+    "Do not prescribe TypeScript, HTML, or Mermaid in neutral cases; isolate explicit format requests in a separate format-fit stratum.",
     "Grade authoritative source accuracy separately from rendered projection fidelity.",
-    "Randomize anonymous A/B order and repeat the comparison with the order reversed.",
-    "Macro-average architecture families and requested view types so microservice cases do not dominate the result.",
-    "Report capability by view type as well as the overall quality score."
-  ]
+    "Rename submissions to random IDs, remove skill names/logs/validation claims, and randomize A/B order independently for every judge.",
+    "Preserve native formats because judges can be configuration-blind but not realistically format-blind.",
+    "Use at least three judges with mixed Mermaid and HTML experience and record their prior format preferences.",
+    "Score only atomic gold facts required by the prompt; do not reward raw node/edge count or a particular ontology.",
+    "Macro-average architecture families and requested view types so microservice cases do not dominate the result."
+  ],
+  "gold_fact_schema": {
+    "required_fields": ["id", "fact", "evidence_citation", "weight", "acceptable_equivalents", "status"],
+    "status_values": ["required", "forbidden", "unresolved"],
+    "adjudication": "Two independent architects create and reconcile each fixture fact sheet before generation results are judged."
+  },
+  "decision_rule": {
+    "neutral_cases_required_for_overall_winner": 5,
+    "minimum_consistent_case_wins": 4,
+    "practical_margin_points": 5,
+    "confidence_interval": "95% bootstrap interval over paired case/replicate score differences must exclude ±5 points.",
+    "catastrophic_error_guard": "Do not declare a winner with a materially higher critical-error rate solely from its mean score.",
+    "otherwise": "Report a capability profile by view and use case instead of one overall winner."
+  }
 }
