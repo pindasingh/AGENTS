@@ -9,6 +9,7 @@ Delegate tasks to specialized subagents with isolated context windows.
 - **Automatic hand-back**: Completion queues a custom follow-up message and starts a parent turn to pick the result back up
 - **Live context view**: Delegation automatically opens a background-progress widget below the editor
 - **Result hand-back**: Final output is preserved in model context through a custom completion message
+- **Durable artifact capture**: Optional `artifactDir` stores timestamped terminal outputs under repository-root `.work/` before hand-back
 - **Usage tracking**: The live context viewer shows thinking level, turns, tokens, cost, and context occupancy per agent
 - **Agent catalogue**: Advertises the currently available user-agent names and descriptions to the model before it calls the tool
 - **Context viewer**: Shows a live primary → job → subagent context tree with changing activity titles; toggle it with `/context-viewer`
@@ -23,6 +24,7 @@ pi/
 │   ├── README.md            # This file
 │   ├── index.ts             # Extension entry point and subagent tool
 │   ├── agents.ts            # Agent discovery logic
+│   ├── artifacts.ts         # Safe timestamped `.work/` final-output persistence
 │   └── context-viewer.ts    # Primary/subagent context widget
 └── agents/
     ├── scout.md             # Focused read-only reconnaissance
@@ -55,6 +57,15 @@ When running interactively, the tool prompts for confirmation before running pro
 Use scout to find all authentication code
 ```
 
+For durable final-output capture:
+```json
+{
+  "agent": "scout",
+  "task": "Find authentication entry points and return exact paths and symbols",
+  "artifactDir": ".work/auth-refactor/artifacts"
+}
+```
+
 ### Parallel execution
 ```
 Run 2 scouts in parallel: one to find models, one to find providers
@@ -72,6 +83,8 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 | Single | `{ agent, task }` | One agent, one task |
 | Parallel | `{ tasks: [...] }` | Multiple agents run concurrently (max 8, 4 concurrent) |
 | Chain | `{ chain: [...] }` | Sequential with `{previous}` placeholder |
+
+All modes accept an optional repository-relative `artifactDir` inside `.work/`, for example `.work/auth-refactor/artifacts`. Use it for substantive delegated work whose final facts must survive parent compaction. The extension stores terminal final output—not the complete child transcript—in UTC timestamp-prefixed Markdown files and returns their paths in both result details and the completion hand-back. An individual artifact output is capped at 1 MiB with an explicit truncation marker to prevent unbounded scratch writes.
 
 ## Output Display
 
@@ -94,6 +107,9 @@ Use a chain: first have worker implement the bounded task, then have reviewer re
 - The tool result immediately returns a job id instead of blocking the parent turn
 - `/context-viewer` shows live child state while work continues
 - The completion follow-up returns each task's final output to the parent model, capped at 50 KB per parallel task
+- When `artifactDir` is set, terminal final outputs and relevant failure diagnostics are written before hand-back; filenames sort by completion time
+- Artifact capture is opt-in so routine delegation does not dump every result to disk, and each artifact is marked as evidence rather than authoritative instructions
+- The parent should verify key facts and fold them plus relevant artifact paths into cumulative `.work/<task>/state.md`; recovery reads that snapshot first rather than scanning every artifact
 - Failure diagnostics from stderr/error messages are handed back when a child exits before producing output
 - Session shutdown or extension reload records active jobs as aborted, then stops all jobs owned by that session
 
@@ -141,8 +157,9 @@ The bundled profiles intentionally omit a pinned model so child processes use th
 ## Limitations
 
 - The completed tool card remains a delegation receipt; live progress moves to `/context-viewer`, and final output arrives in the follow-up message
-- Parallel model-visible output is capped at 50 KB per task; full results remain in tool details
+- Parallel model-visible output is capped at 50 KB per task; full results remain in tool details and, when requested, timestamped artifacts
 - Agents discovered fresh on each invocation (allows editing mid-session)
 - A child context percentage is unavailable when its provider/model cannot be resolved in the parent's model registry
 - Primary context may temporarily be unknown immediately after compaction
+- Artifact output is capped at 1 MiB per terminal result and marked when truncated
 - Parallel mode limited to 8 tasks, 4 concurrent

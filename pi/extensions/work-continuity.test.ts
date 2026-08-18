@@ -36,6 +36,8 @@ test("reminders preserve ownership while requiring recovery and continued work",
 	assert.match(before, /continue the task/);
 
 	const after = recoveryReminder("threshold");
+	assert.match(after, /Updated time/);
+	assert.match(after, /newer artifacts/);
 	assert.match(after, /git status and diff/);
 	assert.match(after, /repair only their own note/);
 	assert.match(after, /Compaction is not a blocker/);

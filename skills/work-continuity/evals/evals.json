@@ -28,13 +28,14 @@
     {
       "id": 3,
       "prompt": "This migration needs two parallel workers: one updating the API and one updating integration tests. Keep enough state that any worker can survive context compaction without the agents overwriting one another.",
-      "expected_output": "The primary owns a canonical `.work/<task>/state.md`, gives writable workers distinct notes under `workers/`, verifies their results, and folds durable conclusions back into canonical state without concurrent shared-file writes.",
+      "expected_output": "The primary owns cumulative `.work/<task>/state.md`, gives writable workers distinct notes under `workers/`, requests timestamped final-output artifacts, verifies their results, and folds only durable conclusions and artifact paths back into canonical state without concurrent shared-file writes.",
       "files": [],
       "expectations": [
         "The primary checkpoint remains canonical.",
         "Each writable worker receives a distinct checkpoint path in its delegated task.",
+        "The subagent call requests an artifact directory under the active `.work/<task>/` directory.",
         "Workers do not concurrently overwrite canonical state or each other's notes.",
-        "The primary verifies delegated results before integrating their conclusions."
+        "The primary verifies delegated results and folds key conclusions plus artifact paths into cumulative state."
       ]
     },
     {
@@ -64,13 +65,26 @@
     {
       "id": 6,
       "prompt": "You are a read-only scout whose context was compacted halfway through tracing authorization. You can read and search but cannot write files. Finish the investigation for the parent.",
-      "expected_output": "The scout does not attempt to write `.work/`, reconstructs from the surviving summary and re-read source evidence, and returns a concise evidence-backed handoff for the parent to preserve.",
+      "expected_output": "The scout does not attempt to write `.work/`, reconstructs from the surviving summary and re-read source evidence, and returns a concise evidence-backed handoff that the parent-side artifact capture preserves before the primary updates cumulative state.",
       "files": [],
       "expectations": [
-        "No checkpoint write is attempted.",
+        "No child-side checkpoint write is attempted.",
         "Critical source evidence is re-read rather than trusted solely from compacted memory.",
         "The investigation continues to its bounded completion condition.",
-        "The final handoff includes exact paths and evidence the parent can preserve."
+        "The final handoff includes exact paths and evidence, is captured as a timestamped artifact, and is summarized into canonical state by the parent."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "This repository migration has run for days, used many subagents, and survived several context compactions. `.work/migration/artifacts/` now contains a hundred timestamped files, including two created after the `Updated` time in `state.md`. Resume safely without reading all of them.",
+      "expected_output": "The agent reads cumulative `.work/migration/state.md` as the latest self-contained snapshot, then opens only directly referenced evidence and the two newer potentially unincorporated artifacts, verifies and folds them, and avoids replaying artifact history.",
+      "files": [],
+      "expectations": [
+        "Cumulative `state.md` is read before any artifact.",
+        "The agent does not scan or read all timestamped artifacts.",
+        "Only artifacts directly referenced by current state and the two newer-than-state artifacts are opened.",
+        "Newer conclusions are verified, folded into state, and the `Updated` time advances.",
+        "Recovered state includes all still-relevant facts, current progress, verification, and the exact next action."
       ]
     }
   ]

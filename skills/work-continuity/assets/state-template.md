@@ -1,7 +1,9 @@
 # Task: <short description>
 
 Status: active
-Updated: <timestamp when useful>
+Updated: <UTC timestamp>
+
+> Cumulative latest snapshot. A recovering agent should normally need only this file.
 
 ## Task definition
 <What the user needs, preserving exact wording where it matters.>
@@ -27,6 +29,9 @@ Updated: <timestamp when useful>
 
 ## Working set
 - `<path or symbol>` — <why it matters>
+
+## Key artifacts
+- `<timestamped artifact path>` — <verified conclusion it supports; include only artifacts still relevant to recovery>
 
 ## Verification
 - `<command or inspection>` — <result, or not yet run>
