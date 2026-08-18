@@ -42,6 +42,6 @@ Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to tog
 
 `extensions/work-continuity.ts` complements the harness-neutral `.work/` policy and `work-continuity` skill. Once per compaction cycle it injects a hidden checkpoint reminder when context usage reaches 70%, then injects a recovery reminder immediately after Pi's `session_compact` event. It does not replace or cancel Pi's built-in compaction summary.
 
-The reminders also run in headless subagent processes. Writable workers checkpoint under `.work/`; read-only profiles instead re-read source evidence and continue from Pi's surviving compaction summary.
+The reminders also run in headless subagent processes. Pi launches each child with `--no-session`, so its transcript cannot be resumed after the process exits; only the parent tool result and external artifacts remain. Writable workers therefore checkpoint exact evidence under a parent-assigned `.work/<task>/workers/<worker>.md` path. Read-only profiles instead re-read source evidence after compaction and return a concise handoff for the parent to preserve.
 
 After changing a linked extension or profile, use Pi's `/reload` command.
