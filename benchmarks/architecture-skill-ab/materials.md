@@ -1,6 +1,6 @@
 # Benchmark material shortlist
 
-The pilot uses the existing curated eShopOnContainers evidence pack. The following public repositories provide a balanced calibration and fixture-construction corpus. Repository metadata, revisions, and license files were verified from GitHub on 2026-08-18. Public and eShop-derived cases are not hidden confirmatory evidence because the model may know them and the paired skill specifications already encode eShop expectations.
+The following public repositories provide a balanced architecture calibration and fixture-construction corpus. Repository metadata, revisions, and license files were verified from GitHub on 2026-08-18. Public samples are not hidden confirmatory evidence because the model or either candidate's skills may already know them. Check every proposed fixture against both candidates' instructions and examples before assigning confirmation eligibility.
 
 ## Recommended core corpus
 
@@ -74,7 +74,7 @@ This is the large-system readability and scope-control case. The gold manifest s
 
 ### eShopOnContainers
 
-The repository already contains a compact curated fixture at `skills/build-signal-graph/evals/fixtures/eshop-checkout`. Before the final benchmark, resolve its internal contradiction: the fixture requires a payment-failure path but supplies no payment-failure contract, consumer, state transition, or terminal write. Gold truth should require an explicit unknown gap and forbid invented payment-failure details.
+Curate checkout ingress, basket persistence, checkout-event publication, order creation, stock validation, payment, order-status persistence, and notification evidence from the pinned revision. Include only contracts and handlers needed for the selected request, and require unresolved facts when a branch lacks a producer, consumer, state transition, or terminal effect. The preserved eShop pilot reused a fixture stored beside one candidate skill; its contamination and internal contradiction are documented in [`pilot/material-notes.md`](pilot/material-notes.md) and must not become reusable gold truth.
 
 ### AsyncAPI Streetlights MQTT
 
@@ -91,7 +91,7 @@ The gold manifest can be generated mechanically: one MQTT server, four channels,
 
 ## Anti-memorization and uncertainty variants
 
-For each core evidence pack, add two derived cases:
+For each core evidence pack, consider two derived cases:
 
 1. **Anonymized variant:** deterministically rename services, contracts, and stores while preserving relationships. This tests evidence recovery rather than recall of a famous sample application.
 2. **Evidence-ablation variant:** remove one producer, consumer, or deployment file and ask the pair to mark unresolved relationships. This measures precision and uncertainty discipline.
@@ -116,4 +116,4 @@ Keep these variants structurally isomorphic to their source fixture and record e
 | One anonymized fixture | Architecture-neutral control | Same view as source case |
 | One evidence-ablation fixture | Incomplete evidence control | Diagram plus explicit unknowns |
 
-For a compact harness calibration, use eShopOnWeb broad architecture, Google microservices-demo broad architecture, eShopOnContainers checkout sequence, and AsyncAPI Streetlights event topology. Run each three times per pair. Expand to the PetClinic architecture-controlled pair and other cases after the scoring machinery behaves reliably. Use the unseen/renamed six-case matrix in `blind-protocol.md` for the confirmatory winner decision. Macro-average by family and requested view.
+For a compact harness calibration, use eShopOnWeb broad architecture, Google microservices-demo broad architecture, eShopOnContainers checkout sequence, and AsyncAPI Streetlights event topology. Run each three times per candidate. Expand to the PetClinic architecture-controlled set and other cases after the scoring machinery behaves reliably. Use the unseen/renamed six-case matrix in `blind-protocol.md` for the confirmatory winner decision. Macro-average by family and requested view.

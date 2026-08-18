@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/architecture-skill-ab/benchmark-config.schema.json",
+  "title": "Architecture skill A/B benchmark configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "domain", "candidates", "execution", "evaluation", "cases"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "benchmark_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "domain": {"const": "architecture"},
+    "description": {"type": "string"},
+    "candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["A", "B"],
+      "properties": {
+        "A": {"$ref": "#/$defs/candidate"},
+        "B": {"$ref": "#/$defs/candidate"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "replicates", "model", "seed_policy", "system_instructions_sha256", "tool_policy_sha256", "controls", "budgets"],
+      "properties": {
+        "phase": {"enum": ["historical-pilot", "calibration", "confirmatory"]},
+        "replicates": {"type": "integer", "minimum": 1},
+        "model": {"type": "string", "minLength": 1},
+        "seed_policy": {"type": "string", "minLength": 1},
+        "system_instructions_sha256": {"type": "string", "minLength": 1},
+        "tool_policy_sha256": {"type": "string", "minLength": 1},
+        "controls": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["same_model", "same_system_instructions", "same_prompt", "same_evidence", "same_tool_policy", "fresh_session", "isolated_candidate_skills"],
+          "properties": {
+            "same_model": {"type": "boolean"},
+            "same_system_instructions": {"type": "boolean"},
+            "same_prompt": {"type": "boolean"},
+            "same_evidence": {"type": "boolean"},
+            "same_tool_policy": {"type": "boolean"},
+            "fresh_session": {"type": "boolean"},
+            "isolated_candidate_skills": {"type": "boolean"}
+          }
+        },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["equal_across_candidates", "max_total_tokens", "max_wall_time_seconds", "max_tool_calls"],
+          "properties": {
+            "equal_across_candidates": {"type": "boolean"},
+            "max_total_tokens": {"type": ["integer", "null"], "minimum": 1},
+            "max_wall_time_seconds": {"type": ["integer", "null"], "minimum": 1},
+            "max_tool_calls": {"type": ["integer", "null"], "minimum": 1}
+          }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rubric_path", "judge_count", "blind_candidate_identity", "randomize_order_per_judge", "gold_adjudicators"],
+      "properties": {
+        "rubric_path": {"type": "string", "minLength": 1},
+        "judge_count": {"type": "integer", "minimum": 1},
+        "blind_candidate_identity": {"type": "boolean"},
+        "randomize_order_per_judge": {"type": "boolean"},
+        "gold_adjudicators": {"type": "integer", "minimum": 1}
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/case"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {"phase": {"const": "confirmatory"}}
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "candidates": {
+            "properties": {
+              "A": {"properties": {"validation_commands": {"minItems": 1}}},
+              "B": {"properties": {"validation_commands": {"minItems": 1}}}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision", "skill_paths", "authoritative_source_patterns", "artifact_patterns", "native_viewer", "viewer_command", "viewer_checks", "renderer", "validation_commands"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+        "revision": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "skill_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "authoritative_source_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "artifact_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "native_viewer": {"type": "string", "minLength": 1},
+        "viewer_command": {"type": "string", "minLength": 1},
+        "viewer_checks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"}
+        },
+        "renderer": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "version", "command"],
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "version": {"type": "string", "minLength": 1},
+                "command": {"type": "string", "minLength": 1}
+              }
+            }
+          ]
+        },
+        "validation_commands": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "architecture_family", "requested_view", "evidence_paths", "prompt", "gold_path", "confirmation_eligible"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+        "architecture_family": {"enum": ["monolith", "modular-monolith", "microservices", "event-driven", "mixed", "unknown"]},
+        "requested_view": {"enum": ["structural-topology", "logical", "deployment", "sequence", "impact", "event-topology", "state", "er", "class", "format-fit"]},
+        "evidence_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "prompt": {"type": "string", "minLength": 1},
+        "gold_path": {"type": "string", "minLength": 1},
+        "confirmation_eligible": {"type": "boolean"},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}

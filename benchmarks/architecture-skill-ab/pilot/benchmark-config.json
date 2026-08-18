@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "eshop-signal-vs-mermaid-pilot",
+  "domain": "architecture",
+  "description": "Retrospective configuration for the preserved one-generation eShop pilot; it demonstrates candidate wiring but does not satisfy confirmatory controls.",
+  "candidates": {
+    "A": {
+      "id": "signal-render",
+      "revision": "f55f2db262388ee6b1c098d3442523e12694e472",
+      "description": "Typed Signal model followed by the interactive Signal renderer.",
+      "skill_paths": [
+        "skills/build-signal-graph",
+        "skills/render-signal-graph"
+      ],
+      "authoritative_source_patterns": [
+        "outputs/architecture/architecture.ts"
+      ],
+      "artifact_patterns": [
+        "outputs/architecture/architecture.json",
+        "outputs/architecture/index.html"
+      ],
+      "native_viewer": "Offline web browser",
+      "viewer_command": "historical browser invocation not captured",
+      "viewer_checks": ["opened", "offline", "keyboard", "pointer", "narrow-width"],
+      "renderer": null,
+      "validation_commands": [
+        "tsc -p skills/build-signal-graph/tests/tsconfig.json",
+        "node skills/render-signal-graph/tests/run-tests.js"
+      ]
+    },
+    "B": {
+      "id": "mermaid-show-me",
+      "revision": "f55f2db262388ee6b1c098d3442523e12694e472",
+      "description": "Portable Mermaid source plus a self-contained Show Me review artifact.",
+      "skill_paths": [
+        "skills/mermaid-diagrams",
+        "skills/show-me"
+      ],
+      "authoritative_source_patterns": [
+        "outputs/*.mmd"
+      ],
+      "artifact_patterns": [
+        "outputs/*.html"
+      ],
+      "native_viewer": "Offline web browser for the review artifact; no Mermaid renderer was available",
+      "viewer_command": "historical browser invocation not captured",
+      "viewer_checks": ["opened", "offline", "narrow-width"],
+      "renderer": null,
+      "validation_commands": []
+    }
+  },
+  "execution": {
+    "phase": "historical-pilot",
+    "replicates": 1,
+    "model": "not captured in historical executor metadata",
+    "seed_policy": "not captured",
+    "system_instructions_sha256": "not-captured",
+    "tool_policy_sha256": "not-captured",
+    "controls": {
+      "same_model": true,
+      "same_system_instructions": true,
+      "same_prompt": true,
+      "same_evidence": true,
+      "same_tool_policy": true,
+      "fresh_session": true,
+      "isolated_candidate_skills": true
+    },
+    "budgets": {
+      "equal_across_candidates": false,
+      "max_total_tokens": null,
+      "max_wall_time_seconds": null,
+      "max_tool_calls": null
+    }
+  },
+  "evaluation": {
+    "rubric_path": "benchmarks/architecture-skill-ab/rubric.json",
+    "judge_count": 2,
+    "blind_candidate_identity": true,
+    "randomize_order_per_judge": true,
+    "gold_adjudicators": 1
+  },
+  "cases": [
+    {
+      "id": "eshop-broad",
+      "architecture_family": "event-driven",
+      "requested_view": "structural-topology",
+      "evidence_paths": [
+        "skills/build-signal-graph/evals/fixtures/eshop-checkout"
+      ],
+      "prompt": "Using only the supplied Microsoft eShopOnContainers evidence, create the most useful broad architecture diagram for an engineer who needs to understand the system's callers, ownership boundaries, runtime services, stores, external infrastructure, and major directed HTTP, persistence, messaging, and notification relationships. This is a structural overview, not a request timeline. Do not invent unsupported components or interactions. Preserve the source used to generate the diagram and make the final artifact self-contained and reviewable offline.",
+      "gold_path": "benchmarks/architecture-skill-ab/pilot/eshop-broad/gold.json",
+      "confirmation_eligible": false,
+      "notes": "Public eShop calibration fixture already referenced by candidate skill specifications."
+    },
+    {
+      "id": "eshop-sequence",
+      "architecture_family": "event-driven",
+      "requested_view": "sequence",
+      "evidence_paths": [
+        "skills/build-signal-graph/evals/fixtures/eshop-checkout"
+      ],
+      "prompt": "Using only the supplied Microsoft eShopOnContainers evidence, create the most useful sequence diagram for an engineer who needs to understand checkout acceptance followed by asynchronous order processing. Show the web caller path, the exact point of the HTTP 202 response, successful completion, stock rejection, and every evidenced store, event, consumer, and notification involved. Preserve exact contract names where the evidence provides them, do not invent unsupported behavior, and make the final artifact self-contained and reviewable offline.",
+      "gold_path": "benchmarks/architecture-skill-ab/pilot/eshop-sequence/gold.json",
+      "confirmation_eligible": false,
+      "notes": "Fixture contains disputed payment-failure and status-propagation expectations; use only as historical pilot evidence."
+    }
+  ]
+}

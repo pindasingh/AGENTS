@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/architecture-skill-ab/judge-evidence.schema.json",
+  "title": "Architecture skill A/B judge evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "judges"],
+  "properties": {
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_identity_blinded", "order_randomized_per_judge", "judgments_locked_before_unblinding", "order_randomization_seed", "judgments_locked_at"],
+      "properties": {
+        "candidate_identity_blinded": {"const": true},
+        "order_randomized_per_judge": {"const": true},
+        "judgments_locked_before_unblinding": {"const": true},
+        "order_randomization_seed": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "judgments_locked_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "judges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "format_experience", "prior_format_preference", "assessments"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+          "format_experience": {"type": "string", "minLength": 1},
+          "prior_format_preference": {"type": "string", "minLength": 1},
+          "assessments": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "replicate", "submission_id", "presentation_position", "answer_correctness", "answer_time_seconds", "artifact_usefulness_points"],
+              "properties": {
+                "case_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+                "replicate": {"type": "integer", "minimum": 1},
+                "submission_id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{8,64}$"},
+                "presentation_position": {"enum": [1, 2]},
+                "answer_correctness": {"type": "number", "minimum": 0, "maximum": 1},
+                "answer_time_seconds": {"type": "number", "minimum": 0},
+                "artifact_usefulness_points": {"type": "number", "minimum": 0, "maximum": 20}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

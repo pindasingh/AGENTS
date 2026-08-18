@@ -1,6 +1,6 @@
 # Pilot results
 
-Status: **directional calibration, not a final benchmark**. Each pair was run once on the same curated Microsoft eShopOnContainers evidence for one broad-architecture request and one sequence request. Both output sets were independently type/safety checked and opened offline in a browser. The paired skill specifications already contain eShop-specific expectations, so this fixture is benchmark-contaminated and cannot serve as hidden confirmatory evidence. Three-run variance testing and the unseen/renamed matrix in `blind-protocol.md` are required before treating these results as general.
+Status: **directional calibration, not a final benchmark**. Each pair was run once on the same curated Microsoft eShopOnContainers evidence for one broad-architecture request and one sequence request. Both output sets were independently type/safety checked and opened offline in a browser. The paired skill specifications already contain eShop-specific expectations, so this fixture is benchmark-contaminated and cannot serve as hidden confirmatory evidence. Three-run variance testing and the unseen/renamed matrix in `../blind-protocol.md` are required before treating these results as general.
 
 ## Directional result
 
@@ -13,7 +13,7 @@ Status: **directional calibration, not a final benchmark**. Each pair was run on
 
 Two independent model reviewers saw anonymous A/B outputs in opposite presentation orders. Both selected Mermaid/Show Me for the broad case and both selected it for the sequence case. Under the superseded pilot rubric, Mermaid/Show Me scored 79.8–87.2 on broad architecture versus Signal/render's 58.3–59.9, and 87.2–89.5 on sequence versus Signal/render's 58.4–67.2.
 
-This reduces concern about simple A/B position bias, but it is not a final blind benchmark: only two model judges reviewed one generated artifact per pair, the fixture is contaminated, the old rubric did not separate projection fidelity, and several disputed fixture expectations affected reviewer reasoning. Raw results and coordinator notes are preserved in [`pilot/reviewer-results/`](pilot/reviewer-results/).
+This reduces concern about simple A/B position bias, but it is not a final blind benchmark: only two model judges reviewed one generated artifact per pair, the fixture is contaminated, the old rubric did not separate projection fidelity, and several disputed fixture expectations affected reviewer reasoning. Raw results and coordinator notes are preserved in [`reviewer-results/`](reviewer-results/).
 
 ## Findings by pair
 
@@ -78,4 +78,4 @@ The pairs optimize for different outcomes:
 - Signal/render is currently stronger when the user wants a type-checked reusable architecture model, offline interaction, and impact-path exploration.
 - Mermaid/Show Me is currently stronger when the user asks for a specific conventional diagram type, especially a sequence diagram, and is more conservative with incomplete evidence in this pilot.
 
-The final winner must be reported by requested view and use case, not only as one global score. Use `materials.md` for harness calibration, then run the unseen/renamed six-case confirmatory matrix in `blind-protocol.md` with three replicates, atomic fact sheets, and blinded task-based review.
+The final winner must be reported by requested view and use case, not only as one global score. Use `../materials.md` for harness calibration, then run the unseen/renamed six-case confirmatory matrix in `../blind-protocol.md` with three replicates, atomic fact sheets, and blinded task-based review.

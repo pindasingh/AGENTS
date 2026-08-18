@@ -18,7 +18,7 @@ Both reviewers selected Mermaid/Show Me in both cases despite the reversed prese
 | Broad architecture | 87.2, 79.8 | 58.3, 59.9 |
 | Sequence | 87.2, 89.5 | 67.2, 58.4 |
 
-This corroborates the directional result in `../../pilot-results.md`: Mermaid/Show Me was more evidence-conservative and matched the requested sequence form, while Signal/render supplied stronger native interactivity but introduced unsupported details and did not deliver a temporal sequence view.
+This corroborates the directional result in [`../results.md`](../results.md): Mermaid/Show Me was more evidence-conservative and matched the requested sequence form, while Signal/render supplied stronger native interactivity but introduced unsupported details and did not deliver a temporal sequence view.
 
 ## Why these are not final benchmark scores
 

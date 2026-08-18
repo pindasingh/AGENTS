@@ -1,29 +1,56 @@
-# Architecture diagram pair benchmark
+# Architecture skill A/B benchmark harness
 
-This workspace compares only these paired configurations:
+> **Operator-run benchmark infrastructure—not an Agent Skill.** This directory intentionally lives under `benchmarks/`, contains no `SKILL.md`, is not discovered by Pi's skill loader, and cannot trigger or be invoked as a skill.
 
-1. `build-signal-graph` + `render-signal-graph` (`signal-render`)
-2. `mermaid-diagrams` + `show-me` (`mermaid-show-me`)
+This harness compares two architecture-output **candidates**, A and B. A candidate may contain one skill or an ordered set of cooperating skills. The harness does not assume Signal, Mermaid, TypeScript, HTML, or any other representation; those are candidate-declared capabilities.
 
-It does not score any skill independently.
+The preserved eShop run under [`pilot/`](pilot/) compares:
 
-## Comparison rule
+- A: `build-signal-graph` + `render-signal-graph`
+- B: `mermaid-diagrams` + `show-me`
 
-Each configuration receives the same fixed evidence snapshot and exact outcome-focused user prompt. The prompt does not prescribe TypeScript, HTML, or Mermaid unless requested-view compliance is itself under test. The authoritative source and the final artifact are graded separately so a correct source cannot hide an inaccurate or unusable projection.
+That is an example benchmark instance, not a hard-coded harness restriction.
 
-See [`rubric.json`](rubric.json) for the 100-point score and critical-error rules. [`blind-protocol.md`](blind-protocol.md) defines controlled generation, blinding, the six-case confirmatory matrix, and the winner decision rule. [`coverage-audit.md`](coverage-audit.md) records reusable repository assets and comparative gaps.
+## Run a new A/B benchmark
 
-## Pilot
+1. Copy [`pilot/benchmark-config.json`](pilot/benchmark-config.json) to a new run workspace.
+2. Replace candidate A and B's `id`, pinned `revision`, `skill_paths`, source/artifact declarations, native viewer command/checks, and native validation commands. Confirmatory candidates require at least one validation command.
+3. Replace the cases with fixed evidence paths and identical outcome-focused prompts.
+4. Validate the configuration:
 
-The pilot uses the repository's curated Microsoft eShopOnContainers checkout fixture for two requests:
+   ```sh
+   python benchmarks/architecture-skill-ab/scripts/validate_config.py <config.json>
+   ```
 
-- `pilot/eshop-broad`: a broad structural architecture view;
-- `pilot/eshop-sequence`: an ordered checkout sequence with HTTP acceptance and asynchronous outcomes.
+5. Prepare an isolated run plan:
 
-Each case contains shared `eval_metadata.json` plus isolated outputs for both configurations. Browser inspection and native validation are preserved. [`pilot-results.md`](pilot-results.md) records the directional one-run result and reversed-order model-reviewer check. That check reduces position-bias concern but is not the statistically replicated, three-judge confirmatory benchmark.
+   ```sh
+   python benchmarks/architecture-skill-ab/scripts/prepare_runs.py \
+     <config.json> <new-run-directory>
+   ```
 
-## Full benchmark design
+6. Preserve the printed `PREPARATION_COMMITMENT` outside the run directory.
+7. Follow [`runbook.md`](runbook.md) continuously through generation, callback metric capture, native validation evidence, semantic grading, projection review, blinded task review, pre-unblinding review sealing, aggregation, and the winner rule.
 
-[`materials.md`](materials.md) pins licensed public evidence packs and exact oracle files for single-repository clean architecture, monoliths, microservices, event-driven flows, and explicit AsyncAPI contracts. It also defines anonymized and evidence-ablation controls.
+A normal comparison is `cases × 2 candidates × replicates`. Candidate labels remain A/B throughout generation and scoring; skill identities are retained only in the coordinator map and removed from judge submissions.
 
-Use those public materials first for a 24-run calibration: four cases × two pairs × three runs. Because the skills already encode eShop-specific expectations and public samples may be familiar to the model, do not use calibration alone to declare a winner. The confirmatory benchmark in `blind-protocol.md` uses six unseen/renamed cases × two pairs × three runs: 36 executor runs. Keep explicit format-fit and state/ER/class breadth results separate from the five neutral architecture cases.
+For reproducibility and input hashing, `skill_paths` must be repository-relative directories containing `SKILL.md`. Snapshot or vendor a globally installed/external skill into the benchmark repository before comparing it; absolute paths are intentionally rejected.
+
+## Fairness model
+
+Each candidate receives the same fixed evidence snapshot, exact user prompt, model/version, fresh-session policy, repository access, and completion budget. Prompts remain outcome-focused and format-neutral except in a separately reported format-fit stratum. Grade authoritative semantics, projection fidelity, requested-view compliance, and task usefulness separately.
+
+- [`benchmark-config.schema.json`](benchmark-config.schema.json) defines the reusable candidate/case contract.
+- [`run-score.schema.json`](run-score.schema.json) defines candidate-neutral per-run grading and metrics.
+- [`run-evidence.schema.json`](run-evidence.schema.json) defines execution, callback timing, validation-log, native-viewer, and artifact evidence required from completed confirmatory runs.
+- [`judge-evidence.schema.json`](judge-evidence.schema.json) defines the sealed, coordinator-side proof required for blind task review.
+- [`rubric.json`](rubric.json) defines the architecture-specific 100-point score and critical errors.
+- [`blind-protocol.md`](blind-protocol.md) defines candidate-neutral generation and judging controls.
+- [`harness-requirements.md`](harness-requirements.md) is the operational completion checklist.
+- [`materials.md`](materials.md) lists architecture calibration and fixture-construction sources.
+- [`scripts/`](scripts/) validates configurations, prepares isolated run plans, and aggregates A/B scores without third-party dependencies.
+- [`STATUS.md`](STATUS.md) states what is complete and what remains blocked.
+
+## Preserved pilot
+
+[`pilot/results.md`](pilot/results.md) records the directional one-generation eShop result and reversed-order reviewer check. [`pilot/coverage-audit.md`](pilot/coverage-audit.md) records its exact validation coverage and shortcomings. The pilot is benchmark-contaminated and does not satisfy the confirmatory decision protocol.

@@ -1,8 +1,10 @@
 {
-  "name": "architecture-diagram-pair-benchmark",
-  "configurations": {
-    "signal-render": ["build-signal-graph", "render-signal-graph"],
-    "mermaid-show-me": ["mermaid-diagrams", "show-me"]
+  "name": "architecture-skill-ab-rubric",
+  "candidate_model": {
+    "slots": ["A", "B"],
+    "comparison_unit": "Each candidate is one skill or an ordered set of cooperating skills scored only on its end-to-end architecture output.",
+    "required_configuration_fields": ["id", "revision", "skill_paths", "authoritative_source_patterns", "artifact_patterns", "native_viewer", "viewer_command", "viewer_checks", "renderer", "validation_commands"],
+    "identity_rule": "Concrete skill identities belong in the run configuration and coordinator map, never in the reusable rubric or blinded judge packet."
   },
   "quality_score": {
     "semantic_accuracy": {
@@ -27,11 +29,11 @@
       "weight": 0.2,
       "max_points": 20,
       "criteria_points": {
-        "authoritative_source_facts_retained_in_visual": 8,
+        "authoritative_source_facts_retained_in_artifact": 8,
         "identity_uniqueness_and_correct_endpoints": 4,
-        "edge_direction_labels_and_parallel_interactions": 4,
+        "relationship_direction_labels_and_parallel_interactions": 4,
         "path_order_and_branch_fidelity": 3,
-        "no_visual_implication_unsupported_by_source": 1
+        "no_artifact_implication_unsupported_by_source": 1
       }
     },
     "requested_view_compliance": {
@@ -55,13 +57,14 @@
       }
     }
   },
-  "projection_rule": "Projection fidelity compares the delivered visual with its own authoritative source. A fact absent from both source and visual is scored once as a semantic omission, not again as a projection omission.",
+  "projection_rule": "Projection fidelity compares the delivered artifact with its own declared authoritative source. A fact absent from both source and artifact is scored once as a semantic omission, not again as a projection omission.",
   "operational_gates": [
-    "The authoritative source parses or type-checks with the pair's already-available native tooling.",
-    "The delivered artifact opens in its documented native viewer.",
+    "Every declared authoritative source parses, type-checks, or passes the candidate's predeclared native validation using already-available tooling.",
+    "Every completed confirmatory run stays within configured token/time/tool budgets and preserves declared source/artifact files plus matching execution, callback timing, at least one native-validation log, and predeclared viewer-command/check evidence for every artifact.",
+    "Every delivered artifact opens in its documented native viewer under the configured network policy.",
     "The artifact contains no unsafe active content or undeclared network dependency.",
-    "Interactive paths, keyboard behavior, desktop width, and narrow width are exercised when applicable.",
-    "Mermaid source and its rendering use one pinned already-available renderer when rendering is part of the delivered experience."
+    "Applicable paths, controls, keyboard behavior, pointer behavior, desktop width, and narrow width are exercised.",
+    "Any source-rendered artifact uses the renderer and version pinned in the run configuration; an unavailable renderer is reported rather than replaced silently."
   ],
   "critical_errors_reported_separately": [
     "invented service or external dependency",
@@ -82,16 +85,17 @@
     "judge_format_experience_and_preference"
   ],
   "fairness_controls": [
-    "Use the same model and version, system instructions, evidence snapshot, user prompt, and read-only repository/tool access for both configurations.",
-    "Start every run in a fresh session and expose only the assigned visualization pair.",
+    "Use the same model and version, system instructions, evidence snapshot, user prompt, repository access, and tool policy for both candidates.",
+    "Start every run in a fresh session and expose only the assigned candidate's configured skills.",
     "Apply equal token, wall-time, and tool-call ceilings, then report both quality under that user-cost budget and quality among successfully completed artifacts.",
-    "Do not prescribe TypeScript, HTML, or Mermaid in neutral cases; isolate explicit format requests in a separate format-fit stratum.",
-    "Grade authoritative source accuracy separately from rendered projection fidelity.",
-    "Rename submissions to random IDs, remove skill names/logs/validation claims, and randomize A/B order independently for every judge.",
-    "Preserve native formats because judges can be configuration-blind but not realistically format-blind.",
-    "Use at least three judges with mixed Mermaid and HTML experience and record their prior format preferences.",
-    "Score only atomic gold facts required by the prompt; do not reward raw node/edge count or a particular ontology.",
-    "Macro-average architecture families and requested view types so microservice cases do not dominate the result."
+    "Do not prescribe candidate-native formats in neutral cases; isolate explicit format requests in a separate format-fit stratum.",
+    "Grade authoritative semantics separately from projection fidelity and final-artifact usefulness.",
+    "Bind preparation inputs and blind-review bytes to externally preserved commitments; never rely only on mutable in-workspace checksum files.",
+    "Rename submissions to random IDs, remove skill names/logs/validation claims, and reconstruct independently seeded A/B order for every judge.",
+    "Preserve native formats because judges can be candidate-blind but not realistically format-blind.",
+    "Use at least three judges with mixed experience across the declared formats and record their prior format preferences.",
+    "Score only atomic gold facts required by the prompt; do not reward raw node/relationship count or a particular ontology.",
+    "Macro-average architecture families and requested-view types so one family does not dominate the result."
   ],
   "gold_fact_schema": {
     "required_fields": ["id", "fact", "evidence_citation", "weight", "acceptable_equivalents", "status"],
