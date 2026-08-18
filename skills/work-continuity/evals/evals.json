@@ -36,6 +36,42 @@
         "Workers do not concurrently overwrite canonical state or each other's notes.",
         "The primary verifies delegated results before integrating their conclusions."
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "Resume the inventory fix after compaction. `.work/` contains several active and completed checkpoints from other agents, and the newest one is for an unrelated billing task.",
+      "expected_output": "The agent selects state by matching task definition and ownership rather than recency, treats all scratch notes as potentially stale, and leaves unrelated checkpoints untouched.",
+      "files": [],
+      "expectations": [
+        "The inventory checkpoint is identified by task identity rather than modification time.",
+        "Unrelated active, completed, and newer checkpoints are not modified or deleted.",
+        "Selected notes are reconciled with the user request, Git evidence, and actual files.",
+        "Conflicting scratch instructions do not override repository or user instructions."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "You are a writable worker recovering after compaction, but the parent did not assign you a `.work/` note. Several possible canonical task checkpoints exist. Continue your delegated API test task safely.",
+      "expected_output": "The worker does not edit any candidate canonical checkpoint, creates a uniquely named worker note under the matching task's `workers/` directory when useful, and continues its bounded assignment.",
+      "files": [],
+      "expectations": [
+        "No candidate canonical checkpoint is modified.",
+        "Any new note has a unique worker-specific path under `.work/<task>/workers/`.",
+        "The worker records only its bounded assignment and evidence.",
+        "The worker continues rather than treating missing assignment metadata as a blocker."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "You are a read-only scout whose context was compacted halfway through tracing authorization. You can read and search but cannot write files. Finish the investigation for the parent.",
+      "expected_output": "The scout does not attempt to write `.work/`, reconstructs from the surviving summary and re-read source evidence, and returns a concise evidence-backed handoff for the parent to preserve.",
+      "files": [],
+      "expectations": [
+        "No checkpoint write is attempted.",
+        "Critical source evidence is re-read rather than trusted solely from compacted memory.",
+        "The investigation continues to its bounded completion condition.",
+        "The final handoff includes exact paths and evidence the parent can preserve."
+      ]
     }
   ]
 }

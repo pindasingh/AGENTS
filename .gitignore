@@ -1,7 +1,8 @@
 __pycache__/
 *.py[cod]
 
-# Repository-local working memory for agents; never commit it.
+# This canonical policy repo publishes and dogfoods the .work/ contract.
+# Product repos should normally use their local Git exclude instead.
 .work/
 
 # Agent runtime state and secrets must never be committed.

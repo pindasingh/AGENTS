@@ -57,7 +57,7 @@ If no useful checkpoint exists, reconstruct the state from the surviving compact
 
 The primary agent owns the canonical task checkpoint. Give each writable worker a separate path such as `.work/<task>/workers/<worker-key>.md` when its findings must survive compaction. Include that path in the delegated task rather than expecting workers to guess it.
 
-Workers may read the canonical checkpoint but should update only their assigned note. The primary verifies worker output, folds durable conclusions into `state.md`, and remains responsible for integration.
+Workers may read the canonical checkpoint but should update only their assigned note. If a writable worker was not assigned a path, it creates a uniquely named note under the matching task's `workers/` directory and never edits a candidate canonical checkpoint. The primary verifies worker output, folds durable conclusions into `state.md`, and remains responsible for integration.
 
 Read-only workers cannot maintain repository checkpoints. They should continue from the compaction summary, re-read source evidence as needed, and return a concise evidence-backed handoff. The primary records anything that must persist.
 
