@@ -6,6 +6,7 @@ Canonical, version-controlled resources shared by local coding agents.
 
 - `AGENTS.md` — harness-neutral global operating rules.
 - `skills/` — harness-neutral [Agent Skills](https://agentskills.io/) packages. Pi and other compatible agents can load these.
+- `benchmarks/` — operator-run evaluation harnesses and preserved results; these are not Agent Skills and are not model-invokable.
 - `pi/extensions/` — Pi-specific TypeScript extensions.
 - `pi/agents/` — specialist profiles consumed by Pi's `subagent` extension.
 

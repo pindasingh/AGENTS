@@ -1,0 +1,35 @@
+{
+  "eval_id": "eshop-sequence",
+  "eval_name": "eShop checkout sequence",
+  "prompt": "Using only the supplied Microsoft eShopOnContainers evidence, create the most useful sequence diagram for an engineer who needs to understand checkout acceptance followed by asynchronous order processing. Show the web caller path, the exact point of the HTTP 202 response, successful completion, stock rejection, and every evidenced store, event, consumer, and notification involved. Preserve exact contract names where the evidence provides them, do not invent unsupported behavior, and make the final artifact self-contained and reviewable offline.",
+  "configurations": {
+    "signal-render": [
+      "build-signal-graph",
+      "render-signal-graph"
+    ],
+    "mermaid-show-me": [
+      "mermaid-diagrams",
+      "show-me"
+    ]
+  },
+  "assertions": [
+    "The artifact presents ordered interaction semantics appropriate to a sequence request rather than only static topology.",
+    "The web caller reaches the Web BFF/API gateway and Basket boundary before checkout processing.",
+    "Basket reads Redis, publishes UserCheckoutAcceptedIntegrationEvent, and returns HTTP 202 before asynchronous order creation or completion.",
+    "Ordering creates and persists the order before OrderStartedIntegrationEvent leads to Basket cleanup and Catalog validation.",
+    "AwaitingValidation remains distinct from Submitted, and Catalog reads or writes Catalog SQL as supported by the fixture.",
+    "The successful branch reaches Payment, paid-state persistence in Ordering SQL, and Ordering SignalR Hub status propagation.",
+    "Stock rejection is a separate branch that reaches its evidenced cancelled terminal effects and status propagation.",
+    "Exact evidenced event names remain distinct; no unsupported payment-failure contract, fraud, shipping, card-network, or email behavior is invented.",
+    "Every material interaction visible in the final artifact is supported by the supplied fixture and represented consistently in its authoritative source.",
+    "The authoritative source and final reviewable artifact are both preserved, and the final artifact has no required network dependency."
+  ],
+  "blind_review_questions": [
+    "What happens before the caller receives HTTP 202?",
+    "Does order creation happen synchronously or asynchronously from the caller's perspective?",
+    "Which event initiates order creation?",
+    "When is the basket deleted?",
+    "Where does stock validation occur?",
+    "How do success and stock rejection terminate?"
+  ]
+}

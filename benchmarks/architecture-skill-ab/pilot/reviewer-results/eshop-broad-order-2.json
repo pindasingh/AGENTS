@@ -1,0 +1,26 @@
+{
+  "case": "eshop-broad",
+  "presentation_order": 2,
+  "winner": "B",
+  "reviewer_reasoning": "B is substantially more faithful to the supplied evidence and explicitly preserves key uncertainties. A provides a stronger interactive diagram, but materially invents the forbidden payment-failure path and unsupported contract names, and asserts an unsupported AwaitingValidation producer. B's main weakness is broad-view compliance: its offline artifact presents cards, a relationship table, and Mermaid source rather than rendering the requested diagram, and it omits delivery of the paid status to the SignalR Hub.",
+  "coordinator_note": "The fixture establishes Ordering SignalR Hub as a downstream order-status consumer but does not explicitly prove paid-status delivery in the selected trace. Treat the claimed omission as disputed until an atomic fact sheet is adjudicated.",
+  "scores": {
+    "A": {
+      "semantic_accuracy": 43,
+      "requested_view_compliance": 82,
+      "artifact_usefulness": 68,
+      "technical_integrity": 88,
+      "weighted_total": 59.9,
+      "recomputed_legacy_total": 60.3
+    },
+    "B": {
+      "semantic_accuracy": 91,
+      "requested_view_compliance": 57,
+      "artifact_usefulness": 72,
+      "technical_integrity": 85,
+      "weighted_total": 79.8
+    }
+  },
+  "rubric_version": "legacy-pilot-v1",
+  "caveat": "Generated before the current semantic/projection/view/usefulness rubric and atomic fact-sheet protocol; retain as directional reviewer evidence only."
+}

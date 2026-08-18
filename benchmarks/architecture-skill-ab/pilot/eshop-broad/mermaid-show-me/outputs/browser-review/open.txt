@@ -1,0 +1,2 @@
+✓ eShopOnContainers broad architecture review
+  file:///C:/Repos/.worktrees/AGENTS/worktree-quiet-harbor-5b25/skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-broad/mermaid-show-me/outputs/architecture-review.html

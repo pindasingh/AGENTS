@@ -1,0 +1,24 @@
+{
+  "case": "eshop-sequence",
+  "presentation_order": 2,
+  "winner": "B",
+  "reviewer_reasoning": "B provides an actual ordered Mermaid sequence with a clear HTTP 202 boundary, asynchronous continuation, and distinct success/rejection branches. It preserves unknown stock-result contract names instead of inventing them and is readable offline. A covers most participants and interactions, but its final artifact is primarily a static topology whose overlapping arrows do not make sequence order legible; it also assigns unsupported exact stock-result event names and collapses the Catalog result into the later Ordering-published stock-confirmed event.",
+  "scores": {
+    "A": {
+      "semantic_accuracy": 64,
+      "requested_view_compliance": 30,
+      "artifact_usefulness": 55,
+      "technical_integrity": 94,
+      "weighted_total": 58.4
+    },
+    "B": {
+      "semantic_accuracy": 87,
+      "requested_view_compliance": 92,
+      "artifact_usefulness": 90,
+      "technical_integrity": 96,
+      "weighted_total": 89.5
+    }
+  },
+  "rubric_version": "legacy-pilot-v1",
+  "caveat": "Generated before the current semantic/projection/view/usefulness rubric and atomic fact-sheet protocol; retain as directional reviewer evidence only."
+}

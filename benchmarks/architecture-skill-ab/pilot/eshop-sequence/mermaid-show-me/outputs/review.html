@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>eShop checkout acceptance and asynchronous order processing</title>
+<style>
+:root{color-scheme:dark;--bg:#09111f;--panel:#111d31;--ink:#e8eef9;--muted:#9fb0c9;--line:#355071;--sync:#65b7ff;--event:#bc8cff;--ok:#49d49d;--bad:#ff758f;--warn:#f4c76b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1180px;margin:auto;padding:32px 20px 56px}h1{font-size:clamp(26px,4vw,44px);line-height:1.08;margin:0 0 10px}h2{margin-top:34px}.lede,.note{color:var(--muted)}.accept{border:1px solid var(--sync);background:#102945;padding:18px;border-radius:14px;margin:24px 0}.accept strong{color:#fff}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:stretch}.step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative}.step b{display:block;color:var(--sync);margin-bottom:4px}.step:not(:last-child):after{content:'→';position:absolute;right:-10px;top:40%;z-index:2;color:var(--muted)}.branches{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.branch{border-radius:14px;padding:18px;background:var(--panel)}.success{border:1px solid var(--ok)}.reject{border:1px solid var(--bad)}.branch h3{margin-top:0}.success h3{color:var(--ok)}.reject h3{color:var(--bad)}ol{padding-left:21px}.contract{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#dfcbff;overflow-wrap:anywhere}.stores{display:flex;gap:10px;flex-wrap:wrap}.pill{border:1px solid var(--line);border-radius:999px;padding:7px 12px;background:var(--panel)}details{margin-top:24px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}summary{cursor:pointer;padding:14px 16px;font-weight:700}pre{white-space:pre;overflow:auto;margin:0;padding:18px;border-top:1px solid var(--line);color:#d7e4f7;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}.gap{border-left:4px solid var(--warn);padding:10px 14px;background:#2b2517;color:#f8e4b3}@media(max-width:800px){.flow{grid-template-columns:1fr}.step:not(:last-child):after{content:'↓';right:50%;top:auto;bottom:-14px}.branches{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<p class="note">Microsoft eShopOnContainers · evidence-bounded review artifact · offline</p>
+<h1>Checkout is accepted first.<br>Order processing continues asynchronously.</h1>
+<p class="lede">A compact review view of the authoritative Mermaid sequence in <span class="contract">checkout-order-processing.mmd</span>. This page does not render Mermaid and uses no external assets.</p>
+<section class="flow" aria-label="HTTP acceptance path">
+<div class="step"><b>1 · Browser</b>Checkout over HTTP/REST</div>
+<div class="step"><b>2 · Web BFF</b>Calls Basket</div>
+<div class="step"><b>3 · Basket API</b><span class="contract">POST api/v1/Basket/checkout</span></div>
+<div class="step"><b>4 · Basket Redis</b>Read customer basket</div>
+<div class="step"><b>5 · Event bus</b>Publish <span class="contract">UserCheckoutAcceptedIntegrationEvent</span></div>
+</section>
+<div class="accept"><strong>Exact acceptance boundary:</strong> only after publishing the checkout event, Basket returns <span class="contract">HTTP 202 Accepted</span> through the Web BFF to the browser. The browser does not wait for order creation or completion.</div>
+<h2>Shared asynchronous processing</h2>
+<ol>
+<li>RabbitMQ (or the replaceable Azure Service Bus implementation) delivers <span class="contract">UserCheckoutAcceptedIntegrationEvent</span> to Ordering.</li>
+<li>Ordering dispatches idempotent <span class="contract">IdentifiedCommand&lt;CreateOrderCommand, bool&gt;</span> using <span class="contract">RequestId</span>.</li>
+<li>Ordering creates and commits the order in Ordering SQL, records integration events, then publishes <span class="contract">OrderStartedIntegrationEvent</span> and <span class="contract">OrderStatusChangedToSubmittedIntegrationEvent</span>.</li>
+<li>Basket consumes <span class="contract">OrderStartedIntegrationEvent</span> and deletes the checked-out basket from Redis.</li>
+<li>Ordering publishes <span class="contract">OrderStatusChangedToAwaitingValidationIntegrationEvent</span>; Catalog consumes it and checks Catalog SQL.</li>
+</ol>
+<div class="branches">
+<section class="branch success"><h3>Stock confirmed → successful completion</h3><ol>
+<li>Catalog validates and decrements stock in Catalog SQL, then publishes the stock-confirmed result.</li>
+<li>Ordering consumes it, saves the changed state in Ordering SQL, and publishes <span class="contract">OrderStatusChangedToStockConfirmedIntegrationEvent</span>.</li>
+<li>Ordering SignalR Hub consumes that event and notifies connected clients; Payment also consumes it.</li>
+<li>Payment publishes <span class="contract">OrderPaymentSuccededIntegrationEvent</span> (spelling preserved).</li>
+<li>Ordering consumes it, marks the order paid in Ordering SQL, and publishes the paid status. Ordering SignalR Hub consumes order-status events and notifies connected clients.</li>
+</ol></section>
+<section class="branch reject"><h3>Stock rejected → cancellation</h3><ol>
+<li>Catalog publishes the stock-rejected result.</li>
+<li>Ordering consumes it.</li>
+<li>Ordering cancels the order and saves it in Ordering SQL.</li>
+</ol></section>
+</div>
+<h2>Evidenced stores and infrastructure</h2><div class="stores"><span class="pill">Basket Redis</span><span class="pill">Ordering SQL</span><span class="pill">Catalog SQL</span><span class="pill">RabbitMQ event bus</span><span class="pill">Azure Service Bus alternative</span></div>
+<h2>Evidence limits</h2>
+<p class="gap">The evidence requires a payment-failure variant but supplies no failure contract name, resulting state transition, store write, or notification. The authoritative diagram marks that gap rather than inventing behavior. It likewise does not supply exact contract names for stock-result events or the paid-status event.</p>
+<details><summary>Review the authoritative Mermaid source</summary><pre>sequenceDiagram
+    actor Browser
+    participant WebBFF as Web BFF / API gateway
+    participant Basket as Basket API
+    participant Redis as Basket Redis
+    participant Bus as Event bus (RabbitMQ; Azure Service Bus alternative)
+    participant Ordering as Ordering API
+    participant OrderingSQL as Ordering SQL
+    participant Catalog as Catalog API
+    participant CatalogSQL as Catalog SQL
+    participant Payment as Payment API
+    participant SignalR as Ordering SignalR Hub
+
+    Browser-&gt;&gt;WebBFF: Checkout over HTTP/REST
+    WebBFF-&gt;&gt;Basket: POST api/v1/Basket/checkout (x-requestid)
+    Basket-&gt;&gt;Redis: GetBasketAsync(user identity)
+    Redis--&gt;&gt;Basket: Customer basket
+    Basket-&gt;&gt;Bus: Publish UserCheckoutAcceptedIntegrationEvent
+    Basket--&gt;&gt;WebBFF: HTTP 202 Accepted
+    WebBFF--&gt;&gt;Browser: HTTP 202 Accepted
+    Note over Browser,Bus: Acceptance ends the HTTP request; all processing below is asynchronous
+
+    Bus--&gt;&gt;Ordering: Deliver UserCheckoutAcceptedIntegrationEvent
+    Ordering-&gt;&gt;Ordering: Handle with IdentifiedCommand(CreateOrderCommand, RequestId)
+    Ordering-&gt;&gt;OrderingSQL: Begin transaction; add order and integration-event records
+    Ordering-&gt;&gt;OrderingSQL: Commit order
+    Ordering-&gt;&gt;Bus: Publish OrderStartedIntegrationEvent
+    Ordering-&gt;&gt;Bus: Publish OrderStatusChangedToSubmittedIntegrationEvent
+    Bus--&gt;&gt;Basket: Deliver OrderStartedIntegrationEvent
+    Basket-&gt;&gt;Redis: Delete checked-out basket
+    Ordering-&gt;&gt;Bus: Publish OrderStatusChangedToAwaitingValidationIntegrationEvent
+    Bus--&gt;&gt;Catalog: Deliver OrderStatusChangedToAwaitingValidationIntegrationEvent
+    Catalog-&gt;&gt;CatalogSQL: Validate stock and, when valid, decrement stock
+
+    alt Stock confirmed
+        Catalog-&gt;&gt;Bus: Publish stock-confirmed result (exact contract not supplied)
+        Bus--&gt;&gt;Ordering: Deliver stock-confirmed result
+        Ordering-&gt;&gt;OrderingSQL: Change order state; save
+        Ordering-&gt;&gt;Bus: Publish OrderStatusChangedToStockConfirmedIntegrationEvent
+        Bus--&gt;&gt;SignalR: Deliver OrderStatusChangedToStockConfirmedIntegrationEvent
+        SignalR-&gt;&gt;SignalR: Notify connected clients
+        Bus--&gt;&gt;Payment: Deliver OrderStatusChangedToStockConfirmedIntegrationEvent
+        Payment-&gt;&gt;Bus: Publish OrderPaymentSuccededIntegrationEvent
+        Bus--&gt;&gt;Ordering: Deliver OrderPaymentSuccededIntegrationEvent
+        Ordering-&gt;&gt;OrderingSQL: Mark order paid; save
+        Ordering-&gt;&gt;Bus: Publish paid status (exact contract not supplied)
+        Bus--&gt;&gt;SignalR: Deliver paid order-status event
+        SignalR-&gt;&gt;SignalR: Notify connected clients
+    else Stock rejected
+        Catalog-&gt;&gt;Bus: Publish stock-rejected result (exact contract not supplied)
+        Bus--&gt;&gt;Ordering: Deliver stock-rejected result
+        Ordering-&gt;&gt;OrderingSQL: Cancel order; save
+    end
+
+    opt Payment failure variant required by fixture
+        Note over Payment,Ordering: The supplied evidence does not identify the failure contract, resulting state change, or notification
+    end</pre></details>
+</main></body></html>

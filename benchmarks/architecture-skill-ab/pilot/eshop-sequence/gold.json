@@ -1,0 +1,51 @@
+{
+  "source_of_truth": "skills/build-signal-graph/evals/fixtures/eshop-checkout",
+  "required_participants": [
+    "Browser",
+    "Web BFF/API gateway",
+    "Basket API",
+    "Basket Redis",
+    "Event bus",
+    "Ordering API",
+    "Ordering SQL",
+    "Catalog API",
+    "Catalog SQL",
+    "Payment API",
+    "Ordering SignalR Hub"
+  ],
+  "required_order_constraints": [
+    "Browser calls Web BFF/API gateway, which calls POST api/v1/Basket/checkout.",
+    "Basket reads Redis before publishing UserCheckoutAcceptedIntegrationEvent.",
+    "Basket publishes UserCheckoutAcceptedIntegrationEvent before returning HTTP 202 through the Web BFF to the browser.",
+    "Asynchronous Ordering work occurs after the HTTP acceptance boundary from the caller's perspective.",
+    "Ordering consumes UserCheckoutAcceptedIntegrationEvent and dispatches idempotent IdentifiedCommand<CreateOrderCommand, bool> using RequestId.",
+    "Ordering creates and commits the order in Ordering SQL before publishing OrderStartedIntegrationEvent and OrderStatusChangedToSubmittedIntegrationEvent.",
+    "Basket consumes OrderStartedIntegrationEvent and deletes the checked-out basket from Redis.",
+    "Catalog consumes OrderStatusChangedToAwaitingValidationIntegrationEvent and validates/decrements stock in Catalog SQL.",
+    "The stock-confirmed and stock-rejected outcomes branch only after shared processing.",
+    "On confirmation, Ordering changes state and OrderStatusChangedToStockConfirmedIntegrationEvent reaches Payment and Ordering SignalR Hub.",
+    "Payment publishes OrderPaymentSuccededIntegrationEvent; Ordering consumes it and marks the order paid in Ordering SQL.",
+    "On rejection, Ordering consumes the stock result and cancels the order in Ordering SQL."
+  ],
+  "required_view_semantics": [
+    "The artifact makes interaction order legible as a sequence, not only as static topology.",
+    "HTTP returns are visually distinguishable from calls or publications.",
+    "The success and stock-rejection alternatives are visibly distinct.",
+    "Exact supplied contract names and the evidenced spelling OrderPaymentSuccededIntegrationEvent are preserved."
+  ],
+  "unknown_or_unsupported": [
+    "Payment-failure event contract, consumer, state transition, store write, and notification are not supplied.",
+    "The exact stock-result contract names are not supplied.",
+    "The exact paid-status contract name is not supplied.",
+    "The supplied excerpts establish consumption but not the producer transition for OrderStatusChangedToAwaitingValidationIntegrationEvent.",
+    "The final recipient or transport beyond Ordering SignalR Hub is not supplied."
+  ],
+  "forbidden_inventions": [
+    "Fraud service",
+    "Shipping service",
+    "Card-network service",
+    "Email service",
+    "Payment-owned database",
+    "Named payment-failure event or terminal state"
+  ]
+}

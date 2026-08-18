@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>eShopOnContainers broad architecture review</title>
+<style>
+:root{--ink:#172033;--muted:#60708b;--line:#cbd5e1;--panel:#f8fafc;--http:#2563eb;--data:#15803d;--msg:#a16207;--notify:#7e22ce}*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:#eef2f7}main{max-width:1180px;margin:auto;padding:28px}h1{margin:.1em 0}.lead{color:var(--muted);max-width:85ch}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:24px 0}.boundary{background:white;border:1px solid var(--line);border-radius:12px;padding:14px;min-height:150px}.boundary h2{font-size:14px;margin:0 0 10px;color:#334155}.node{background:var(--panel);border-left:4px solid #64748b;border-radius:5px;padding:7px;margin:7px 0}.infra{grid-column:span 5;min-height:auto}.stores{grid-column:span 5;min-height:auto;display:flex;gap:14px;align-items:center}.stores h2{margin-right:auto}.stores .node{min-width:180px}.legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}.legend b{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.relationships{background:white;border:1px solid var(--line);border-radius:12px;padding:18px;overflow:auto}table{border-collapse:collapse;width:100%;min-width:820px}th,td{text-align:left;padding:9px;border-bottom:1px solid #e2e8f0;vertical-align:top}th{color:#475569}.kind{font-weight:700}.http{color:var(--http)}.data{color:var(--data)}.msg{color:var(--msg)}.notify{color:var(--notify)}details{background:white;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:18px}pre{white-space:pre;overflow:auto;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:8px;font:12px/1.45 ui-monospace,monospace}@media(max-width:850px){main{padding:16px}.grid{grid-template-columns:1fr}.boundary,.infra,.stores{grid-column:auto}.stores{display:block}}
+</style></head><body><main>
+<h1>Microsoft eShopOnContainers — broad architecture</h1>
+<p class="lead">Offline structural review of callers, ingress, service ownership, stores, event infrastructure, and major directed relationships. The Mermaid source embedded below is authoritative; this page does not render Mermaid.</p>
+<div class="grid">
+<section class="boundary"><h2>CALLERS</h2><div class="node">Browser application</div><div class="node">Mobile application</div></section>
+<section class="boundary"><h2>INGRESS RUNTIMES</h2><div class="node">Web BFF / API gateway</div><div class="node">Mobile BFF / API gateway</div></section>
+<section class="boundary"><h2>BASKET OWNERSHIP</h2><div class="node">Basket API + checkout</div><div class="node">OrderStarted handler</div></section>
+<section class="boundary"><h2>ORDERING OWNERSHIP</h2><div class="node">Checkout consumer + idempotent command</div><div class="node">Order handlers</div><div class="node">SignalR Hub</div></section>
+<section class="boundary"><h2>CATALOG / PAYMENT</h2><div class="node">Catalog stock handler</div><div class="node">Payment stock-confirmed handler</div></section>
+<section class="boundary stores"><h2>SERVICE-OWNED STORES</h2><div class="node">Basket Redis</div><div class="node">Ordering relational DB</div><div class="node">Catalog relational DB</div></section>
+<section class="boundary infra"><h2>EXTERNAL EVENT-BUS INFRASTRUCTURE</h2><div class="node">Event-bus abstraction → RabbitMQ (development/test) · Azure Service Bus (alternative)</div></section>
+</div>
+<div class="legend"><span><b style="background:var(--http)"></b>HTTP</span><span><b style="background:var(--data)"></b>Persistence</span><span><b style="background:var(--msg)"></b>Messaging</span><span><b style="background:var(--notify)"></b>Notification consumer</span></div>
+<section class="relationships"><h2>Directed relationship index</h2><table><thead><tr><th>From</th><th>To</th><th>Relationship</th><th>Kind</th></tr></thead><tbody>
+<tr><td>Browser / Mobile</td><td>respective BFF/API gateway</td><td>HTTP/REST</td><td class="kind http">HTTP</td></tr>
+<tr><td>Web / Mobile gateway</td><td>Basket API</td><td>POST api/v1/basket/checkout</td><td class="kind http">HTTP</td></tr>
+<tr><td>Basket checkout</td><td>Basket Redis</td><td>reads customer basket</td><td class="kind data">Persistence</td></tr>
+<tr><td>Basket checkout</td><td>Event bus</td><td>publishes UserCheckoutAcceptedIntegrationEvent, then returns HTTP 202</td><td class="kind msg">Messaging</td></tr>
+<tr><td>Event bus</td><td>Ordering checkout consumer</td><td>delivers checkout event; dispatch uses request ID for idempotency</td><td class="kind msg">Messaging</td></tr>
+<tr><td>CreateOrderCommand handler</td><td>Ordering DB / event bus</td><td>creates order transactionally; records/publishes OrderStarted and Submitted events after transaction</td><td class="kind data">Persistence + messaging</td></tr>
+<tr><td>Event bus</td><td>Basket OrderStarted handler</td><td>deletes checked-out basket from Redis</td><td class="kind msg">Messaging + persistence</td></tr>
+<tr><td>Event bus</td><td>Catalog stock handler</td><td>delivers AwaitingValidation; handler validates/decrements Catalog stock and publishes confirmed or rejected</td><td class="kind msg">Messaging + persistence</td></tr>
+<tr><td>Event bus</td><td>Ordering handlers</td><td>stock confirmed changes state; rejected cancels order</td><td class="kind msg">Messaging + persistence</td></tr>
+<tr><td>Event bus</td><td>Payment handler</td><td>stock-confirmed leads to payment-succeeded publication in sample flow</td><td class="kind msg">Messaging</td></tr>
+<tr><td>Event bus</td><td>Ordering SignalR Hub</td><td>delivers OrderStatusChangedToStockConfirmedIntegrationEvent</td><td class="kind notify">Notification consumer</td></tr>
+<tr><td>Event bus</td><td>Ordering payment handler</td><td>payment succeeded marks order paid and publishes paid status</td><td class="kind msg">Messaging + persistence</td></tr>
+</tbody></table></section>
+<details open><summary><strong>Authoritative Mermaid source (architecture.mmd)</strong></summary><pre id="source">flowchart LR
+  subgraph Callers[Callers]
+    Browser[Browser application]
+    Mobile[Mobile application]
+  end
+
+  subgraph Ingress[Ingress runtimes]
+    WebBFF[Web BFF / API gateway]
+    MobileBFF[Mobile BFF / API gateway]
+  end
+
+  subgraph BasketBoundary[Basket microservice ownership]
+    BasketAPI[Basket API]
+    BasketCheckout[Checkout handler]
+    BasketEventHandler[OrderStarted event handler]
+    BasketAPI --&gt;|dispatches POST api/v1/basket/checkout| BasketCheckout
+  end
+
+  subgraph OrderingBoundary[Ordering microservice ownership]
+    CheckoutConsumer[UserCheckoutAccepted event handler]
+    IdempotentCommand[Identified CreateOrderCommand]
+    OrderCommandHandler[CreateOrderCommand handler]
+    OrderingEventHandlers[Stock and payment result handlers]
+    OrderingHub[Ordering SignalR Hub]
+    CheckoutConsumer --&gt;|dispatches with checkout request ID| IdempotentCommand
+    IdempotentCommand --&gt;|handles| OrderCommandHandler
+  end
+
+  subgraph CatalogBoundary[Catalog microservice ownership]
+    CatalogStockHandler[Awaiting-validation stock handler]
+  end
+
+  subgraph PaymentBoundary[Payment microservice ownership]
+    PaymentHandler[Stock-confirmed payment handler]
+  end
+
+  subgraph Stores[Service-owned stores]
+    BasketRedis[(Basket Redis)]
+    OrderingSQL[(Ordering relational database)]
+    CatalogSQL[(Catalog relational database)]
+  end
+
+  subgraph EventInfrastructure[External event-bus infrastructure]
+    EventBus[Event-bus abstraction]
+    RabbitMQ[RabbitMQ - development/test]
+    AzureServiceBus[Azure Service Bus - alternative]
+    EventBus --&gt;|implementation| RabbitMQ
+    EventBus -.-&gt;|alternative implementation| AzureServiceBus
+  end
+
+  Browser --&gt;|HTTP/REST| WebBFF
+  Mobile --&gt;|HTTP/REST| MobileBFF
+  WebBFF --&gt;|HTTP POST checkout| BasketAPI
+  MobileBFF --&gt;|HTTP POST checkout| BasketAPI
+  BasketCheckout --&gt;|reads customer basket| BasketRedis
+  BasketCheckout --&gt;|publishes UserCheckoutAcceptedIntegrationEvent| EventBus
+  BasketCheckout -.-&gt;|then returns HTTP 202 Accepted| WebBFF
+  BasketCheckout -.-&gt;|then returns HTTP 202 Accepted| MobileBFF
+  EventBus --&gt;|delivers UserCheckoutAcceptedIntegrationEvent| CheckoutConsumer
+
+  OrderCommandHandler --&gt;|transactionally creates order| OrderingSQL
+  OrderCommandHandler --&gt;|records/publishes OrderStartedIntegrationEvent| EventBus
+  OrderCommandHandler --&gt;|records/publishes OrderStatusChangedToSubmittedIntegrationEvent| EventBus
+  EventBus --&gt;|delivers OrderStartedIntegrationEvent| BasketEventHandler
+  BasketEventHandler --&gt;|deletes checked-out basket| BasketRedis
+
+  EventBus --&gt;|delivers OrderStatusChangedToAwaitingValidationIntegrationEvent| CatalogStockHandler
+  CatalogStockHandler --&gt;|validates and decrements stock| CatalogSQL
+  CatalogStockHandler --&gt;|publishes stock-confirmed or stock-rejected| EventBus
+  EventBus --&gt;|delivers stock result| OrderingEventHandlers
+  OrderingEventHandlers --&gt;|confirmed: changes order state; rejected: cancels order| OrderingSQL
+
+  OrderingEventHandlers --&gt;|publishes OrderStatusChangedToStockConfirmedIntegrationEvent| EventBus
+  EventBus --&gt;|delivers stock-confirmed event| PaymentHandler
+  EventBus --&gt;|delivers stock-confirmed event| OrderingHub
+  PaymentHandler --&gt;|publishes OrderPaymentSuccededIntegrationEvent in sample flow| EventBus
+  EventBus --&gt;|delivers payment-succeeded event| OrderingEventHandlers
+  OrderingEventHandlers --&gt;|marks order paid| OrderingSQL
+  OrderingEventHandlers --&gt;|publishes paid status| EventBus
+</pre></details>
+<p class="lead">Evidence does not identify the SignalR notification recipient, the producer transition for AwaitingValidation, or a payment-failure contract/state transition. Those links are intentionally not invented.</p>
+</main></body></html>

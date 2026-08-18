@@ -1,0 +1,56 @@
+{
+  "source_of_truth": "skills/build-signal-graph/evals/fixtures/eshop-checkout",
+  "required_identities": [
+    "Browser application",
+    "Mobile application",
+    "Web BFF/API gateway",
+    "Mobile BFF/API gateway",
+    "Basket microservice",
+    "Ordering microservice",
+    "Catalog microservice",
+    "Payment microservice",
+    "Basket Redis",
+    "Ordering relational database",
+    "Catalog relational database",
+    "Event-bus infrastructure with RabbitMQ and Azure Service Bus as alternatives",
+    "Ordering SignalR Hub"
+  ],
+  "required_relationships": [
+    "Browser enters through Web BFF/API gateway over HTTP/REST.",
+    "Mobile enters through Mobile BFF/API gateway over HTTP/REST.",
+    "Both gateways call the Basket checkout endpoint.",
+    "Basket reads the customer basket from Redis.",
+    "Basket publishes UserCheckoutAcceptedIntegrationEvent before returning HTTP 202 Accepted.",
+    "The event bus delivers UserCheckoutAcceptedIntegrationEvent to Ordering, which dispatches an idempotent CreateOrderCommand using RequestId.",
+    "Ordering creates the order in Ordering SQL and publishes OrderStartedIntegrationEvent after the transaction.",
+    "Basket consumes OrderStartedIntegrationEvent and deletes the checked-out basket from Redis.",
+    "Catalog consumes OrderStatusChangedToAwaitingValidationIntegrationEvent, validates/decrements Catalog SQL stock, and publishes a stock-confirmed or stock-rejected result.",
+    "Ordering consumes the stock result; confirmed changes state and rejected cancels the order in Ordering SQL.",
+    "OrderStatusChangedToStockConfirmedIntegrationEvent reaches Payment and Ordering SignalR Hub.",
+    "Payment publishes OrderPaymentSuccededIntegrationEvent; Ordering consumes it and marks the order paid in Ordering SQL.",
+    "Ordering publishes a paid status and Ordering SignalR Hub consumes order-status events."
+  ],
+  "required_semantics": [
+    "HTTP 202 acceptance does not wait for asynchronous order completion.",
+    "Publish, broker delivery, consumer handling, and persistence are distinct operations.",
+    "RabbitMQ and Azure Service Bus are alternatives, not two simultaneous required brokers.",
+    "A component identity is not duplicated merely to make layout easier."
+  ],
+  "unknown_or_unsupported": [
+    "Payment-failure event contract, consumer, state transition, store write, and notification are not supplied.",
+    "The exact stock-result contract names are not supplied.",
+    "The exact paid-status contract name is not supplied.",
+    "The supplied excerpts establish consumption but not the producer transition for OrderStatusChangedToAwaitingValidationIntegrationEvent.",
+    "The final recipient or transport beyond Ordering SignalR Hub is not supplied.",
+    "No Payment-owned store is supplied."
+  ],
+  "forbidden_inventions": [
+    "Fraud service",
+    "Shipping service",
+    "Card-network service",
+    "Email service",
+    "Payment-owned database",
+    "Named payment-failure event or terminal state",
+    "Simultaneously required RabbitMQ and Azure Service Bus brokers"
+  ]
+}

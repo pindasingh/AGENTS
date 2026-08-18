@@ -1,0 +1,1994 @@
+{
+  "BrowserCustomer": {
+    "kind": "actor",
+    "name": "Browser customer",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Browser application is a separate caller",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "MobileCustomer": {
+    "kind": "actor",
+    "name": "Mobile customer",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Mobile application is a separate caller",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "EShop": {
+    "kind": "system",
+    "name": "eShopOnContainers",
+    "description": "Owned application boundary represented by the selected checkout fixture",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Fixture scopes the public checkout and order process",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "WebBff": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Web BFF / API gateway",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Web gateway is a separate ingress runtime",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "MobileBff": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Mobile BFF / API gateway",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Mobile gateway is a separate ingress runtime",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "BasketApi": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Basket API",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Basket is a separate microservice",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "OrderingApi": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Ordering API",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Ordering is a separate microservice",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "CatalogApi": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Catalog API",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Catalog is a separate microservice",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "PaymentApi": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Payment API",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Payment is a separate microservice",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "OrderingSignalRHub": {
+    "kind": "service",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Ordering SignalR Hub",
+    "description": "Downstream order-status notification consumer",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Ordering SignalR Hub consumes order-status integration events",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "BasketRedis": {
+    "kind": "store",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Basket data",
+    "engine": "Redis",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Basket persistence is Redis",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "OrderingSql": {
+    "kind": "store",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Ordering data",
+    "engine": "Relational SQL",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Ordering owns a relational database",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "CatalogSql": {
+    "kind": "store",
+    "system": {
+      "$ref": "EShop"
+    },
+    "name": "Catalog data",
+    "engine": "Relational SQL",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Catalog owns a separate relational database",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "EventBus": {
+    "kind": "external",
+    "name": "Event bus (RabbitMQ / Azure Service Bus)",
+    "description": "RabbitMQ in development/test; Azure Service Bus is a replaceable alternative",
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/storage-and-boundaries.md",
+        "observation": "Published event-bus infrastructure choices",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "WebCheckout": {
+    "kind": "endpoint",
+    "owner": {
+      "$ref": "WebBff"
+    },
+    "name": "Web checkout ingress",
+    "method": "POST",
+    "path": "/checkout",
+    "request": {
+      "description": "{ requestId: string, userId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "userId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "response": {
+      "description": "{ status: 202 }",
+      "shape": "struct",
+      "fields": {
+        "status": {
+          "description": "202",
+          "shape": "literal",
+          "value": 202
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Web client enters through its BFF over HTTP/REST",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "MobileCheckout": {
+    "kind": "endpoint",
+    "owner": {
+      "$ref": "MobileBff"
+    },
+    "name": "Mobile checkout ingress",
+    "method": "POST",
+    "path": "/checkout",
+    "request": {
+      "description": "{ requestId: string, userId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "userId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "response": {
+      "description": "{ status: 202 }",
+      "shape": "struct",
+      "fields": {
+        "status": {
+          "description": "202",
+          "shape": "literal",
+          "value": 202
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Mobile client enters through its BFF over HTTP/REST",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "BasketCheckout": {
+    "kind": "endpoint",
+    "owner": {
+      "$ref": "BasketApi"
+    },
+    "name": "Basket checkout",
+    "method": "POST",
+    "path": "/api/v1/basket/checkout",
+    "request": {
+      "description": "{ requestId: string, userId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "userId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "response": {
+      "description": "{ status: 202 }",
+      "shape": "struct",
+      "fields": {
+        "status": {
+          "description": "202",
+          "shape": "literal",
+          "value": 202
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/BasketController.cs",
+        "symbol": "CheckoutAsync",
+        "observation": "Checkout endpoint reads Basket, publishes acceptance event, and returns Accepted",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "CheckoutAccepted": {
+    "kind": "message",
+    "name": "UserCheckoutAcceptedIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, userId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "userId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/BasketController.cs",
+        "symbol": "CheckoutAsync",
+        "observation": "Basket publishes checkout data and request ID",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "OrderStarted": {
+    "kind": "message",
+    "name": "OrderStartedIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/execution-trace.md",
+        "observation": "Ordering publishes OrderStarted after commit",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "AwaitingValidation": {
+    "kind": "message",
+    "name": "OrderStatusChangedToAwaitingValidationIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Catalog consumes awaiting-validation status",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "StockConfirmed": {
+    "kind": "message",
+    "name": "OrderStockConfirmedIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Catalog publishes stock-confirmed outcome",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "StockRejected": {
+    "kind": "message",
+    "name": "OrderStockRejectedIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Catalog publishes stock-rejected outcome",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "StatusStockConfirmed": {
+    "kind": "message",
+    "name": "OrderStatusChangedToStockConfirmedIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/execution-trace.md",
+        "observation": "Payment and Ordering SignalR Hub handle stock-confirmed status",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "PaymentSucceeded": {
+    "kind": "message",
+    "name": "OrderPaymentSuccededIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "evidence/execution-trace.md",
+        "observation": "Payment publishes payment-succeeded event",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "PaymentFailed": {
+    "kind": "message",
+    "name": "OrderPaymentFailedIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Required payment-failure path terminates in cancellation",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "PaidStatus": {
+    "kind": "message",
+    "name": "OrderStatusChangedToPaidIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Paid status is published and propagated",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "CancelledStatus": {
+    "kind": "message",
+    "name": "OrderStatusChangedToCancelledIntegrationEvent",
+    "schema": {
+      "description": "{ requestId: string, orderId: string }",
+      "shape": "struct",
+      "fields": {
+        "requestId": {
+          "description": "string",
+          "shape": "primitive"
+        },
+        "orderId": {
+          "description": "string",
+          "shape": "primitive"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Rejected/payment-failed outcomes persist and propagate cancellation",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "IntegrationEvents": {
+    "kind": "topic",
+    "system": {
+      "$ref": "EShop"
+    },
+    "broker": {
+      "$ref": "EventBus"
+    },
+    "name": "Integration events",
+    "messages": [
+      {
+        "$ref": "CheckoutAccepted"
+      },
+      {
+        "$ref": "OrderStarted"
+      },
+      {
+        "$ref": "AwaitingValidation"
+      },
+      {
+        "$ref": "StockConfirmed"
+      },
+      {
+        "$ref": "StockRejected"
+      },
+      {
+        "$ref": "StatusStockConfirmed"
+      },
+      {
+        "$ref": "PaymentSucceeded"
+      },
+      {
+        "$ref": "PaymentFailed"
+      },
+      {
+        "$ref": "PaidStatus"
+      },
+      {
+        "$ref": "CancelledStatus"
+      }
+    ],
+    "evidence": [
+      {
+        "repository": "dotnet-architecture/eShopOnContainers",
+        "revision": "dev",
+        "path": "README.md",
+        "observation": "Services coordinate through integration events over a message bus",
+        "certainty": "observed"
+      }
+    ]
+  },
+  "OrderingCheckoutSub": {
+    "kind": "subscription",
+    "name": "Ordering checkout",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "CheckoutAccepted"
+    }
+  },
+  "BasketOrderStartedSub": {
+    "kind": "subscription",
+    "name": "Basket order started",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStarted"
+    }
+  },
+  "CatalogValidationSub": {
+    "kind": "subscription",
+    "name": "Catalog awaiting validation",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "AwaitingValidation"
+    }
+  },
+  "OrderingStockConfirmedSub": {
+    "kind": "subscription",
+    "name": "Ordering stock confirmed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "StockConfirmed"
+    }
+  },
+  "OrderingStockRejectedSub": {
+    "kind": "subscription",
+    "name": "Ordering stock rejected",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "StockRejected"
+    }
+  },
+  "PaymentStockConfirmedSub": {
+    "kind": "subscription",
+    "name": "Payment stock confirmed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "StatusStockConfirmed"
+    }
+  },
+  "OrderingPaymentSucceededSub": {
+    "kind": "subscription",
+    "name": "Ordering payment succeeded",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "PaymentSucceeded"
+    }
+  },
+  "OrderingPaymentFailedSub": {
+    "kind": "subscription",
+    "name": "Ordering payment failed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "PaymentFailed"
+    }
+  },
+  "HubStockConfirmedSub": {
+    "kind": "subscription",
+    "name": "Hub stock confirmed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "StatusStockConfirmed"
+    }
+  },
+  "HubPaidSub": {
+    "kind": "subscription",
+    "name": "Hub paid",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "PaidStatus"
+    }
+  },
+  "HubCancelledSub": {
+    "kind": "subscription",
+    "name": "Hub cancelled",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "CancelledStatus"
+    }
+  },
+  "OrderingCheckoutConsumer": {
+    "kind": "consumer",
+    "name": "Ordering checkout handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingCheckoutSub"
+    }
+  },
+  "BasketOrderStartedConsumer": {
+    "kind": "consumer",
+    "name": "Basket order-started handler",
+    "service": {
+      "$ref": "BasketApi"
+    },
+    "subscription": {
+      "$ref": "BasketOrderStartedSub"
+    }
+  },
+  "CatalogValidationConsumer": {
+    "kind": "consumer",
+    "name": "Catalog validation handler",
+    "service": {
+      "$ref": "CatalogApi"
+    },
+    "subscription": {
+      "$ref": "CatalogValidationSub"
+    }
+  },
+  "OrderingStockConfirmedConsumer": {
+    "kind": "consumer",
+    "name": "Ordering stock-confirmed handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingStockConfirmedSub"
+    }
+  },
+  "OrderingStockRejectedConsumer": {
+    "kind": "consumer",
+    "name": "Ordering stock-rejected handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingStockRejectedSub"
+    }
+  },
+  "PaymentStockConfirmedConsumer": {
+    "kind": "consumer",
+    "name": "Payment stock-confirmed handler",
+    "service": {
+      "$ref": "PaymentApi"
+    },
+    "subscription": {
+      "$ref": "PaymentStockConfirmedSub"
+    }
+  },
+  "OrderingPaymentSucceededConsumer": {
+    "kind": "consumer",
+    "name": "Ordering payment-succeeded handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingPaymentSucceededSub"
+    }
+  },
+  "OrderingPaymentFailedConsumer": {
+    "kind": "consumer",
+    "name": "Ordering payment-failed handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingPaymentFailedSub"
+    }
+  },
+  "HubStockConfirmedConsumer": {
+    "kind": "consumer",
+    "name": "Hub stock-confirmed handler",
+    "service": {
+      "$ref": "OrderingSignalRHub"
+    },
+    "subscription": {
+      "$ref": "HubStockConfirmedSub"
+    }
+  },
+  "HubPaidConsumer": {
+    "kind": "consumer",
+    "name": "Hub paid handler",
+    "service": {
+      "$ref": "OrderingSignalRHub"
+    },
+    "subscription": {
+      "$ref": "HubPaidSub"
+    }
+  },
+  "HubCancelledConsumer": {
+    "kind": "consumer",
+    "name": "Hub cancelled handler",
+    "service": {
+      "$ref": "OrderingSignalRHub"
+    },
+    "subscription": {
+      "$ref": "HubCancelledSub"
+    }
+  },
+  "WebCheckoutAcceptance": {
+    "kind": "flow",
+    "name": "web checkout acceptance",
+    "steps": [
+      {
+        "action": "request",
+        "from": {
+          "$ref": "BrowserCustomer"
+        },
+        "to": {
+          "$ref": "WebCheckout"
+        },
+        "operation": "POST /checkout",
+        "contract": {
+          "$ref": "WebCheckout"
+        }
+      },
+      {
+        "action": "request",
+        "from": {
+          "$ref": "WebBff"
+        },
+        "to": {
+          "$ref": "BasketCheckout"
+        },
+        "operation": "POST /api/v1/basket/checkout",
+        "contract": {
+          "$ref": "BasketCheckout"
+        }
+      },
+      {
+        "action": "read",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "BasketRedis"
+        },
+        "operation": "GET customer basket",
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/BasketController.cs",
+            "symbol": "CheckoutAsync",
+            "observation": "Checkout reads basket from repository",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "BasketApi"
+        },
+        "operation": "create checkout-accepted event"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish checkout accepted",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        },
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/BasketController.cs",
+            "symbol": "CheckoutAsync",
+            "observation": "Publish occurs before Accepted response",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "respond",
+        "from": {
+          "$ref": "BasketCheckout"
+        },
+        "to": {
+          "$ref": "WebBff"
+        },
+        "operation": "HTTP 202 Accepted",
+        "contract": {
+          "$ref": "BasketCheckout"
+        }
+      },
+      {
+        "action": "respond",
+        "from": {
+          "$ref": "WebCheckout"
+        },
+        "to": {
+          "$ref": "BrowserCustomer"
+        },
+        "operation": "HTTP 202 Accepted",
+        "contract": {
+          "$ref": "WebCheckout"
+        }
+      }
+    ]
+  },
+  "MobileCheckoutAcceptance": {
+    "kind": "flow",
+    "name": "mobile checkout acceptance",
+    "steps": [
+      {
+        "action": "request",
+        "from": {
+          "$ref": "MobileCustomer"
+        },
+        "to": {
+          "$ref": "MobileCheckout"
+        },
+        "operation": "POST /checkout",
+        "contract": {
+          "$ref": "MobileCheckout"
+        }
+      },
+      {
+        "action": "request",
+        "from": {
+          "$ref": "MobileBff"
+        },
+        "to": {
+          "$ref": "BasketCheckout"
+        },
+        "operation": "POST /api/v1/basket/checkout",
+        "contract": {
+          "$ref": "BasketCheckout"
+        }
+      },
+      {
+        "action": "read",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "BasketRedis"
+        },
+        "operation": "GET customer basket",
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/BasketController.cs",
+            "symbol": "CheckoutAsync",
+            "observation": "Checkout reads basket from repository",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "BasketApi"
+        },
+        "operation": "create checkout-accepted event"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish checkout accepted",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        },
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/BasketController.cs",
+            "symbol": "CheckoutAsync",
+            "observation": "Publish occurs before Accepted response",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "respond",
+        "from": {
+          "$ref": "BasketCheckout"
+        },
+        "to": {
+          "$ref": "MobileBff"
+        },
+        "operation": "HTTP 202 Accepted",
+        "contract": {
+          "$ref": "BasketCheckout"
+        }
+      },
+      {
+        "action": "respond",
+        "from": {
+          "$ref": "MobileCheckout"
+        },
+        "to": {
+          "$ref": "MobileCustomer"
+        },
+        "operation": "HTTP 202 Accepted",
+        "contract": {
+          "$ref": "MobileCheckout"
+        }
+      }
+    ]
+  },
+  "SuccessfulOrder": {
+    "kind": "flow",
+    "name": "asynchronous successful order",
+    "continuesFrom": [
+      {
+        "$ref": "WebCheckoutAcceptance"
+      },
+      {
+        "$ref": "MobileCheckoutAcceptance"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CheckoutAccepted"
+        },
+        "operation": "continue UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingCheckoutSub"
+        },
+        "operation": "deliver UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingCheckoutConsumer"
+        },
+        "operation": "consume checkout accepted and dispatch idempotent CreateOrderCommand",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        },
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/UserCheckoutAcceptedIntegrationEventHandler.cs",
+            "symbol": "Handle",
+            "observation": "Request ID wraps CreateOrderCommand in IdentifiedCommand",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "OrderingApi"
+        },
+        "operation": "create order from checkout command"
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "COMMIT new order and integration-event records",
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/CreateOrderCommandHandler.cs",
+            "symbol": "Handle",
+            "observation": "Order and OrderStarted event are saved in the unit of work",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish order started",
+        "contract": {
+          "$ref": "OrderStarted"
+        }
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish awaiting validation",
+        "contract": {
+          "$ref": "AwaitingValidation"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "BasketOrderStartedSub"
+        },
+        "operation": "deliver OrderStartedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStarted"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "BasketOrderStartedConsumer"
+        },
+        "operation": "consume order started",
+        "contract": {
+          "$ref": "OrderStarted"
+        }
+      },
+      {
+        "action": "delete",
+        "from": {
+          "$ref": "BasketOrderStartedConsumer"
+        },
+        "to": {
+          "$ref": "BasketRedis"
+        },
+        "operation": "DELETE checked-out basket"
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogValidationSub"
+        },
+        "operation": "deliver OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "AwaitingValidation"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "operation": "consume awaiting validation",
+        "contract": {
+          "$ref": "AwaitingValidation"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "CatalogSql"
+        },
+        "operation": "validate and decrement catalog stock"
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "operation": "create stock-confirmed result"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish stock confirmed",
+        "contract": {
+          "$ref": "StockConfirmed"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockConfirmedSub"
+        },
+        "operation": "deliver OrderStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "StockConfirmed"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockConfirmedConsumer"
+        },
+        "operation": "consume OrderStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "StockConfirmed"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "UPDATE order to stock confirmed"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish stock-confirmed status",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubStockConfirmedSub"
+        },
+        "operation": "deliver OrderStatusChangedToStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubStockConfirmedConsumer"
+        },
+        "operation": "notify clients of stock-confirmed status",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedSub"
+        },
+        "operation": "deliver OrderStatusChangedToStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "operation": "handle stock-confirmed payment",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "operation": "create payment-succeeded result"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish payment succeeded",
+        "contract": {
+          "$ref": "PaymentSucceeded"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingPaymentSucceededSub"
+        },
+        "operation": "deliver OrderPaymentSuccededIntegrationEvent",
+        "contract": {
+          "$ref": "PaymentSucceeded"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "operation": "consume OrderPaymentSuccededIntegrationEvent",
+        "contract": {
+          "$ref": "PaymentSucceeded"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "UPDATE order to paid"
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "to": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "operation": "create paid status"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish paid status",
+        "contract": {
+          "$ref": "PaidStatus"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubPaidSub"
+        },
+        "operation": "deliver OrderStatusChangedToPaidIntegrationEvent",
+        "contract": {
+          "$ref": "PaidStatus"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubPaidConsumer"
+        },
+        "operation": "notify clients of paid status",
+        "contract": {
+          "$ref": "PaidStatus"
+        }
+      }
+    ]
+  },
+  "StockRejectedOrder": {
+    "kind": "flow",
+    "name": "asynchronous stock rejection",
+    "continuesFrom": [
+      {
+        "$ref": "WebCheckoutAcceptance"
+      },
+      {
+        "$ref": "MobileCheckoutAcceptance"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CheckoutAccepted"
+        },
+        "operation": "continue UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingCheckoutSub"
+        },
+        "operation": "deliver UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingCheckoutConsumer"
+        },
+        "operation": "consume checkout accepted and dispatch idempotent CreateOrderCommand",
+        "contract": {
+          "$ref": "CheckoutAccepted"
+        },
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/UserCheckoutAcceptedIntegrationEventHandler.cs",
+            "symbol": "Handle",
+            "observation": "Request ID wraps CreateOrderCommand in IdentifiedCommand",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "OrderingApi"
+        },
+        "operation": "create order from checkout command"
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "COMMIT new order and integration-event records",
+        "evidence": [
+          {
+            "repository": "dotnet-architecture/eShopOnContainers",
+            "revision": "dev",
+            "path": "evidence/CreateOrderCommandHandler.cs",
+            "symbol": "Handle",
+            "observation": "Order and OrderStarted event are saved in the unit of work",
+            "certainty": "observed"
+          }
+        ]
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish order started",
+        "contract": {
+          "$ref": "OrderStarted"
+        }
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish awaiting validation",
+        "contract": {
+          "$ref": "AwaitingValidation"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "BasketOrderStartedSub"
+        },
+        "operation": "deliver OrderStartedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStarted"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "BasketOrderStartedConsumer"
+        },
+        "operation": "consume order started",
+        "contract": {
+          "$ref": "OrderStarted"
+        }
+      },
+      {
+        "action": "delete",
+        "from": {
+          "$ref": "BasketOrderStartedConsumer"
+        },
+        "to": {
+          "$ref": "BasketRedis"
+        },
+        "operation": "DELETE checked-out basket"
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogValidationSub"
+        },
+        "operation": "deliver OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "AwaitingValidation"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "operation": "consume awaiting validation",
+        "contract": {
+          "$ref": "AwaitingValidation"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "CatalogSql"
+        },
+        "operation": "validate and decrement catalog stock"
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "operation": "create stock-rejected result"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish stock rejected",
+        "contract": {
+          "$ref": "StockRejected"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockRejectedSub"
+        },
+        "operation": "deliver OrderStockRejectedIntegrationEvent",
+        "contract": {
+          "$ref": "StockRejected"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "operation": "consume OrderStockRejectedIntegrationEvent",
+        "contract": {
+          "$ref": "StockRejected"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "UPDATE order to cancelled (stock rejected)"
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "operation": "create cancelled status"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish cancelled status",
+        "contract": {
+          "$ref": "CancelledStatus"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubCancelledSub"
+        },
+        "operation": "deliver OrderStatusChangedToCancelledIntegrationEvent",
+        "contract": {
+          "$ref": "CancelledStatus"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubCancelledConsumer"
+        },
+        "operation": "notify clients of cancelled status",
+        "contract": {
+          "$ref": "CancelledStatus"
+        }
+      }
+    ]
+  },
+  "PaymentFailedOrder": {
+    "kind": "flow",
+    "name": "asynchronous payment failure",
+    "continuesFrom": [
+      {
+        "$ref": "SuccessfulOrder"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "StatusStockConfirmed"
+        },
+        "operation": "continue OrderStatusChangedToStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedSub"
+        },
+        "operation": "deliver OrderStatusChangedToStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "operation": "handle stock-confirmed payment",
+        "contract": {
+          "$ref": "StatusStockConfirmed"
+        }
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "operation": "create payment-failed result"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish payment failed",
+        "contract": {
+          "$ref": "PaymentFailed"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingPaymentFailedSub"
+        },
+        "operation": "deliver OrderPaymentFailedIntegrationEvent",
+        "contract": {
+          "$ref": "PaymentFailed"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingPaymentFailedConsumer"
+        },
+        "operation": "consume OrderPaymentFailedIntegrationEvent",
+        "contract": {
+          "$ref": "PaymentFailed"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingPaymentFailedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "UPDATE order to cancelled (payment failed)"
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "OrderingPaymentFailedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingPaymentFailedConsumer"
+        },
+        "operation": "create cancelled status"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingPaymentFailedConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish cancelled status",
+        "contract": {
+          "$ref": "CancelledStatus"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubCancelledSub"
+        },
+        "operation": "deliver OrderStatusChangedToCancelledIntegrationEvent",
+        "contract": {
+          "$ref": "CancelledStatus"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "HubCancelledConsumer"
+        },
+        "operation": "notify clients of cancelled status",
+        "contract": {
+          "$ref": "CancelledStatus"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+- banner
+  - heading "Architecture interaction map" [level=1, ref=e1]
+  - paragraph
+    - StaticText "13 components · 50 interactions · 4 end-to-end paths"
+  - button "Show all" [ref=e2]
+  - StaticText " selected path"
+  - StaticText " other architecture"
+- main
+  - group "Interactive architecture component and interaction graph"
+    - button "POST /checkout from Mobile customer to Mobile BFF / API gateway" [ref=e4]
+      - StaticText "POST /checkout"
+    - button "POST /api/v1/basket/checkout from Mobile BFF / API gateway to Basket API" [ref=e5]
+      - StaticText "POST /api/v1/basket/checkout"
+    - button "GET customer basket from Basket API to Basket data" [ref=e6]
+      - StaticText "GET customer basket"
+    - button "publish checkout accepted from Basket API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e7]
+      - StaticText "publish checkout accepted"
+    - button "HTTP 202 Accepted from Basket API to Mobile BFF / API gateway" [ref=e8]
+      - StaticText "HTTP 202 Accepted"
+    - button "HTTP 202 Accepted from Mobile BFF / API gateway to Mobile customer" [ref=e9]
+      - StaticText "HTTP 202 Accepted"
+    - button "handle stock-confirmed payment from Event bus (RabbitMQ / Azure Service Bus) to Payment API" [ref=e10]
+      - StaticText "handle stock-confirmed payment"
+    - button "publish payment failed from Payment API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e11]
+      - StaticText "publish payment failed"
+    - button "consume OrderPaymentFailedIntegrationEvent from Event bus (RabbitMQ / Azure Service Bus) to Ordering API" [ref=e12]
+      - StaticText "consume OrderPaymentFailedIntegrationEvent"
+    - button "UPDATE order to cancelled (payment failed) from Ordering API to Ordering data" [ref=e13]
+      - StaticText "UPDATE order to cancelled (payment failed)"
+    - button "publish cancelled status from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e14]
+      - StaticText "publish cancelled status"
+    - button "notify clients of cancelled status from Event bus (RabbitMQ / Azure Service Bus) to Ordering SignalR Hub" [ref=e15]
+      - StaticText "notify clients of cancelled status"
+    - button "consume checkout accepted and dispatch idempotent CreateOrderCommand from Event bus (RabbitMQ / Azure Service Bus) to Ordering API" [ref=e16]
+      - StaticText "consume checkout accepted and dispatch id…"
+    - button "COMMIT new order and integration-event records from Ordering API to Ordering data" [ref=e17]
+      - StaticText "COMMIT new order and integration-event re…"
+    - button "publish order started from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e18]
+      - StaticText "publish order started"
+    - button "publish awaiting validation from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e19]
+      - StaticText "publish awaiting validation"
+    - button "consume order started from Event bus (RabbitMQ / Azure Service Bus) to Basket API" [ref=e20]
+      - StaticText "consume order started"
+    - button "DELETE checked-out basket from Basket API to Basket data" [ref=e21]
+      - StaticText "DELETE checked-out basket"
+    - button "consume awaiting validation from Event bus (RabbitMQ / Azure Service Bus) to Catalog API" [ref=e22]
+      - StaticText "consume awaiting validation"
+    - button "validate and decrement catalog stock from Catalog API to Catalog data" [ref=e23]
+      - StaticText "validate and decrement catalog stock"
+    - button "publish stock rejected from Catalog API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e24]
+      - StaticText "publish stock rejected"
+    - button "consume OrderStockRejectedIntegrationEvent from Event bus (RabbitMQ / Azure Service Bus) to Ordering API" [ref=e25]
+      - StaticText "consume OrderStockRejectedIntegrationEvent"
+    - button "UPDATE order to cancelled (stock rejected) from Ordering API to Ordering data" [ref=e26]
+      - StaticText "UPDATE order to cancelled (stock rejected)"
+    - button "publish cancelled status from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e27]
+      - StaticText "publish cancelled status"
+    - button "notify clients of cancelled status from Event bus (RabbitMQ / Azure Service Bus) to Ordering SignalR Hub" [ref=e28]
+      - StaticText "notify clients of cancelled status"
+    - button "consume checkout accepted and dispatch idempotent CreateOrderCommand from Event bus (RabbitMQ / Azure Service Bus) to Ordering API" [ref=e29]
+      - StaticText "consume checkout accepted and dispatch id…"
+    - button "COMMIT new order and integration-event records from Ordering API to Ordering data" [ref=e30]
+      - StaticText "COMMIT new order and integration-event re…"
+    - button "publish order started from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e31]
+      - StaticText "publish order started"
+    - button "publish awaiting validation from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e32]
+      - StaticText "publish awaiting validation"
+    - button "consume order started from Event bus (RabbitMQ / Azure Service Bus) to Basket API" [ref=e33]
+      - StaticText "consume order started"
+    - button "DELETE checked-out basket from Basket API to Basket data" [ref=e34]
+      - StaticText "DELETE checked-out basket"
+    - button "consume awaiting validation from Event bus (RabbitMQ / Azure Service Bus) to Catalog API" [ref=e35]
+      - StaticText "consume awaiting validation"
+    - button "validate and decrement catalog stock from Catalog API to Catalog data" [ref=e36]
+      - StaticText "validate and decrement catalog stock"
+    - button "publish stock confirmed from Catalog API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e37]
+      - StaticText "publish stock confirmed"
+    - button "consume OrderStockConfirmedIntegrationEvent from Event bus (RabbitMQ / Azure Service Bus) to Ordering API" [ref=e38]
+      - StaticText "consume OrderStockConfirmedIntegrationEve…"
+    - button "UPDATE order to stock confirmed from Ordering API to Ordering data" [ref=e39]
+      - StaticText "UPDATE order to stock confirmed"
+    - button "publish stock-confirmed status from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e40]
+      - StaticText "publish stock-confirmed status"
+    - button "notify clients of stock-confirmed status from Event bus (RabbitMQ / Azure Service Bus) to Ordering SignalR Hub" [ref=e41]
+      - StaticText "notify clients of stock-confirmed status"
+    - button "handle stock-confirmed payment from Event bus (RabbitMQ / Azure Service Bus) to Payment API" [ref=e42]
+      - StaticText "handle stock-confirmed payment"
+    - button "publish payment succeeded from Payment API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e43]
+      - StaticText "publish payment succeeded"
+    - button "consume OrderPaymentSuccededIntegrationEvent from Event bus (RabbitMQ / Azure Service Bus) to Ordering API" [ref=e44]
+      - StaticText "consume OrderPaymentSuccededIntegrationEv…"
+    - button "UPDATE order to paid from Ordering API to Ordering data" [ref=e45]
+      - StaticText "UPDATE order to paid"
+    - button "publish paid status from Ordering API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e46]
+      - StaticText "publish paid status"
+    - button "notify clients of paid status from Event bus (RabbitMQ / Azure Service Bus) to Ordering SignalR Hub" [ref=e47]
+      - StaticText "notify clients of paid status"
+    - button "POST /checkout from Browser customer to Web BFF / API gateway" [ref=e48]
+      - StaticText "POST /checkout"
+    - button "POST /api/v1/basket/checkout from Web BFF / API gateway to Basket API" [ref=e49]
+      - StaticText "POST /api/v1/basket/checkout"
+    - button "GET customer basket from Basket API to Basket data" [ref=e50]
+      - StaticText "GET customer basket"
+    - button "publish checkout accepted from Basket API to Event bus (RabbitMQ / Azure Service Bus)" [ref=e51]
+      - StaticText "publish checkout accepted"
+    - button "HTTP 202 Accepted from Basket API to Web BFF / API gateway" [ref=e52]
+      - StaticText "HTTP 202 Accepted"
+    - button "HTTP 202 Accepted from Web BFF / API gateway to Browser customer" [ref=e53]
+      - StaticText "HTTP 202 Accepted"
+    - button "Basket API service" [ref=e54]
+      - StaticText "Basket API"
+      - StaticText "service"
+    - button "Basket data store" [ref=e55]
+      - StaticText "Basket data"
+      - StaticText "Redis"
+    - button "Browser customer actor" [ref=e56]
+      - StaticText "Browser customer"
+      - StaticText "actor"
+    - button "Catalog API service" [ref=e57]
+      - StaticText "Catalog API"
+      - StaticText "service"
+    - button "Catalog data store" [ref=e58]
+      - StaticText "Catalog data"
+      - StaticText "Relational SQL"
+    - button "Event bus (RabbitMQ / Azure Service Bus) external" [ref=e59]
+      - StaticText "Event bus (RabbitMQ / Azur…"
+      - StaticText "external"
+    - button "Mobile BFF / API gateway service" [ref=e60]
+      - StaticText "Mobile BFF / API gateway"
+      - StaticText "service"
+    - button "Mobile customer actor" [ref=e61]
+      - StaticText "Mobile customer"
+      - StaticText "actor"
+    - button "Ordering API service" [ref=e62]
+      - StaticText "Ordering API"
+      - StaticText "service"
+    - button "Ordering SignalR Hub service" [ref=e63]
+      - StaticText "Ordering SignalR Hub"
+      - StaticText "service"
+    - button "Ordering data store" [ref=e64]
+      - StaticText "Ordering data"
+      - StaticText "Relational SQL"
+    - button "Payment API service" [ref=e65]
+      - StaticText "Payment API"
+      - StaticText "service"
+    - button "Web BFF / API gateway service" [ref=e66]
+      - StaticText "Web BFF / API gateway"
+      - StaticText "service"
+- complementary
+  - heading "Explore paths" [level=2, ref=e3]
+  - paragraph
+    - StaticText "Select any HTTP, persistence, transport, or downstream interaction. If it belongs to several end-to-end paths, choose the path to highlight. Select a component to see every path that touches it."

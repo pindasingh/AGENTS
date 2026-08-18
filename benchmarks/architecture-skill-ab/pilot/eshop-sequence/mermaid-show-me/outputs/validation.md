@@ -1,0 +1,9 @@
+# Validation notes
+
+- **Authoritative source:** `checkout-order-processing.mmd`.
+- **Artifact:** `review.html` is self-contained, responsive, and has no scripts, remote assets, executable links, or network dependency. It provides a human-reviewable flow and embeds the authoritative Mermaid text for offline inspection.
+- **Rendering claim:** No Mermaid renderer was invoked or available as part of this run. The Mermaid source was reviewed structurally as text; this is not a claim of renderer validation.
+- **Coverage review:** The sequence includes the browser and Web BFF HTTP path, Basket's Redis read, event publication before the exact HTTP 202 response, the asynchronous boundary, Ordering/Catalog/Payment consumers, Ordering SignalR Hub notifications, RabbitMQ and its Azure Service Bus alternative, all three evidenced stores, successful payment completion, and stock rejection.
+- **Contract review:** Exact supplied names are preserved, including `UserCheckoutAcceptedIntegrationEvent`, `CreateOrderCommand`, `IdentifiedCommand<CreateOrderCommand, bool>`, `OrderStartedIntegrationEvent`, `OrderStatusChangedToSubmittedIntegrationEvent`, `OrderStatusChangedToAwaitingValidationIntegrationEvent`, `OrderStatusChangedToStockConfirmedIntegrationEvent`, and the evidenced spelling `OrderPaymentSuccededIntegrationEvent`.
+- **Non-invention review:** Missing stock-confirmed, stock-rejected, paid-status, and payment-failure contract details are explicitly labeled as unsupplied rather than guessed. No fraud, card-network, shipping, or email behavior was added.
+- **Semantics review:** Dashed arrows represent HTTP returns and broker delivery; publication and delivery are shown separately. Shared processing precedes the stock-result `alt`; the payment-evidence gap is an `opt` note rather than fabricated execution.
