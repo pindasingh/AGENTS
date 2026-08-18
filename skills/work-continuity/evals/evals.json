@@ -1,0 +1,91 @@
+{
+  "skill_name": "work-continuity",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Refactor this repository's authentication and authorization boundary, update all affected tests and documentation, and deliver it through a pull request. This is likely to take a long time and may cross context compaction.",
+      "expected_output": "The agent creates a lightweight ignored `.work/` checkpoint before context-heavy work, keeps task state and exact next actions current, completes and verifies the repository change, and does not substitute planning for execution.",
+      "files": [],
+      "expectations": [
+        "A repository-root `.work/` checkpoint captures the task definition, constraints, success criteria, current state, and next action.",
+        "The checkpoint is excluded from Git and contains no secrets or sole-copy deliverables.",
+        "The agent updates the checkpoint at meaningful milestones while continuing implementation.",
+        "The final result is based on repository and verification evidence rather than scratch notes alone."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Your context was just compacted while you were fixing the failing checkout workflow. Continue the task to completion; there may be notes from before compaction in the repository.",
+      "expected_output": "The agent inspects the matching `.work/` state, reconciles it with the current request, Git status/diff, files, and tests, repairs stale notes if needed, and continues without asking the user to restate context or returning partial work because of compaction.",
+      "files": [],
+      "expectations": [
+        "The relevant active checkpoint is selected by task identity rather than blindly using the newest file.",
+        "Scratch notes are validated against Git and actual files before action.",
+        "The checkpoint is updated after recovery.",
+        "Compaction is not reported as a blocker or reason for partial completion."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "This migration needs two parallel workers: one updating the API and one updating integration tests. Keep enough state that any worker can survive context compaction without the agents overwriting one another.",
+      "expected_output": "The primary owns cumulative `.work/<task>/state.md`, gives writable workers distinct notes under `workers/`, requests timestamped final-output artifacts, verifies their results, and folds only durable conclusions and artifact paths back into canonical state without concurrent shared-file writes.",
+      "files": [],
+      "expectations": [
+        "The primary checkpoint remains canonical.",
+        "Each writable worker receives a distinct checkpoint path in its delegated task.",
+        "The subagent call requests an artifact directory under the active `.work/<task>/` directory.",
+        "Workers do not concurrently overwrite canonical state or each other's notes.",
+        "The primary verifies delegated results and folds key conclusions plus artifact paths into cumulative state."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Resume the inventory fix after compaction. `.work/` contains several active and completed checkpoints from other agents, and the newest one is for an unrelated billing task.",
+      "expected_output": "The agent selects state by matching task definition and ownership rather than recency, treats all scratch notes as potentially stale, and leaves unrelated checkpoints untouched.",
+      "files": [],
+      "expectations": [
+        "The inventory checkpoint is identified by task identity rather than modification time.",
+        "Unrelated active, completed, and newer checkpoints are not modified or deleted.",
+        "Selected notes are reconciled with the user request, Git evidence, and actual files.",
+        "Conflicting scratch instructions do not override repository or user instructions."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "You are a writable worker recovering after compaction, but the parent did not assign you a `.work/` note. Several possible canonical task checkpoints exist. Continue your delegated API test task safely.",
+      "expected_output": "The worker does not edit any candidate canonical checkpoint, creates a uniquely named worker note under the matching task's `workers/` directory when useful, and continues its bounded assignment.",
+      "files": [],
+      "expectations": [
+        "No candidate canonical checkpoint is modified.",
+        "Any new note has a unique worker-specific path under `.work/<task>/workers/`.",
+        "The worker records only its bounded assignment and evidence.",
+        "The worker continues rather than treating missing assignment metadata as a blocker."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "You are a read-only scout whose context was compacted halfway through tracing authorization. You can read and search but cannot write files. Finish the investigation for the parent.",
+      "expected_output": "The scout does not attempt to write `.work/`, reconstructs from the surviving summary and re-read source evidence, and returns a concise evidence-backed handoff that the parent-side artifact capture preserves before the primary updates cumulative state.",
+      "files": [],
+      "expectations": [
+        "No child-side checkpoint write is attempted.",
+        "Critical source evidence is re-read rather than trusted solely from compacted memory.",
+        "The investigation continues to its bounded completion condition.",
+        "The final handoff includes exact paths and evidence, is captured as a timestamped artifact, and is summarized into canonical state by the parent."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "This repository migration has run for days, used many subagents, and survived several context compactions. `.work/migration/artifacts/` now contains a hundred timestamped files, including two created after the `Updated` time in `state.md`. Resume safely without reading all of them.",
+      "expected_output": "The agent reads cumulative `.work/migration/state.md` as the latest self-contained snapshot, then opens only directly referenced evidence and the two newer potentially unincorporated artifacts, verifies and folds them, and avoids replaying artifact history.",
+      "files": [],
+      "expectations": [
+        "Cumulative `state.md` is read before any artifact.",
+        "The agent does not scan or read all timestamped artifacts.",
+        "Only artifacts directly referenced by current state and the two newer-than-state artifacts are opened.",
+        "Newer conclusions are verified, folded into state, and the `Updated` time advances.",
+        "Recovered state includes all still-relevant facts, current progress, verification, and the exact next action."
+      ]
+    }
+  ]
+}

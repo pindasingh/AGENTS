@@ -8,6 +8,7 @@
  *   - Single: { agent: "name", task: "..." }
  *   - Parallel: { tasks: [{ agent: "name", task: "..." }, ...] }
  *   - Chain: { chain: [{ agent: "name", task: "... {previous} ..." }, ...] }
+ *   - Optional artifactDir: persist timestamped terminal outputs under repository .work/
  *
  * Uses JSON mode to capture structured output from subagents.
  */
@@ -30,6 +31,11 @@ import {
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { type AgentConfig, type AgentScope, discoverAgents, type SubagentThinkingLevel } from "./agents.ts";
+import {
+	persistSubagentArtifacts,
+	resolveArtifactDirectory,
+	type SubagentArtifactInput,
+} from "./artifacts.ts";
 import { ChildActivityTracker } from "./activity.ts";
 import { ContextViewer, SUBAGENT_JOB_ENTRY_TYPE } from "./context-viewer.ts";
 
@@ -181,6 +187,8 @@ export interface SingleResult {
 	stopReason?: string;
 	errorMessage?: string;
 	step?: number;
+	completedAt?: string;
+	artifactPath?: string;
 }
 
 export interface SubagentDetails {
@@ -188,6 +196,8 @@ export interface SubagentDetails {
 	agentScope: AgentScope;
 	projectAgentsDir: string | null;
 	jobId?: string;
+	artifactDir?: string;
+	artifactError?: string;
 	results: SingleResult[];
 }
 
@@ -211,6 +221,8 @@ function summarizeNestedDetails(details: SubagentDetails, depth = 0, budget = { 
 		agentScope: details.agentScope,
 		projectAgentsDir: details.projectAgentsDir,
 		jobId: details.jobId,
+		artifactDir: details.artifactDir,
+		artifactError: details.artifactError,
 		results: details.results.flatMap((result) => {
 			if (budget.nodes <= 0) return [];
 			budget.nodes -= 1;
@@ -244,6 +256,7 @@ export function terminalizePendingDetails(details: SubagentDetails, error: unkno
 				stopReason: aborted ? "aborted" : "error",
 				errorMessage: result.errorMessage ?? message,
 				stderr: result.stderr || message,
+				completedAt: result.completedAt ?? new Date().toISOString(),
 			};
 		}),
 	};
@@ -265,11 +278,27 @@ function isFailedResult(result: SingleResult): boolean {
 	return result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";
 }
 
+function isTerminalResult(result: SingleResult): boolean {
+	return (
+		result.status === "complete" ||
+		result.status === "failed" ||
+		result.status === "aborted" ||
+		(result.exitCode !== -1 && result.status !== "queued" && result.status !== "running")
+	);
+}
+
+function getFailureDiagnostics(result: SingleResult): string {
+	return [result.errorMessage, result.stderr]
+		.filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
+		.join("\n");
+}
+
 function getResultOutput(result: SingleResult): string {
-	if (isFailedResult(result)) {
-		return result.errorMessage || result.stderr || getFinalOutput(result.messages) || "(no output)";
-	}
-	return getFinalOutput(result.messages) || "(no output)";
+	const finalOutput = getFinalOutput(result.messages);
+	if (!isFailedResult(result)) return finalOutput || "(no output)";
+	const diagnostics = getFailureDiagnostics(result);
+	if (finalOutput && diagnostics) return `${finalOutput}\n\nFailure diagnostics:\n${diagnostics}`;
+	return finalOutput || diagnostics || "(no output)";
 }
 
 function truncateParallelOutput(output: string): string {
@@ -373,6 +402,7 @@ async function runSingleAgent(
 			status: "failed",
 			activity: "Failed",
 			step,
+			completedAt: new Date().toISOString(),
 		};
 	}
 
@@ -551,6 +581,7 @@ async function runSingleAgent(
 		currentResult.exitCode = exitCode;
 		currentResult.status = wasAborted ? "aborted" : exitCode === 0 && currentResult.stopReason !== "error" ? "complete" : "failed";
 		currentResult.activity = wasAborted ? "Aborted" : currentResult.status === "complete" ? "Completed" : "Failed";
+		currentResult.completedAt = new Date().toISOString();
 		emitUpdate();
 		if (wasAborted) throw new Error("Subagent was aborted");
 		return currentResult;
@@ -597,6 +628,12 @@ const SubagentParams = Type.Object({
 		Type.Boolean({ description: "Prompt before running project-local agents. Default: true.", default: true }),
 	),
 	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process (single mode)" })),
+	artifactDir: Type.Optional(
+		Type.String({
+			description:
+				"Repository-relative directory inside .work/ where timestamped final subagent outputs should be preserved",
+		}),
+	),
 });
 
 export default function (pi: ExtensionAPI) {
@@ -684,6 +721,7 @@ export default function (pi: ExtensionAPI) {
 		description: [
 			`Available user agents: ${availableUserAgentCatalog}. Use these exact names; scout is the reconnaissance/exploration agent.`,
 			"Delegate tasks to specialized subagents with isolated context. Delegation runs in the background and completion automatically resumes the parent in a follow-up turn.",
+			"For substantive long-running work, set artifactDir to a repository-relative .work/<task>/artifacts directory to preserve timestamped final outputs outside model context.",
 			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
 			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
 			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
@@ -692,10 +730,12 @@ export default function (pi: ExtensionAPI) {
 		promptGuidelines: [
 			`For subagent calls using the default user scope, use only these advertised agent names: ${availableUserAgentNames}. Use scout for reconnaissance or exploration.`,
 			"The subagent tool runs asynchronously. After delegation, continue only independent work; do not duplicate or overlap the delegated scope. A completion message will automatically start a follow-up turn so you can pick the result back up.",
+			"For substantive delegated work whose findings must survive parent compaction, set subagent artifactDir to the active task's .work/<task>/artifacts directory; preserve final key output, then fold verified facts into the latest cumulative task checkpoint.",
 		],
 		parameters: SubagentParams,
 
 		async execute(toolCallId, params, _signal, _onUpdate, ctx) {
+			const invocationCwd = ctx.cwd;
 			const agentScope: AgentScope = params.agentScope ?? "user";
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
@@ -707,6 +747,7 @@ export default function (pi: ExtensionAPI) {
 			const modeCount = Number(hasChain) + Number(hasTasks) + Number(hasSingle);
 			let detailsJobId: string | undefined;
 			let latestDetails: SubagentDetails | undefined;
+			let latestArtifactError: string | undefined;
 
 			const buildDetails =
 				(mode: "single" | "parallel" | "chain") =>
@@ -715,6 +756,8 @@ export default function (pi: ExtensionAPI) {
 					agentScope,
 					projectAgentsDir: discovery.projectAgentsDir,
 					jobId: detailsJobId,
+					artifactDir: params.artifactDir,
+					artifactError: latestArtifactError,
 					results,
 				});
 			const makeDetails =
@@ -736,6 +779,36 @@ export default function (pi: ExtensionAPI) {
 				const slash = model.indexOf("/");
 				if (slash > 0) return ctx.modelRegistry.find(model.slice(0, slash), model.slice(slash + 1))?.contextWindow ?? 0;
 				return ctx.model?.id === model ? ctx.model.contextWindow : 0;
+			};
+
+			const preserveArtifacts = async (details: SubagentDetails): Promise<string[]> => {
+				if (!params.artifactDir) return [];
+				const completedResults = details.results.filter(isTerminalResult);
+				const artifactInputs: SubagentArtifactInput[] = completedResults.map((result) => ({
+					agent: result.agent,
+					// Chain execution expands {previous} in result.task. Preserve the
+					// authored task instead of duplicating prior agent output here.
+					task: result.step ? (params.chain?.[result.step - 1]?.task ?? result.task) : result.task,
+					output: getFinalOutput(result.messages),
+					diagnostics: isFailedResult(result) ? getFailureDiagnostics(result) : undefined,
+					completedAt: result.completedAt,
+					status: result.status,
+					exitCode: result.exitCode,
+					stopReason: result.stopReason,
+					errorMessage: result.errorMessage,
+					model: result.model,
+					turns: result.usage.turns,
+				}));
+				const artifacts = await persistSubagentArtifacts({
+					cwd: invocationCwd,
+					artifactDir: params.artifactDir,
+					jobId: details.jobId ?? "subagent",
+					results: artifactInputs,
+				});
+				for (let index = 0; index < artifacts.length; index += 1) {
+					completedResults[index].artifactPath = artifacts[index].path;
+				}
+				return artifacts.map((artifact) => artifact.path);
 			};
 
 			if (modeCount !== 1) {
@@ -760,6 +833,17 @@ export default function (pi: ExtensionAPI) {
 					],
 					details: makeDetails("parallel")([]),
 				};
+			}
+			if (params.artifactDir) {
+				try {
+					await resolveArtifactDirectory(ctx.cwd, params.artifactDir);
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					return {
+						content: [{ type: "text", text: `Invalid artifactDir: ${message}` }],
+						details: makeDetails(hasChain ? "chain" : hasTasks ? "parallel" : "single")([]),
+					};
+				}
 			}
 
 			if ((agentScope === "project" || agentScope === "both") && confirmProjectAgents && ctx.hasUI) {
@@ -867,6 +951,7 @@ export default function (pi: ExtensionAPI) {
 							stopReason: "aborted" as const,
 							errorMessage: skippedReason,
 							stderr: skippedReason,
+							completedAt: new Date().toISOString(),
 						}));
 						return {
 							content: [{ type: "text", text: `Chain stopped at step ${i + 1} (${step.agent}): ${errorMsg}` }],
@@ -923,6 +1008,7 @@ export default function (pi: ExtensionAPI) {
 							stopReason: controller.signal.aborted ? "aborted" : "error",
 							errorMessage: allResults[index].errorMessage ?? message,
 							stderr: allResults[index].stderr || message,
+							completedAt: new Date().toISOString(),
 						};
 						allResults[index] = failedResult;
 						emitParallelUpdate();
@@ -988,8 +1074,21 @@ export default function (pi: ExtensionAPI) {
 
 			void Promise.resolve()
 				.then(executeInvocation)
-				.then((result) => {
+				.then(async (result) => {
 					backgroundJobs.delete(jobId);
+					let artifactNotice = "";
+					if (result.details && params.artifactDir) {
+						try {
+							const artifactPaths = await preserveArtifacts(result.details);
+							artifactNotice = artifactPaths.length
+								? `\n\nDurable subagent artifacts:\n${artifactPaths.map((artifactPath) => `- ${artifactPath}`).join("\n")}\n\nFold verified key facts and these paths into the latest cumulative .work task checkpoint; recovery should read that checkpoint first, not every artifact.`
+								: "";
+						} catch (error) {
+							latestArtifactError = error instanceof Error ? error.message : String(error);
+							result.details.artifactError = latestArtifactError;
+							artifactNotice = `\n\nArtifact persistence failed: ${latestArtifactError}. Preserve the key result in the latest cumulative .work task checkpoint now.`;
+						}
+					}
 					if (!runtimeActive) return;
 					if (result.details) {
 						pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
@@ -1006,19 +1105,35 @@ export default function (pi: ExtensionAPI) {
 					pi.sendMessage(
 						{
 							customType: "subagent-completion",
-							content: `Background subagent job ${jobId} ${status}.\n\n${output}\n\nPick up this delegated result now.`,
+							content: `Background subagent job ${jobId} ${status}.\n\n${output}${artifactNotice}\n\nPick up this delegated result now.`,
 							display: true,
 							details: { jobId, result: result.details },
 						},
 						{ triggerTurn: true, deliverAs: "followUp" },
 					);
 				})
-				.catch((error: unknown) => {
+				.catch(async (error: unknown) => {
 					backgroundJobs.delete(jobId);
-					if (!runtimeActive) return;
+					let artifactNotice = "";
+					let terminalDetails: SubagentDetails | undefined;
 					if (latestDetails) {
-						const terminalDetails = terminalizePendingDetails(latestDetails, error, controller.signal.aborted);
+						terminalDetails = terminalizePendingDetails(latestDetails, error, controller.signal.aborted);
 						latestDetails = terminalDetails;
+						if (params.artifactDir) {
+							try {
+								const artifactPaths = await preserveArtifacts(terminalDetails);
+								artifactNotice = artifactPaths.length
+									? `\nDurable partial artifacts:\n${artifactPaths.map((artifactPath) => `- ${artifactPath}`).join("\n")}`
+									: "";
+							} catch (artifactError) {
+								latestArtifactError = artifactError instanceof Error ? artifactError.message : String(artifactError);
+								terminalDetails.artifactError = latestArtifactError;
+								artifactNotice = `\nArtifact persistence also failed: ${latestArtifactError}`;
+							}
+						}
+					}
+					if (!runtimeActive) return;
+					if (terminalDetails) {
 						contextViewer.updateInvocation(toolCallId, terminalDetails);
 						pi.appendEntry(SUBAGENT_JOB_ENTRY_TYPE, {
 							toolCallId,
@@ -1029,9 +1144,9 @@ export default function (pi: ExtensionAPI) {
 					pi.sendMessage(
 						{
 							customType: "subagent-completion",
-							content: `Background subagent job ${jobId} failed: ${message}`,
+							content: `Background subagent job ${jobId} failed: ${message}${artifactNotice}`,
 							display: true,
-							details: { jobId },
+							details: { jobId, result: latestDetails },
 						},
 						{ triggerTurn: true, deliverAs: "followUp" },
 					);
@@ -1041,7 +1156,7 @@ export default function (pi: ExtensionAPI) {
 				content: [
 					{
 						type: "text",
-						text: `Delegated as background job ${jobId}. Do not wait or duplicate its scope; continue independent work. Its completion will automatically resume you in a follow-up turn.`,
+						text: `Delegated as background job ${jobId}. Do not wait or duplicate its scope; continue independent work. Its completion will automatically resume you in a follow-up turn.${params.artifactDir ? ` Final outputs will be preserved under ${params.artifactDir}.` : ""}`,
 					},
 				],
 				details: makeDetails(initialMode)(initialResults),

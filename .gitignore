@@ -1,6 +1,10 @@
 __pycache__/
 *.py[cod]
 
+# This canonical policy repo publishes and dogfoods the .work/ contract.
+# Product repos should normally use their local Git exclude instead.
+.work/
+
 # Agent runtime state and secrets must never be committed.
 auth.json
 models-store.json

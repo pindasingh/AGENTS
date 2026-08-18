@@ -4,9 +4,9 @@ Canonical, version-controlled resources shared by local coding agents.
 
 ## Repository layout
 
-- `AGENTS.md` — harness-neutral global operating rules.
-- `skills/` — harness-neutral [Agent Skills](https://agentskills.io/) packages. Pi and other compatible agents can load these.
-- `pi/extensions/` — Pi-specific TypeScript extensions.
+- `AGENTS.md` — harness-neutral global operating rules, including repository-local `.work/` continuity checkpoints.
+- `skills/` — harness-neutral [Agent Skills](https://agentskills.io/) packages. Pi and other compatible agents can load these, including the `work-continuity` recovery workflow.
+- `pi/extensions/` — Pi-specific TypeScript extensions, including best-effort early checkpoint and automatic post-compaction recovery reminders.
 - `pi/agents/` — specialist profiles consumed by Pi's `subagent` extension.
 
 The generic policy and skills stay at the repository root because they are useful across agent harnesses. Pi runtime code and Pi discovery formats stay under `pi/`.
@@ -37,8 +37,11 @@ Pi's mutable and sensitive runtime data is intentionally not tracked here:
 - `dependency-install-guard.ts` — enforces the local no-dependency-install policy.
 - `herdr-agent-state.ts` — Herdr's Pi lifecycle integration. Herdr may regenerate this file; because Pi links to this repository, review and commit any generated update.
 - `skill-toggle.ts` — toggles every discovered skill between agent-invocable and manual-only by updating its `disable-model-invocation` frontmatter through `/toggle-skills`.
-- `subagent/` — adds the `subagent` tool, advertises the available user-agent catalogue to the model, and provides isolated single, parallel, and chained Pi subprocesses plus `/context-viewer`.
+- `subagent/` — adds the `subagent` tool, isolated single/parallel/chained Pi subprocesses, optional timestamped `.work/` artifact capture for terminal outputs, and `/context-viewer`.
 - `subagent-explorer-alert.ts` — records a durable, visible session error whenever a model requests the nonexistent `explorer` agent; it does not alias or rewrite the request.
 - `direct-web-tools.ts` — dependency-free `web_search` and `web_fetch` tools; search parses Bing's public HTML results directly, without search APIs, MCP search providers, or API keys.
+- `work-continuity.ts` — keeps agents focused on a cumulative latest `.work/<task>/state.md` snapshot, with best-effort early checkpoint and automatic post-compaction recovery reminders.
+
+This canonical agent-resource repository intentionally tracks `.work/` in `.gitignore` as part of the published continuity contract and to dogfood it safely. Product repositories should follow `AGENTS.md` and prefer their local Git exclude file when adopting agent scratch state.
 
 The matching subagent profiles are in `pi/agents/`.

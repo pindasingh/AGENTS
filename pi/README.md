@@ -38,4 +38,12 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
+## Work continuity
+
+`extensions/work-continuity.ts` complements the harness-neutral `.work/` policy and `work-continuity` skill. During continued tool work, it provides one hidden, best-effort early checkpoint reminder per compaction cycle when reported context usage reaches 70%. Fixed percentage cannot guarantee advance notice for every model window or sudden usage jump. After every successful `session_compact` event, it injects a recovery reminder. It does not replace or cancel Pi's built-in compaction summary.
+
+The early reminder steers only a tool-driven continuation that Pi already needs; it does not create an extra model turn after a text-only response. Post-compaction steering joins an overflow retry, causes threshold auto-compaction to continue once with the queued recovery message, and remains queued for the next agent continuation after manual compaction.
+
+The reminders also run in headless subagent processes. Pi launches each child with `--no-session`, so its transcript cannot be resumed after the process exits. For substantive delegation, pass `artifactDir: ".work/<task>/artifacts"`; the parent-side subagent extension preserves each terminal final output in a UTC timestamp-prefixed file, including output from read-only profiles. It does not dump the child transcript. The primary verifies the returned facts and folds only what remains relevant, plus artifact paths, into cumulative `.work/<task>/state.md`. Recovery reads that one latest snapshot first and opens referenced artifacts only when exact evidence is needed.
+
 After changing a linked extension or profile, use Pi's `/reload` command.

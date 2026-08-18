@@ -13,6 +13,21 @@
 - Verify results with the strongest practical checks available, such as tests, builds, linters, diffs, command output, or direct inspection. Report what changed, verification performed, and any remaining blocker or risk.
 - If a request is purely informational, answer it directly. If it combines a question with an explicit or clearly implied action, answer briefly and perform the action.
 
+## Durable work continuity
+
+Context compaction or interruption must not turn a task into a partial handoff. Use a repository-local `.work/` directory as disposable but durable working memory for substantive work that may span many steps, agents, or context windows.
+
+- Before starting such work, create a task directory and record the task definition, success criteria, constraints, and current next action in `.work/<task>/state.md`. This is an operational checkpoint, not a requirement to produce a formal plan.
+- Treat `state.md` as the cumulative latest snapshot. Keep it self-contained with every still-relevant fact, decision, completed item, verification result, artifact reference, and exact next action. Update its timestamp and replace stale state rather than requiring a recovering agent to replay a journal or read many older files.
+- Keep the snapshot current at meaningful transitions, after important discoveries or decisions, after delegated work returns, before context-heavy work, and whenever context usage is approaching compaction. Preserve key facts and artifacts, not conversation transcripts or every intermediate output.
+- Store sparse supporting evidence under timestamp-prefixed paths such as `.work/<task>/artifacts/<UTC timestamp>-<agent>-<subject>.md`. Timestamp ordering makes the newest evidence obvious, but recovery starts from cumulative `state.md` and opens only artifacts it directly references when exact detail is needed.
+- For substantive subagent work, preserve the child's final key output outside model context. When the subagent tool supports `artifactDir`, set it to `.work/<task>/artifacts`; otherwise the parent writes a concise artifact immediately after hand-back. Fold verified conclusions and artifact paths into `state.md` before they can be lost to parent compaction.
+- In Git repositories, keep `.work/` untracked. If the repository does not already ignore it, add `.work/` to the repository's local Git exclude file rather than changing product files solely for agent scratch state. Never store credentials, tokens, personal data, or the only copy of a required deliverable there.
+- Use separate task directories when concurrent work could collide. A primary agent owns canonical `state.md`; writable subagents update only assigned worker notes, while parent-side artifact capture may preserve final output from read-only subagents. Do not concurrently overwrite another agent's checkpoint.
+- After compaction, resume, interruption, or suspected context loss, read the relevant task's `state.md` first. Compare its `Updated` time with timestamped artifact filenames; read only directly referenced evidence and any newer, not-yet-folded artifacts, never the whole history. Reconcile with the user's latest request, `git status`, the current diff, and actual files because scratch state can be stale. Fold verified newer facts into the snapshot and continue to the requested completion condition.
+- Compaction is an internal recovery event, not a blocker and not a reason to stop, ask the user to repeat context, or report only partial work. Stop only under the normal completion or concrete-blocker rules.
+- At completion, mark the checkpoint complete or remove only the task-specific scratch files you own. Never delete another active worker's state.
+
 ## Session-start Git synchronization and safety gate
 
 Before creating a branch, editing files, or treating any local branch as a baseline in a Git repository:
