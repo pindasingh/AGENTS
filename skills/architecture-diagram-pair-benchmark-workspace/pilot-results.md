@@ -9,6 +9,12 @@ Status: **directional calibration, not a final benchmark**. Each pair was run on
 | Broad architecture | `mermaid-diagrams` + `show-me` on semantic accuracy and first-pass readability; `build-signal-graph` + `render-signal-graph` on rendering and interaction | Mermaid avoided unsupported payment-failure details and produced a readable boundary/relationship review. Signal produced a real offline interactive graph and typed model, but introduced unsupported contracts/outcomes and its 50-edge overview was visually congested. |
 | Sequence | `mermaid-diagrams` + `show-me` | Its authoritative source is a `sequenceDiagram` with ordered calls, returns, shared work, and outcome branches. Signal's final artifact remained an interactive topology canvas, not the requested sequence view. |
 
+### Reversed-order reviewer check
+
+Two independent model reviewers saw anonymous A/B outputs in opposite presentation orders. Both selected Mermaid/Show Me for the broad case and both selected it for the sequence case. Under the superseded pilot rubric, Mermaid/Show Me scored 79.8–87.2 on broad architecture versus Signal/render's 58.3–59.9, and 87.2–89.5 on sequence versus Signal/render's 58.4–67.2.
+
+This reduces concern about simple A/B position bias, but it is not a final blind benchmark: only two model judges reviewed one generated artifact per pair, the fixture is contaminated, the old rubric did not separate projection fidelity, and several disputed fixture expectations affected reviewer reasoning. Raw results and coordinator notes are preserved in [`pilot/reviewer-results/`](pilot/reviewer-results/).
+
 ## Findings by pair
 
 ### `build-signal-graph` + `render-signal-graph`

@@ -1,0 +1,25 @@
+{
+  "case": "eshop-broad",
+  "presentation_order": 1,
+  "winner": "A",
+  "reviewer_reasoning": "A is the stronger broad structural review: it preserves separate callers and gateways, service/store boundaries, broker alternatives, directional relationships, HTTP 202-before-async semantics, and explicit uncertainty. Its main weakness is presenting relationships as a table rather than rendering the Mermaid graph, plus an unsupported Submitted event. B is interactive and traceable, but materially invents architecture explicitly excluded by the gold evidence: a named payment-failure event and cancellation path, exact stock/paid-status contracts, an AwaitingValidation producer, and notification to unspecified clients. Its flow-centric duplicated interactions also reduce broad-view clarity.",
+  "coordinator_note": "The reviewer's claim that the Submitted event is unsupported conflicts with evidence/execution-trace.md, which explicitly names OrderStatusChangedToSubmittedIntegrationEvent. Preserve the raw reasoning, but do not carry that claim into confirmatory gold.",
+  "scores": {
+    "A": {
+      "semantic_accuracy": 89,
+      "requested_view_compliance": 82,
+      "artifact_usefulness": 84,
+      "technical_integrity": 95,
+      "weighted_total": 87.2
+    },
+    "B": {
+      "semantic_accuracy": 48,
+      "requested_view_compliance": 65.5,
+      "artifact_usefulness": 65,
+      "technical_integrity": 82,
+      "weighted_total": 58.3
+    }
+  },
+  "rubric_version": "legacy-pilot-v1",
+  "caveat": "Generated before the current semantic/projection/view/usefulness rubric and atomic fact-sheet protocol; retain as directional reviewer evidence only."
+}

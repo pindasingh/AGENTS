@@ -34,7 +34,8 @@ Individual skill quality is relevant only where it affects a pair's end-to-end r
 | Strict/native mechanical validation | ✓ | Static safety only |
 | Repeated trials and variance | — | — |
 | Timing and token capture | — | — |
-| Saved blind preference and human feedback | — | — |
+| Reversed-order anonymous model-judge comparison | ✓ (legacy rubric) | ✓ (legacy rubric) |
+| Human feedback, task answer time, and format preference | — | — |
 | Non-eShop architecture families | — | — |
 
 The existing pilot therefore supports directional findings, not a universal winner.

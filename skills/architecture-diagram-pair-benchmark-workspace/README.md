@@ -20,7 +20,7 @@ The pilot uses the repository's curated Microsoft eShopOnContainers checkout fix
 - `pilot/eshop-broad`: a broad structural architecture view;
 - `pilot/eshop-sequence`: an ordered checkout sequence with HTTP acceptance and asynchronous outcomes.
 
-Each case contains shared `eval_metadata.json` plus isolated outputs for both configurations. Browser inspection and native validation are preserved. [`pilot-results.md`](pilot-results.md) records the directional one-run result; it is not a statistically final or blind preference benchmark.
+Each case contains shared `eval_metadata.json` plus isolated outputs for both configurations. Browser inspection and native validation are preserved. [`pilot-results.md`](pilot-results.md) records the directional one-run result and reversed-order model-reviewer check. That check reduces position-bias concern but is not the statistically replicated, three-judge confirmatory benchmark.
 
 ## Full benchmark design
 

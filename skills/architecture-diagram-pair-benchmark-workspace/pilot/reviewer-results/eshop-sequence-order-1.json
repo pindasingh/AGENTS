@@ -1,0 +1,26 @@
+{
+  "case": "eshop-sequence",
+  "presentation_order": 1,
+  "winner": "A",
+  "reviewer_reasoning": "A provides a genuine Mermaid sequence source and a readable offline artifact that clearly places HTTP 202 after checkout-event publication and before asynchronous order creation, while distinguishing success and stock-rejection branches. B captures much of the topology but its rendered artifact is a static interaction graph without legible temporal ordering, and it assigns an exact stock-rejection contract name that the gold evidence says is unavailable. Both omit rejected-status propagation, and both assert an Ordering producer for AwaitingValidation despite that producer being unsupported.",
+  "coordinator_note": "The current source fixture proves stock-rejection cancellation but does not clearly prove rejected-status SignalR propagation. Preserve the reviewer's raw claim, but treat that expectation as disputed until the fact sheet is adjudicated.",
+  "scores": {
+    "A": {
+      "semantic_accuracy": 86,
+      "requested_view_compliance": 82,
+      "artifact_usefulness": 90,
+      "technical_integrity": 94,
+      "weighted_total": 87.2,
+      "recomputed_legacy_total": 86.8
+    },
+    "B": {
+      "semantic_accuracy": 76,
+      "requested_view_compliance": 38,
+      "artifact_usefulness": 62,
+      "technical_integrity": 92,
+      "weighted_total": 67.2
+    }
+  },
+  "rubric_version": "legacy-pilot-v1",
+  "caveat": "Generated before the current semantic/projection/view/usefulness rubric and atomic fact-sheet protocol; retain as directional reviewer evidence only."
+}
