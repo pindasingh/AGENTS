@@ -13,6 +13,18 @@
 - Verify results with the strongest practical checks available, such as tests, builds, linters, diffs, command output, or direct inspection. Report what changed, verification performed, and any remaining blocker or risk.
 - If a request is purely informational, answer it directly. If it combines a question with an explicit or clearly implied action, answer briefly and perform the action.
 
+## Durable work continuity
+
+Context compaction or interruption must not turn a task into a partial handoff. Use a repository-local `.work/` directory as disposable but durable working memory for substantive work that may span many steps, agents, or context windows.
+
+- Before starting such work, record the task definition, success criteria, constraints, and current next action under `.work/`. This is an operational checkpoint, not a requirement to produce a formal plan. Use the directory freely for concise state, todos, findings, command output, and handoff notes that will help resume the task.
+- Keep the checkpoint current at meaningful transitions, after important discoveries or decisions, before context-heavy work, and whenever context usage is approaching compaction. Prefer a small current-state summary over a transcript.
+- In Git repositories, keep `.work/` untracked. If the repository does not already ignore it, add `.work/` to the repository's local Git exclude file rather than changing product files solely for agent scratch state. Never store credentials, tokens, personal data, or the only copy of a required deliverable there.
+- Use separate task directories when concurrent work could collide. A primary agent owns the canonical task state; writable subagents use separate notes such as `.work/<task>/workers/<worker>.md` and the parent supplies that path when useful. Do not concurrently overwrite another agent's checkpoint. Read-only subagents continue from compaction summaries and re-read source evidence instead of attempting writes.
+- After compaction, resume, interruption, or suspected context loss, inspect `.work/` before acting. Read the relevant active checkpoint and notes, then reconcile them with the user's latest request, `git status`, the current diff, and actual files because scratch notes can be stale. Update the checkpoint and continue to the requested completion condition.
+- Compaction is an internal recovery event, not a blocker and not a reason to stop, ask the user to repeat context, or report only partial work. Stop only under the normal completion or concrete-blocker rules.
+- At completion, mark the checkpoint complete or remove only the task-specific scratch files you own. Never delete another active worker's state.
+
 ## Session-start Git synchronization and safety gate
 
 Before creating a branch, editing files, or treating any local branch as a baseline in a Git repository:

@@ -38,4 +38,10 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
+## Work continuity
+
+`extensions/work-continuity.ts` complements the harness-neutral `.work/` policy and `work-continuity` skill. Once per compaction cycle it injects a hidden checkpoint reminder when context usage reaches 70%, then injects a recovery reminder immediately after Pi's `session_compact` event. It does not replace or cancel Pi's built-in compaction summary.
+
+The reminders also run in headless subagent processes. Writable workers checkpoint under `.work/`; read-only profiles instead re-read source evidence and continue from Pi's surviving compaction summary.
+
 After changing a linked extension or profile, use Pi's `/reload` command.

@@ -1,0 +1,41 @@
+{
+  "skill_name": "work-continuity",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Refactor this repository's authentication and authorization boundary, update all affected tests and documentation, and deliver it through a pull request. This is likely to take a long time and may cross context compaction.",
+      "expected_output": "The agent creates a lightweight ignored `.work/` checkpoint before context-heavy work, keeps task state and exact next actions current, completes and verifies the repository change, and does not substitute planning for execution.",
+      "files": [],
+      "expectations": [
+        "A repository-root `.work/` checkpoint captures the task definition, constraints, success criteria, current state, and next action.",
+        "The checkpoint is excluded from Git and contains no secrets or sole-copy deliverables.",
+        "The agent updates the checkpoint at meaningful milestones while continuing implementation.",
+        "The final result is based on repository and verification evidence rather than scratch notes alone."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Your context was just compacted while you were fixing the failing checkout workflow. Continue the task to completion; there may be notes from before compaction in the repository.",
+      "expected_output": "The agent inspects the matching `.work/` state, reconciles it with the current request, Git status/diff, files, and tests, repairs stale notes if needed, and continues without asking the user to restate context or returning partial work because of compaction.",
+      "files": [],
+      "expectations": [
+        "The relevant active checkpoint is selected by task identity rather than blindly using the newest file.",
+        "Scratch notes are validated against Git and actual files before action.",
+        "The checkpoint is updated after recovery.",
+        "Compaction is not reported as a blocker or reason for partial completion."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "This migration needs two parallel workers: one updating the API and one updating integration tests. Keep enough state that any worker can survive context compaction without the agents overwriting one another.",
+      "expected_output": "The primary owns a canonical `.work/<task>/state.md`, gives writable workers distinct notes under `workers/`, verifies their results, and folds durable conclusions back into canonical state without concurrent shared-file writes.",
+      "files": [],
+      "expectations": [
+        "The primary checkpoint remains canonical.",
+        "Each writable worker receives a distinct checkpoint path in its delegated task.",
+        "Workers do not concurrently overwrite canonical state or each other's notes.",
+        "The primary verifies delegated results before integrating their conclusions."
+      ]
+    }
+  ]
+}

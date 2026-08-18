@@ -1,6 +1,9 @@
 __pycache__/
 *.py[cod]
 
+# Repository-local working memory for agents; never commit it.
+.work/
+
 # Agent runtime state and secrets must never be committed.
 auth.json
 models-store.json
