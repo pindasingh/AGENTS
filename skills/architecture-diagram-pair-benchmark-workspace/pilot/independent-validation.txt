@@ -20,3 +20,14 @@ sequenceDiagram
 [PASS portable safety scan]
 HTML: skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-sequence/mermaid-show-me/outputs/review.html
 [PASS no HTTP(S) references]
+
+$ tsc -p skills/build-signal-graph/tests/tsconfig.json
+[exit 0; no diagnostics]
+
+$ node skills/render-signal-graph/tests/run-tests.js
+Signal DSL and interactive renderer tests passed
+[exit 0]
+
+$ python skills/skill-creator/scripts/quick_validate.py <each of build-signal-graph, render-signal-graph, mermaid-diagrams, show-me>
+Skill is valid! (all four)
+[exit 0]

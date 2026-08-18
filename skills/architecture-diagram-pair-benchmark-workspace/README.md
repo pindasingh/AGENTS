@@ -11,7 +11,7 @@ It does not score any skill independently.
 
 Each configuration receives the same fixed evidence snapshot and exact outcome-focused user prompt. The prompt does not prescribe TypeScript, HTML, or Mermaid unless requested-view compliance is itself under test. The authoritative source and the final artifact are graded separately so a correct source cannot hide an inaccurate or unusable projection.
 
-See [`rubric.json`](rubric.json) for weights, hard failures, and fairness controls.
+See [`rubric.json`](rubric.json) for weights, hard failures, and fairness controls. [`coverage-audit.md`](coverage-audit.md) records the reusable repository assets, comparative gaps, and compact next execution.
 
 ## Pilot
 
@@ -20,17 +20,10 @@ The pilot uses the repository's curated Microsoft eShopOnContainers checkout fix
 - `pilot/eshop-broad`: a broad structural architecture view;
 - `pilot/eshop-sequence`: an ordered checkout sequence with HTTP acceptance and asynchronous outcomes.
 
-Each case contains shared `eval_metadata.json` plus isolated outputs for both configurations. Results are provisional until objective grading, reversed-order blind comparison, and browser inspection are complete.
+Each case contains shared `eval_metadata.json` plus isolated outputs for both configurations. Browser inspection and native validation are preserved. [`pilot-results.md`](pilot-results.md) records the directional one-run result; it is not a statistically final or blind preference benchmark.
 
 ## Full benchmark design
 
-A defensible full benchmark should add fixed, licensed evidence packs for:
+[`materials.md`](materials.md) pins licensed evidence packs and exact oracle files for single-repository clean architecture, monoliths, microservices, event-driven flows, and explicit AsyncAPI contracts. It also defines anonymized and evidence-ablation controls.
 
-- a single-repository monolith;
-- a modular monolith;
-- a microservices monorepo;
-- multi-repository or event-driven microservices;
-- incomplete or contradictory evidence;
-- a lifecycle/state request and an ER/class request, reported as diagram-breadth rather than core architecture scores.
-
-Run each case at least three times per configuration. Macro-average by architecture family and requested view so the largest microservice fixture does not determine the winner. Report duration, tokens, and artifact size separately from quality.
+The compact next iteration is four cases × two pairs × three runs: 24 executor runs. Macro-average by architecture family and requested view so the largest microservice fixture does not determine the winner. Report duration, tokens, and artifact size separately from quality. Keep lifecycle/state and ER/class requests in a separate diagram-breadth track rather than allowing them to distort core architecture-discovery scores.
