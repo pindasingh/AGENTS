@@ -1,0 +1,1055 @@
+{
+  "Browser": {
+    "kind": "actor",
+    "name": "Browser"
+  },
+  "EShop": {
+    "kind": "system",
+    "name": "Microsoft eShopOnContainers"
+  },
+  "WebBff": {
+    "kind": "service",
+    "name": "Web BFF / API gateway",
+    "system": {
+      "$ref": "EShop"
+    }
+  },
+  "BasketApi": {
+    "kind": "service",
+    "name": "Basket API",
+    "system": {
+      "$ref": "EShop"
+    }
+  },
+  "OrderingApi": {
+    "kind": "service",
+    "name": "Ordering API",
+    "system": {
+      "$ref": "EShop"
+    }
+  },
+  "CatalogApi": {
+    "kind": "service",
+    "name": "Catalog API",
+    "system": {
+      "$ref": "EShop"
+    }
+  },
+  "PaymentApi": {
+    "kind": "service",
+    "name": "Payment API",
+    "system": {
+      "$ref": "EShop"
+    }
+  },
+  "OrderingSignalRHub": {
+    "kind": "service",
+    "name": "Ordering SignalR Hub",
+    "system": {
+      "$ref": "EShop"
+    }
+  },
+  "BasketRedis": {
+    "kind": "store",
+    "name": "Basket persistence",
+    "system": {
+      "$ref": "EShop"
+    },
+    "engine": "Redis"
+  },
+  "OrderingSql": {
+    "kind": "store",
+    "name": "Ordering database",
+    "system": {
+      "$ref": "EShop"
+    },
+    "engine": "relational SQL"
+  },
+  "CatalogSql": {
+    "kind": "store",
+    "name": "Catalog database",
+    "system": {
+      "$ref": "EShop"
+    },
+    "engine": "relational SQL"
+  },
+  "RabbitMq": {
+    "kind": "external",
+    "name": "RabbitMQ event bus"
+  },
+  "WebCheckout": {
+    "kind": "endpoint",
+    "name": "Web checkout route",
+    "owner": {
+      "$ref": "WebBff"
+    },
+    "method": "POST",
+    "path": "/basket/checkout",
+    "request": {
+      "description": "checkout request"
+    },
+    "response": {
+      "description": "HTTP 202 Accepted"
+    }
+  },
+  "BasketCheckout": {
+    "kind": "endpoint",
+    "name": "BasketController.CheckoutAsync",
+    "owner": {
+      "$ref": "BasketApi"
+    },
+    "method": "POST",
+    "path": "/api/v1/basket/checkout",
+    "request": {
+      "description": "checkout request"
+    },
+    "response": {
+      "description": "HTTP 202 Accepted"
+    }
+  },
+  "UserCheckoutAcceptedIntegrationEvent": {
+    "kind": "message",
+    "name": "UserCheckoutAcceptedIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderStartedIntegrationEvent": {
+    "kind": "message",
+    "name": "OrderStartedIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderStatusChangedToSubmittedIntegrationEvent": {
+    "kind": "message",
+    "name": "OrderStatusChangedToSubmittedIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderStatusChangedToAwaitingValidationIntegrationEvent": {
+    "kind": "message",
+    "name": "OrderStatusChangedToAwaitingValidationIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderStatusChangedToStockConfirmedIntegrationEvent": {
+    "kind": "message",
+    "name": "OrderStatusChangedToStockConfirmedIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderStatusChangedToStockRejectedIntegrationEvent": {
+    "kind": "message",
+    "name": "OrderStatusChangedToStockRejectedIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderPaymentSuccededIntegrationEvent": {
+    "kind": "message",
+    "name": "OrderPaymentSuccededIntegrationEvent",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "OrderStatusChangedToPaidIntegrationEvent": {
+    "kind": "message",
+    "name": "Order paid status integration event (contract name not supplied)",
+    "schema": {
+      "description": "integration event"
+    }
+  },
+  "IntegrationEvents": {
+    "kind": "topic",
+    "name": "Integration event bus",
+    "system": {
+      "$ref": "EShop"
+    },
+    "broker": {
+      "$ref": "RabbitMq"
+    },
+    "messages": [
+      {
+        "$ref": "UserCheckoutAcceptedIntegrationEvent"
+      },
+      {
+        "$ref": "OrderStartedIntegrationEvent"
+      },
+      {
+        "$ref": "OrderStatusChangedToSubmittedIntegrationEvent"
+      },
+      {
+        "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+      },
+      {
+        "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+      },
+      {
+        "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+      },
+      {
+        "$ref": "OrderPaymentSuccededIntegrationEvent"
+      },
+      {
+        "$ref": "OrderStatusChangedToPaidIntegrationEvent"
+      }
+    ]
+  },
+  "OrderingCheckoutSubscription": {
+    "kind": "subscription",
+    "name": "Ordering / checkout accepted",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "UserCheckoutAcceptedIntegrationEvent"
+    }
+  },
+  "BasketOrderStartedSubscription": {
+    "kind": "subscription",
+    "name": "Basket / order started",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStartedIntegrationEvent"
+    }
+  },
+  "CatalogAwaitingValidationSubscription": {
+    "kind": "subscription",
+    "name": "Catalog / awaiting validation",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+    }
+  },
+  "OrderingStockConfirmedSubscription": {
+    "kind": "subscription",
+    "name": "Ordering / stock confirmed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+    }
+  },
+  "OrderingStockRejectedSubscription": {
+    "kind": "subscription",
+    "name": "Ordering / stock rejected",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+    }
+  },
+  "PaymentStockConfirmedSubscription": {
+    "kind": "subscription",
+    "name": "Payment / stock confirmed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+    }
+  },
+  "SignalRStockConfirmedSubscription": {
+    "kind": "subscription",
+    "name": "SignalR / stock confirmed",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+    }
+  },
+  "OrderingPaymentSucceededSubscription": {
+    "kind": "subscription",
+    "name": "Ordering / payment succeeded",
+    "topic": {
+      "$ref": "IntegrationEvents"
+    },
+    "message": {
+      "$ref": "OrderPaymentSuccededIntegrationEvent"
+    }
+  },
+  "OrderingCheckoutConsumer": {
+    "kind": "consumer",
+    "name": "UserCheckoutAcceptedIntegrationEventHandler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingCheckoutSubscription"
+    }
+  },
+  "BasketOrderStartedConsumer": {
+    "kind": "consumer",
+    "name": "Basket order-started handler",
+    "service": {
+      "$ref": "BasketApi"
+    },
+    "subscription": {
+      "$ref": "BasketOrderStartedSubscription"
+    }
+  },
+  "CatalogValidationConsumer": {
+    "kind": "consumer",
+    "name": "Catalog stock-validation handler",
+    "service": {
+      "$ref": "CatalogApi"
+    },
+    "subscription": {
+      "$ref": "CatalogAwaitingValidationSubscription"
+    }
+  },
+  "OrderingStockConfirmedConsumer": {
+    "kind": "consumer",
+    "name": "Ordering stock-confirmed handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingStockConfirmedSubscription"
+    }
+  },
+  "OrderingStockRejectedConsumer": {
+    "kind": "consumer",
+    "name": "Ordering stock-rejected handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingStockRejectedSubscription"
+    }
+  },
+  "PaymentStockConfirmedConsumer": {
+    "kind": "consumer",
+    "name": "Payment stock-confirmed handler",
+    "service": {
+      "$ref": "PaymentApi"
+    },
+    "subscription": {
+      "$ref": "PaymentStockConfirmedSubscription"
+    }
+  },
+  "SignalRStockConfirmedConsumer": {
+    "kind": "consumer",
+    "name": "Ordering SignalR stock-confirmed handler",
+    "service": {
+      "$ref": "OrderingSignalRHub"
+    },
+    "subscription": {
+      "$ref": "SignalRStockConfirmedSubscription"
+    }
+  },
+  "OrderingPaymentSucceededConsumer": {
+    "kind": "consumer",
+    "name": "Ordering payment-succeeded handler",
+    "service": {
+      "$ref": "OrderingApi"
+    },
+    "subscription": {
+      "$ref": "OrderingPaymentSucceededSubscription"
+    }
+  },
+  "CheckoutAcceptance": {
+    "kind": "flow",
+    "name": "HTTP checkout acceptance — HTTP 202 occurs before order creation",
+    "steps": [
+      {
+        "action": "request",
+        "from": {
+          "$ref": "Browser"
+        },
+        "to": {
+          "$ref": "WebCheckout"
+        },
+        "operation": "POST /basket/checkout",
+        "contract": {
+          "$ref": "WebCheckout"
+        }
+      },
+      {
+        "action": "request",
+        "from": {
+          "$ref": "WebBff"
+        },
+        "to": {
+          "$ref": "BasketCheckout"
+        },
+        "operation": "POST /api/v1/basket/checkout",
+        "contract": {
+          "$ref": "BasketCheckout"
+        }
+      },
+      {
+        "action": "read",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "BasketRedis"
+        },
+        "operation": "GetBasketAsync(customer identity)"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "BasketApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "Publish UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "UserCheckoutAcceptedIntegrationEvent"
+        }
+      },
+      {
+        "action": "respond",
+        "from": {
+          "$ref": "BasketCheckout"
+        },
+        "to": {
+          "$ref": "WebBff"
+        },
+        "operation": "HTTP 202 Accepted — exact acceptance point",
+        "contract": {
+          "$ref": "BasketCheckout"
+        }
+      },
+      {
+        "action": "respond",
+        "from": {
+          "$ref": "WebCheckout"
+        },
+        "to": {
+          "$ref": "Browser"
+        },
+        "operation": "HTTP 202 Accepted to browser",
+        "contract": {
+          "$ref": "WebCheckout"
+        }
+      }
+    ]
+  },
+  "CreateOrder": {
+    "kind": "flow",
+    "name": "Asynchronous order creation",
+    "continuesFrom": [
+      {
+        "$ref": "CheckoutAcceptance"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "UserCheckoutAcceptedIntegrationEvent"
+        },
+        "operation": "continue UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "UserCheckoutAcceptedIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingCheckoutSubscription"
+        },
+        "operation": "deliver UserCheckoutAcceptedIntegrationEvent",
+        "contract": {
+          "$ref": "UserCheckoutAcceptedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingCheckoutConsumer"
+        },
+        "operation": "Handle UserCheckoutAcceptedIntegrationEvent; dispatch idempotent IdentifiedCommand<CreateOrderCommand, bool> using RequestId",
+        "contract": {
+          "$ref": "UserCheckoutAcceptedIntegrationEvent"
+        }
+      },
+      {
+        "action": "derive",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "OrderingApi"
+        },
+        "operation": "CreateOrderCommandHandler creates Order"
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "SaveEntitiesAsync: persist order and integration-event records in transaction"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish OrderStartedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStartedIntegrationEvent"
+        }
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish OrderStatusChangedToSubmittedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToSubmittedIntegrationEvent"
+        }
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingApi"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "Publish awaiting-validation status after transaction",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      }
+    ]
+  },
+  "ClearBasket": {
+    "kind": "flow",
+    "name": "Clear checked-out basket",
+    "continuesFrom": [
+      {
+        "$ref": "CreateOrder"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderStartedIntegrationEvent"
+        },
+        "operation": "continue OrderStartedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStartedIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "BasketOrderStartedSubscription"
+        },
+        "operation": "deliver OrderStartedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStartedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "BasketOrderStartedConsumer"
+        },
+        "operation": "consume OrderStartedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStartedIntegrationEvent"
+        }
+      },
+      {
+        "action": "delete",
+        "from": {
+          "$ref": "BasketOrderStartedConsumer"
+        },
+        "to": {
+          "$ref": "BasketRedis"
+        },
+        "operation": "Delete checked-out basket"
+      }
+    ]
+  },
+  "ConfirmStock": {
+    "kind": "flow",
+    "name": "Catalog confirms stock",
+    "continuesFrom": [
+      {
+        "$ref": "CreateOrder"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        },
+        "operation": "continue OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogAwaitingValidationSubscription"
+        },
+        "operation": "deliver OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "operation": "consume OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "CatalogSql"
+        },
+        "operation": "Validate and decrement stock"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish OrderStatusChangedToStockConfirmedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      }
+    ]
+  },
+  "RejectStock": {
+    "kind": "flow",
+    "name": "Stock rejection — terminal rejected branch",
+    "continuesFrom": [
+      {
+        "$ref": "CreateOrder"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        },
+        "operation": "continue OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogAwaitingValidationSubscription"
+        },
+        "operation": "deliver OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "operation": "consume OrderStatusChangedToAwaitingValidationIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToAwaitingValidationIntegrationEvent"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "CatalogSql"
+        },
+        "operation": "Validate stock; insufficient stock"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "CatalogValidationConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish OrderStatusChangedToStockRejectedIntegrationEvent",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+        }
+      },
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+        },
+        "operation": "continue stock rejection",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockRejectedSubscription"
+        },
+        "operation": "deliver stock rejection",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "operation": "consume stock rejection",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockRejectedIntegrationEvent"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingStockRejectedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "Cancel order"
+      }
+    ]
+  },
+  "NotifyAndPay": {
+    "kind": "flow",
+    "name": "Stock-confirmed fan-out: notification and payment",
+    "continuesFrom": [
+      {
+        "$ref": "ConfirmStock"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        },
+        "operation": "continue stock confirmed",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockConfirmedSubscription"
+        },
+        "operation": "deliver to Ordering",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingStockConfirmedConsumer"
+        },
+        "operation": "consume in Ordering",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "Change order state to stock confirmed"
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "SignalRStockConfirmedSubscription"
+        },
+        "operation": "deliver to SignalR",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "SignalRStockConfirmedConsumer"
+        },
+        "operation": "Notify connected clients of stock-confirmed status",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedSubscription"
+        },
+        "operation": "deliver to Payment",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "operation": "Process payment (sample successful flow)",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "publish OrderPaymentSuccededIntegrationEvent",
+        "contract": {
+          "$ref": "OrderPaymentSuccededIntegrationEvent"
+        }
+      }
+    ]
+  },
+  "CompleteOrder": {
+    "kind": "flow",
+    "name": "Successful completion",
+    "continuesFrom": [
+      {
+        "$ref": "NotifyAndPay"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderPaymentSuccededIntegrationEvent"
+        },
+        "operation": "continue payment succeeded",
+        "contract": {
+          "$ref": "OrderPaymentSuccededIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingPaymentSucceededSubscription"
+        },
+        "operation": "deliver payment succeeded",
+        "contract": {
+          "$ref": "OrderPaymentSuccededIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "operation": "consume payment succeeded",
+        "contract": {
+          "$ref": "OrderPaymentSuccededIntegrationEvent"
+        }
+      },
+      {
+        "action": "write",
+        "from": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "to": {
+          "$ref": "OrderingSql"
+        },
+        "operation": "Mark order paid"
+      },
+      {
+        "action": "publish",
+        "from": {
+          "$ref": "OrderingPaymentSucceededConsumer"
+        },
+        "to": {
+          "$ref": "IntegrationEvents"
+        },
+        "operation": "Publish paid status (exact contract name unavailable in fixture)",
+        "contract": {
+          "$ref": "OrderStatusChangedToPaidIntegrationEvent"
+        }
+      }
+    ]
+  },
+  "PaymentFailureUnresolved": {
+    "kind": "flow",
+    "name": "Payment failure — required variant, behavior unresolved by supplied evidence",
+    "continuesFrom": [
+      {
+        "$ref": "ConfirmStock"
+      }
+    ],
+    "steps": [
+      {
+        "action": "continue",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        },
+        "operation": "Payment failure branch begins after stock confirmation; no failure contract or resulting state is supplied",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "deliver",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedSubscription"
+        },
+        "operation": "deliver to Payment",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      },
+      {
+        "action": "consume",
+        "from": {
+          "$ref": "IntegrationEvents"
+        },
+        "to": {
+          "$ref": "PaymentStockConfirmedConsumer"
+        },
+        "operation": "Payment outcome: failure (terminal behavior unknown; intentionally not invented)",
+        "contract": {
+          "$ref": "OrderStatusChangedToStockConfirmedIntegrationEvent"
+        }
+      }
+    ]
+  }
+}

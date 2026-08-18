@@ -1,0 +1,113 @@
+- main
+  - heading "Microsoft eShopOnContainers — broad architecture" [level=1, ref=e1]
+  - paragraph
+    - StaticText "Offline structural review of callers, ingress, service ownership, stores, event infrastructure, and major directed relationships. The Mermaid source embedded below is authoritative; this page does not render Mermaid."
+  - generic
+    - heading "CALLERS" [level=2, ref=e2]
+    - StaticText "Browser application"
+    - StaticText "Mobile application"
+  - generic
+    - heading "INGRESS RUNTIMES" [level=2, ref=e3]
+    - StaticText "Web BFF / API gateway"
+    - StaticText "Mobile BFF / API gateway"
+  - generic
+    - heading "BASKET OWNERSHIP" [level=2, ref=e4]
+    - StaticText "Basket API + checkout"
+    - StaticText "OrderStarted handler"
+  - generic
+    - heading "ORDERING OWNERSHIP" [level=2, ref=e5]
+    - StaticText "Checkout consumer + idempotent command"
+    - StaticText "Order handlers"
+    - StaticText "SignalR Hub"
+  - generic
+    - heading "CATALOG / PAYMENT" [level=2, ref=e6]
+    - StaticText "Catalog stock handler"
+    - StaticText "Payment stock-confirmed handler"
+  - generic
+    - heading "SERVICE-OWNED STORES" [level=2, ref=e7]
+    - StaticText "Basket Redis"
+    - StaticText "Ordering relational DB"
+    - StaticText "Catalog relational DB"
+  - generic
+    - heading "EXTERNAL EVENT-BUS INFRASTRUCTURE" [level=2, ref=e8]
+    - StaticText "Event-bus abstraction → RabbitMQ (development/test) · Azure Service Bus (alternative)"
+  - StaticText "HTTP"
+  - StaticText "Persistence"
+  - StaticText "Messaging"
+  - StaticText "Notification consumer"
+  - generic
+    - heading "Directed relationship index" [level=2, ref=e9]
+    - table
+      - rowgroup
+        - row
+          - columnheader "From" [ref=e58]
+          - columnheader "To" [ref=e59]
+          - columnheader "Relationship" [ref=e60]
+          - columnheader "Kind" [ref=e61]
+      - row
+        - cell "Browser / Mobile" [ref=e10]
+        - cell "respective BFF/API gateway" [ref=e11]
+        - cell "HTTP/REST" [ref=e12]
+        - cell "HTTP" [ref=e13]
+      - row
+        - cell "Web / Mobile gateway" [ref=e14]
+        - cell "Basket API" [ref=e15]
+        - cell "POST api/v1/basket/checkout" [ref=e16]
+        - cell "HTTP" [ref=e17]
+      - row
+        - cell "Basket checkout" [ref=e18]
+        - cell "Basket Redis" [ref=e19]
+        - cell "reads customer basket" [ref=e20]
+        - cell "Persistence" [ref=e21]
+      - row
+        - cell "Basket checkout" [ref=e22]
+        - cell "Event bus" [ref=e23]
+        - cell "publishes UserCheckoutAcceptedIntegrationEvent, then returns HTTP 202" [ref=e24]
+        - cell "Messaging" [ref=e25]
+      - row
+        - cell "Event bus" [ref=e26]
+        - cell "Ordering checkout consumer" [ref=e27]
+        - cell "delivers checkout event; dispatch uses request ID for idempotency" [ref=e28]
+        - cell "Messaging" [ref=e29]
+      - row
+        - cell "CreateOrderCommand handler" [ref=e30]
+        - cell "Ordering DB / event bus" [ref=e31]
+        - cell "creates order transactionally; records/publishes OrderStarted and Submitted events after transaction" [ref=e32]
+        - cell "Persistence + messaging" [ref=e33]
+      - row
+        - cell "Event bus" [ref=e34]
+        - cell "Basket OrderStarted handler" [ref=e35]
+        - cell "deletes checked-out basket from Redis" [ref=e36]
+        - cell "Messaging + persistence" [ref=e37]
+      - row
+        - cell "Event bus" [ref=e38]
+        - cell "Catalog stock handler" [ref=e39]
+        - cell "delivers AwaitingValidation; handler validates/decrements Catalog stock and publishes confirmed or rejected" [ref=e40]
+        - cell "Messaging + persistence" [ref=e41]
+      - row
+        - cell "Event bus" [ref=e42]
+        - cell "Ordering handlers" [ref=e43]
+        - cell "stock confirmed changes state; rejected cancels order" [ref=e44]
+        - cell "Messaging + persistence" [ref=e45]
+      - row
+        - cell "Event bus" [ref=e46]
+        - cell "Payment handler" [ref=e47]
+        - cell "stock-confirmed leads to payment-succeeded publication in sample flow" [ref=e48]
+        - cell "Messaging" [ref=e49]
+      - row
+        - cell "Event bus" [ref=e50]
+        - cell "Ordering SignalR Hub" [ref=e51]
+        - cell "delivers OrderStatusChangedToStockConfirmedIntegrationEvent" [ref=e52]
+        - cell "Notification consumer" [ref=e53]
+      - row
+        - cell "Event bus" [ref=e54]
+        - cell "Ordering payment handler" [ref=e55]
+        - cell "payment succeeded marks order paid and publishes paid status" [ref=e56]
+        - cell "Messaging + persistence" [ref=e57]
+  - group
+    - DisclosureTriangle "Authoritative Mermaid source (architecture.mmd)" [expanded=true]
+      - strong
+        - StaticText "Authoritative Mermaid source (architecture.mmd)"
+    - StaticText "flowchart LR\n  subgraph Callers[Callers]\n    Browser[Browser application]\n    Mobile[Mobile application]\n  end\n\n  subgraph Ingress[Ingress runtimes]\n    WebBFF[Web BFF / API gateway]\n    MobileBFF[Mobile BFF / API gateway]\n  end\n\n  subgraph BasketBoundary[Basket microservice ownership]\n    BasketAPI[Basket API]\n    BasketCheckout[Checkout handler]\n    BasketEventHandler[OrderStarted event handler]\n    BasketAPI -->|dispatches POST api/v1/basket/checkout| BasketCheckout\n  end\n\n  subgraph OrderingBoundary[Ordering microservice ownership]\n    CheckoutConsumer[UserCheckoutAccepted event handler]\n    IdempotentCommand[Identified CreateOrderCommand]\n    OrderCommandHandler[CreateOrderCommand handler]\n    OrderingEventHandlers[Stock and payment result handlers]\n    OrderingHub[Ordering SignalR Hub]\n    CheckoutConsumer -->|dispatches with checkout request ID| IdempotentCommand\n    IdempotentCommand -->|handles| OrderCommandHandler\n  end\n\n  subgraph CatalogBoundary[Catalog microservice ownership]\n    CatalogStockHandler[Awaiting-validation stock handler]\n  end\n\n  subgraph PaymentBoundary[Payment microservice ownership]\n    PaymentHandler[Stock-confirmed payment handler]\n  end\n\n  subgraph Stores[Service-owned stores]\n    BasketRedis[(Basket Redis)]\n    OrderingSQL[(Ordering relational database)]\n    CatalogSQL[(Catalog relational database)]\n  end\n\n  subgraph EventInfrastructure[External event-bus infrastructure]\n    EventBus[Event-bus abstraction]\n    RabbitMQ[RabbitMQ - development/test]\n    AzureServiceBus[Azure Service Bus - alternative]\n    EventBus -->|implementation| RabbitMQ\n    EventBus -.->|alternative implementation| AzureServiceBus\n  end\n\n  Browser -->|HTTP/REST| WebBFF\n  Mobile -->|HTTP/REST| MobileBFF\n  WebBFF -->|HTTP POST checkout| BasketAPI\n  MobileBFF -->|HTTP POST checkout| BasketAPI\n  BasketCheckout -->|reads customer basket| BasketRedis\n  BasketCheckout -->|publishes UserCheckoutAcceptedIntegrationEvent| EventBus\n  BasketCheckout -.->|then returns HTTP 202 Accepted| WebBFF\n  BasketCheckout -.->|then returns HTTP 202 Accepted| MobileBFF\n  EventBus -->|delivers UserCheckoutAcceptedIntegrationEvent| CheckoutConsumer\n\n  OrderCommandHandler -->|transactionally creates order| OrderingSQL\n  OrderCommandHandler -->|records/publishes OrderStartedIntegrationEvent| EventBus\n  OrderCommandHandler -->|records/publishes OrderStatusChangedToSubmittedIntegrationEvent| EventBus\n  EventBus -->|delivers OrderStartedIntegrationEvent| BasketEventHandler\n  BasketEventHandler -->|deletes checked-out basket| BasketRedis\n\n  EventBus -->|delivers OrderStatusChangedToAwaitingValidationIntegrationEvent| CatalogStockHandler\n  CatalogStockHandler -->|validates and decrements stock| CatalogSQL\n  CatalogStockHandler -->|publishes stock-confirmed or stock-rejected| EventBus\n  EventBus -->|delivers stock result| OrderingEventHandlers\n  OrderingEventHandlers -->|confirmed: changes order state; rejected: cancels order| OrderingSQL\n\n  OrderingEventHandlers -->|publishes OrderStatusChangedToStockConfirmedIntegrationEvent| EventBus\n  EventBus -->|delivers stock-confirmed event| PaymentHandler\n  EventBus -->|delivers stock-confirmed event| OrderingHub\n  PaymentHandler -->|publishes OrderPaymentSuccededIntegrationEvent in sample flow| EventBus\n  EventBus -->|delivers payment-succeeded event| OrderingEventHandlers\n  OrderingEventHandlers -->|marks order paid| OrderingSQL\n  OrderingEventHandlers -->|publishes paid status| EventBus\n"
+  - paragraph
+    - StaticText "Evidence does not identify the SignalR notification recipient, the producer transition for AwaitingValidation, or a payment-failure contract/state transition. Those links are intentionally not invented."

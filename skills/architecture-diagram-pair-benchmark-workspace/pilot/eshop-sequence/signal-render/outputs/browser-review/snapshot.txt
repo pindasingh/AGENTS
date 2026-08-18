@@ -1,0 +1,106 @@
+- banner
+  - heading "Architecture interaction map" [level=1, ref=e1]
+  - paragraph
+    - StaticText "11 components · 30 interactions · 4 end-to-end paths"
+  - button "Show all" [ref=e2]
+  - StaticText " selected path"
+  - StaticText " other architecture"
+- main
+  - group "Interactive architecture component and interaction graph"
+    - button "POST /basket/checkout from Browser to Web BFF / API gateway" [ref=e4]
+      - StaticText "POST /basket/checkout"
+    - button "POST /api/v1/basket/checkout from Web BFF / API gateway to Basket API" [ref=e5]
+      - StaticText "POST /api/v1/basket/checkout"
+    - button "GetBasketAsync(customer identity) from Basket API to Basket persistence" [ref=e6]
+      - StaticText "GetBasketAsync(customer identity)"
+    - button "Publish UserCheckoutAcceptedIntegrationEvent from Basket API to RabbitMQ event bus" [ref=e7]
+      - StaticText "Publish UserCheckoutAcceptedIntegrationEv…"
+    - button "HTTP 202 Accepted — exact acceptance point from Basket API to Web BFF / API gateway" [ref=e8]
+      - StaticText "HTTP 202 Accepted — exact acceptance point"
+    - button "HTTP 202 Accepted to browser from Web BFF / API gateway to Browser" [ref=e9]
+      - StaticText "HTTP 202 Accepted to browser"
+    - button "consume OrderStartedIntegrationEvent from RabbitMQ event bus to Basket API" [ref=e10]
+      - StaticText "consume OrderStartedIntegrationEvent"
+    - button "Delete checked-out basket from Basket API to Basket persistence" [ref=e11]
+      - StaticText "Delete checked-out basket"
+    - button "consume payment succeeded from RabbitMQ event bus to Ordering API" [ref=e12]
+      - StaticText "consume payment succeeded"
+    - button "Mark order paid from Ordering API to Ordering database" [ref=e13]
+      - StaticText "Mark order paid"
+    - button "Publish paid status (exact contract name unavailable in fixture) from Ordering API to RabbitMQ event bus" [ref=e14]
+      - StaticText "Publish paid status (exact contract name …"
+    - button "consume OrderStatusChangedToAwaitingValidationIntegrationEvent from RabbitMQ event bus to Catalog API" [ref=e15]
+      - StaticText "consume OrderStatusChangedToAwaitingValid…"
+    - button "Validate and decrement stock from Catalog API to Catalog database" [ref=e16]
+      - StaticText "Validate and decrement stock"
+    - button "publish OrderStatusChangedToStockConfirmedIntegrationEvent from Catalog API to RabbitMQ event bus" [ref=e17]
+      - StaticText "publish OrderStatusChangedToStockConfirme…"
+    - button "Handle UserCheckoutAcceptedIntegrationEvent; dispatch idempotent IdentifiedCommand<CreateOrderCommand, bool> using RequestId from RabbitMQ event bus to Ordering API" [ref=e18]
+      - StaticText "Handle UserCheckoutAcceptedIntegrationEve…"
+    - button "SaveEntitiesAsync: persist order and integration-event records in transaction from Ordering API to Ordering database" [ref=e19]
+      - StaticText "SaveEntitiesAsync: persist order and inte…"
+    - button "publish OrderStartedIntegrationEvent from Ordering API to RabbitMQ event bus" [ref=e20]
+      - StaticText "publish OrderStartedIntegrationEvent"
+    - button "publish OrderStatusChangedToSubmittedIntegrationEvent from Ordering API to RabbitMQ event bus" [ref=e21]
+      - StaticText "publish OrderStatusChangedToSubmittedInte…"
+    - button "Publish awaiting-validation status after transaction from Ordering API to RabbitMQ event bus" [ref=e22]
+      - StaticText "Publish awaiting-validation status after …"
+    - button "consume in Ordering from RabbitMQ event bus to Ordering API" [ref=e23]
+      - StaticText "consume in Ordering"
+    - button "Change order state to stock confirmed from Ordering API to Ordering database" [ref=e24]
+      - StaticText "Change order state to stock confirmed"
+    - button "Notify connected clients of stock-confirmed status from RabbitMQ event bus to Ordering SignalR Hub" [ref=e25]
+      - StaticText "Notify connected clients of stock-confirm…"
+    - button "Process payment (sample successful flow) from RabbitMQ event bus to Payment API" [ref=e26]
+      - StaticText "Process payment (sample successful flow)"
+    - button "publish OrderPaymentSuccededIntegrationEvent from Payment API to RabbitMQ event bus" [ref=e27]
+      - StaticText "publish OrderPaymentSuccededIntegrationEv…"
+    - button "Payment outcome: failure (terminal behavior unknown; intentionally not invented) from RabbitMQ event bus to Payment API" [ref=e28]
+      - StaticText "Payment outcome: failure (terminal behavi…"
+    - button "consume OrderStatusChangedToAwaitingValidationIntegrationEvent from RabbitMQ event bus to Catalog API" [ref=e29]
+      - StaticText "consume OrderStatusChangedToAwaitingValid…"
+    - button "Validate stock; insufficient stock from Catalog API to Catalog database" [ref=e30]
+      - StaticText "Validate stock; insufficient stock"
+    - button "publish OrderStatusChangedToStockRejectedIntegrationEvent from Catalog API to RabbitMQ event bus" [ref=e31]
+      - StaticText "publish OrderStatusChangedToStockRejected…"
+    - button "consume stock rejection from RabbitMQ event bus to Ordering API" [ref=e32]
+      - StaticText "consume stock rejection"
+    - button "Cancel order from Ordering API to Ordering database" [ref=e33]
+      - StaticText "Cancel order"
+    - button "Basket API service" [ref=e34]
+      - StaticText "Basket API"
+      - StaticText "service"
+    - button "Basket persistence store" [ref=e35]
+      - StaticText "Basket persistence"
+      - StaticText "Redis"
+    - button "Browser actor" [ref=e36]
+      - StaticText "Browser"
+      - StaticText "actor"
+    - button "Catalog API service" [ref=e37]
+      - StaticText "Catalog API"
+      - StaticText "service"
+    - button "Catalog database store" [ref=e38]
+      - StaticText "Catalog database"
+      - StaticText "relational SQL"
+    - button "Ordering API service" [ref=e39]
+      - StaticText "Ordering API"
+      - StaticText "service"
+    - button "Ordering SignalR Hub service" [ref=e40]
+      - StaticText "Ordering SignalR Hub"
+      - StaticText "service"
+    - button "Ordering database store" [ref=e41]
+      - StaticText "Ordering database"
+      - StaticText "relational SQL"
+    - button "Payment API service" [ref=e42]
+      - StaticText "Payment API"
+      - StaticText "service"
+    - button "RabbitMQ event bus external" [ref=e43]
+      - StaticText "RabbitMQ event bus"
+      - StaticText "external"
+    - button "Web BFF / API gateway service" [ref=e44]
+      - StaticText "Web BFF / API gateway"
+      - StaticText "service"
+- complementary
+  - heading "Explore paths" [level=2, ref=e3]
+  - paragraph
+    - StaticText "Select any HTTP, persistence, transport, or downstream interaction. If it belongs to several end-to-end paths, choose the path to highlight. Select a component to see every path that touches it."

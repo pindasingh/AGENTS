@@ -1,0 +1,71 @@
+{
+  "name": "architecture-diagram-pair-benchmark",
+  "configurations": {
+    "signal-render": ["build-signal-graph", "render-signal-graph"],
+    "mermaid-show-me": ["mermaid-diagrams", "show-me"]
+  },
+  "quality_score": {
+    "semantic_accuracy": {
+      "weight": 0.5,
+      "criteria": {
+        "components_and_boundaries": 0.15,
+        "relationships_direction_and_labels": 0.2,
+        "ordering_and_sync_async_semantics": 0.2,
+        "contracts_stores_and_messages": 0.1,
+        "outcomes_and_terminal_effects": 0.1,
+        "absence_of_unsupported_facts": 0.15,
+        "honest_uncertainty": 0.1
+      }
+    },
+    "requested_view_compliance": {
+      "weight": 0.2,
+      "criteria": {
+        "view_type_matches_request": 0.5,
+        "scope_and_detail_match_request": 0.3,
+        "required_output_is_delivered": 0.2
+      }
+    },
+    "artifact_usefulness": {
+      "weight": 0.2,
+      "criteria": {
+        "review_question_accuracy": 0.35,
+        "end_to_end_traceability": 0.25,
+        "readability": 0.2,
+        "navigation_or_source_portability": 0.1,
+        "appropriate_complexity": 0.1
+      }
+    },
+    "technical_integrity": {
+      "weight": 0.1,
+      "criteria": {
+        "projection_matches_authoritative_source": 0.35,
+        "artifact_validates_or_renders": 0.25,
+        "offline_and_self_contained": 0.2,
+        "safe_output": 0.1,
+        "deterministic_or_portable": 0.1
+      }
+    }
+  },
+  "hard_failures": [
+    "The artifact cannot be inspected in the requested or documented way.",
+    "The artifact materially invents architecture that the evidence explicitly contradicts.",
+    "A sequence request places asynchronous completion before the evidenced HTTP acceptance response.",
+    "The final artifact contains active untrusted content or an undeclared network dependency."
+  ],
+  "reported_separately": [
+    "duration_seconds",
+    "total_tokens",
+    "artifact_bytes",
+    "validation_failures",
+    "review_question_completion_time"
+  ],
+  "fairness_controls": [
+    "Use the same evidence snapshot and exact user prompt for both configurations.",
+    "Expose only the assigned pair of visualization skills to each executor.",
+    "Do not prescribe TypeScript, HTML, or Mermaid unless output-format compliance is the behavior under test.",
+    "Grade authoritative source accuracy separately from rendered projection fidelity.",
+    "Randomize anonymous A/B order and repeat the comparison with the order reversed.",
+    "Macro-average architecture families and requested view types so microservice cases do not dominate the result.",
+    "Report capability by view type as well as the overall quality score."
+  ]
+}

@@ -1,0 +1,2 @@
+✓ eShop checkout acceptance and asynchronous order processing
+  file:///C:/Repos/.worktrees/AGENTS/worktree-quiet-harbor-5b25/skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-sequence/mermaid-show-me/outputs/review.html

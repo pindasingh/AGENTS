@@ -1,0 +1,57 @@
+sequenceDiagram
+    actor Browser
+    participant WebBFF as Web BFF / API gateway
+    participant Basket as Basket API
+    participant Redis as Basket Redis
+    participant Bus as Event bus (RabbitMQ; Azure Service Bus alternative)
+    participant Ordering as Ordering API
+    participant OrderingSQL as Ordering SQL
+    participant Catalog as Catalog API
+    participant CatalogSQL as Catalog SQL
+    participant Payment as Payment API
+    participant SignalR as Ordering SignalR Hub
+
+    Browser->>WebBFF: Checkout over HTTP/REST
+    WebBFF->>Basket: POST api/v1/Basket/checkout (x-requestid)
+    Basket->>Redis: GetBasketAsync(user identity)
+    Redis-->>Basket: Customer basket
+    Basket->>Bus: Publish UserCheckoutAcceptedIntegrationEvent
+    Basket-->>WebBFF: HTTP 202 Accepted
+    WebBFF-->>Browser: HTTP 202 Accepted
+    Note over Browser,Bus: Acceptance ends the HTTP request; all processing below is asynchronous
+
+    Bus-->>Ordering: Deliver UserCheckoutAcceptedIntegrationEvent
+    Ordering->>Ordering: Handle with IdentifiedCommand(CreateOrderCommand, RequestId)
+    Ordering->>OrderingSQL: Begin transaction; add order and integration-event records
+    Ordering->>OrderingSQL: Commit order
+    Ordering->>Bus: Publish OrderStartedIntegrationEvent
+    Ordering->>Bus: Publish OrderStatusChangedToSubmittedIntegrationEvent
+    Bus-->>Basket: Deliver OrderStartedIntegrationEvent
+    Basket->>Redis: Delete checked-out basket
+    Ordering->>Bus: Publish OrderStatusChangedToAwaitingValidationIntegrationEvent
+    Bus-->>Catalog: Deliver OrderStatusChangedToAwaitingValidationIntegrationEvent
+    Catalog->>CatalogSQL: Validate stock and, when valid, decrement stock
+
+    alt Stock confirmed
+        Catalog->>Bus: Publish stock-confirmed result (exact contract not supplied)
+        Bus-->>Ordering: Deliver stock-confirmed result
+        Ordering->>OrderingSQL: Change order state; save
+        Ordering->>Bus: Publish OrderStatusChangedToStockConfirmedIntegrationEvent
+        Bus-->>SignalR: Deliver OrderStatusChangedToStockConfirmedIntegrationEvent
+        SignalR->>SignalR: Notify connected clients
+        Bus-->>Payment: Deliver OrderStatusChangedToStockConfirmedIntegrationEvent
+        Payment->>Bus: Publish OrderPaymentSuccededIntegrationEvent
+        Bus-->>Ordering: Deliver OrderPaymentSuccededIntegrationEvent
+        Ordering->>OrderingSQL: Mark order paid; save
+        Ordering->>Bus: Publish paid status (exact contract not supplied)
+        Bus-->>SignalR: Deliver paid order-status event
+        SignalR->>SignalR: Notify connected clients
+    else Stock rejected
+        Catalog->>Bus: Publish stock-rejected result (exact contract not supplied)
+        Bus-->>Ordering: Deliver stock-rejected result
+        Ordering->>OrderingSQL: Cancel order; save
+    end
+
+    opt Payment failure variant required by fixture
+        Note over Payment,Ordering: The supplied evidence does not identify the failure contract, resulting state change, or notification
+    end

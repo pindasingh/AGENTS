@@ -1,0 +1,24 @@
+VALIDATION COMMANDS AND RESULTS
+Working directory: skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-broad/signal-render/outputs
+
+1. tsc --strict --target ES2022 --module commonjs --outDir .architecture-build architecture/signal.ts architecture/architecture.ts
+Result: PASS (exit 0; no diagnostics)
+
+2. tsc --strict --target ES2022 --module commonjs --outDir .architecture-build/render C:/Users/pinda/.pi/agent/skills/render-signal-graph/scripts/render.ts
+Result: PASS (exit 0; no diagnostics)
+
+3. node .architecture-build/render/render.js architecture/architecture.json architecture/index.html
+Result: PASS (exit 0; no diagnostics)
+
+4. node C:/Users/pinda/.pi/agent/skills/render-signal-graph/tests/run-tests.js
+Result: PASS (exit 0)
+Output: Signal DSL and interactive renderer tests passed
+
+5. node .architecture-build/render/render.js architecture/architecture.json architecture/index.second.html && cmp architecture/index.html architecture/index.second.html
+Result: PASS (exit 0; generated HTML was byte-identical)
+
+6. node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('architecture/architecture.json','utf8'));if(!j||!Object.keys(j).length)throw Error('empty');const h=fs.readFileSync('architecture/index.html','utf8');for(const x of ['Content-Security-Policy','architecture-data','<svg'])if(!h.includes(x))throw Error('missing '+x);if(/<(script|link)[^>]+(src|href)=['\\\"]https?:/i.test(h))throw Error('external asset');console.log('Projection JSON valid; HTML CSP, embedded data, SVG, and offline-asset checks passed')"
+Result: PASS (exit 0)
+Output: Projection JSON valid; HTML CSP, embedded data, SVG, and offline-asset checks passed
+
+Projection creation: architecture/architecture.json was serialized from the compiled, strictly checked root architecture while replacing every root declaration/flow object reference with {"$ref":"ExportName"}. The resulting saved file is data-only JSON; the renderer reads only that JSON.

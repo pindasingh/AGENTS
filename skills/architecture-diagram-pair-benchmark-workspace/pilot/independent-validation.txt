@@ -1,0 +1,22 @@
+
+$ node skills/render-signal-graph/tests/run-tests.js
+Signal DSL and interactive renderer tests passed
+[exit 0]
+
+$ tsc --strict --target ES2022 --module commonjs --noEmit skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-broad/signal-render/outputs/architecture/signal.ts skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-broad/signal-render/outputs/architecture/architecture.ts
+[exit 0]
+
+MERMAID STATIC CHECK: skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-broad/mermaid-show-me/outputs/architecture.mmd
+flowchart LR
+[PASS portable safety scan]
+HTML: skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-broad/mermaid-show-me/outputs/architecture-review.html
+[PASS no HTTP(S) references]
+
+$ tsc --strict --target ES2022 --module commonjs --noEmit skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-sequence/signal-render/outputs/architecture/signal.ts skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-sequence/signal-render/outputs/architecture/architecture.ts
+[exit 0]
+
+MERMAID STATIC CHECK: skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-sequence/mermaid-show-me/outputs/checkout-order-processing.mmd
+sequenceDiagram
+[PASS portable safety scan]
+HTML: skills/architecture-diagram-pair-benchmark-workspace/pilot/eshop-sequence/mermaid-show-me/outputs/review.html
+[PASS no HTTP(S) references]

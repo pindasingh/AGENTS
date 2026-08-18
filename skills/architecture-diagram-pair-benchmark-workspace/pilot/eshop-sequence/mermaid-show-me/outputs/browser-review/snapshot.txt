@@ -1,0 +1,92 @@
+- main
+  - paragraph
+    - StaticText "Microsoft eShopOnContainers · evidence-bounded review artifact · offline"
+  - heading "Checkout is accepted first. Order processing continues asynchronously." [level=1, ref=e1]
+    - StaticText "Checkout is accepted first."
+    - LineBreak "\n"
+    - StaticText "Order processing continues asynchronously."
+  - paragraph
+    - StaticText "A compact review view of the authoritative Mermaid sequence in checkout-order-processing.mmd. This page does not render Mermaid and uses no external assets."
+  - region "HTTP acceptance path" [ref=e2]
+    - generic
+      - StaticText "1 · Browser"
+      - StaticText "Checkout over HTTP/REST"
+      - StaticText "→"
+    - generic
+      - StaticText "2 · Web BFF"
+      - StaticText "Calls Basket"
+      - StaticText "→"
+    - generic
+      - StaticText "3 · Basket API"
+      - StaticText "POST api/v1/Basket/checkout"
+      - StaticText "→"
+    - generic
+      - StaticText "4 · Basket Redis"
+      - StaticText "Read customer basket"
+      - StaticText "→"
+    - generic
+      - StaticText "5 · Event bus"
+      - StaticText "Publish UserCheckoutAcceptedIntegrationEvent"
+  - generic
+    - strong
+      - StaticText "Exact acceptance boundary:"
+    - StaticText " only after publishing the checkout event, Basket returns HTTP 202 Accepted through the Web BFF to the browser. The browser does not wait for order creation or completion."
+  - heading "Shared asynchronous processing" [level=2, ref=e3]
+  - list
+    - listitem [level=1]
+      - ListMarker "1. "
+      - StaticText "RabbitMQ (or the replaceable Azure Service Bus implementation) delivers UserCheckoutAcceptedIntegrationEvent to Ordering."
+    - listitem [level=1]
+      - ListMarker "2. "
+      - StaticText "Ordering dispatches idempotent IdentifiedCommand<CreateOrderCommand, bool> using RequestId."
+    - listitem [level=1]
+      - ListMarker "3. "
+      - StaticText "Ordering creates and commits the order in Ordering SQL, records integration events, then publishes OrderStartedIntegrationEvent and OrderStatusChangedToSubmittedIntegrationEvent."
+    - listitem [level=1]
+      - ListMarker "4. "
+      - StaticText "Basket consumes OrderStartedIntegrationEvent and deletes the checked-out basket from Redis."
+    - listitem [level=1]
+      - ListMarker "5. "
+      - StaticText "Ordering publishes OrderStatusChangedToAwaitingValidationIntegrationEvent; Catalog consumes it and checks Catalog SQL."
+  - generic
+    - heading "Stock confirmed → successful completion" [level=3, ref=e6]
+    - list
+      - listitem [level=1]
+        - ListMarker "1. "
+        - StaticText "Catalog validates and decrements stock in Catalog SQL, then publishes the stock-confirmed result."
+      - listitem [level=1]
+        - ListMarker "2. "
+        - StaticText "Ordering consumes it, saves the changed state in Ordering SQL, and publishes OrderStatusChangedToStockConfirmedIntegrationEvent."
+      - listitem [level=1]
+        - ListMarker "3. "
+        - StaticText "Ordering SignalR Hub consumes that event and notifies connected clients; Payment also consumes it."
+      - listitem [level=1]
+        - ListMarker "4. "
+        - StaticText "Payment publishes OrderPaymentSuccededIntegrationEvent (spelling preserved)."
+      - listitem [level=1]
+        - ListMarker "5. "
+        - StaticText "Ordering consumes it, marks the order paid in Ordering SQL, and publishes the paid status. Ordering SignalR Hub consumes order-status events and notifies connected clients."
+  - generic
+    - heading "Stock rejected → cancellation" [level=3, ref=e7]
+    - list
+      - listitem [level=1]
+        - ListMarker "1. "
+        - StaticText "Catalog publishes the stock-rejected result."
+      - listitem [level=1]
+        - ListMarker "2. "
+        - StaticText "Ordering consumes it."
+      - listitem [level=1]
+        - ListMarker "3. "
+        - StaticText "Ordering cancels the order and saves it in Ordering SQL."
+  - heading "Evidenced stores and infrastructure" [level=2, ref=e4]
+  - StaticText "Basket Redis"
+  - StaticText "Ordering SQL"
+  - StaticText "Catalog SQL"
+  - StaticText "RabbitMQ event bus"
+  - StaticText "Azure Service Bus alternative"
+  - heading "Evidence limits" [level=2, ref=e5]
+  - paragraph
+    - StaticText "The evidence requires a payment-failure variant but supplies no failure contract name, resulting state transition, store write, or notification. The authoritative diagram marks that gap rather than inventing behavior. It likewise does not supply exact contract names for stock-result events or the paid-status event."
+  - group
+    - DisclosureTriangle "Review the authoritative Mermaid source" [expanded=false]
+      - StaticText "Review the authoritative Mermaid source"

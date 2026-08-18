@@ -1,0 +1,79 @@
+flowchart LR
+  subgraph Callers[Callers]
+    Browser[Browser application]
+    Mobile[Mobile application]
+  end
+
+  subgraph Ingress[Ingress runtimes]
+    WebBFF[Web BFF / API gateway]
+    MobileBFF[Mobile BFF / API gateway]
+  end
+
+  subgraph BasketBoundary[Basket microservice ownership]
+    BasketAPI[Basket API]
+    BasketCheckout[Checkout handler]
+    BasketEventHandler[OrderStarted event handler]
+    BasketAPI -->|dispatches POST api/v1/basket/checkout| BasketCheckout
+  end
+
+  subgraph OrderingBoundary[Ordering microservice ownership]
+    CheckoutConsumer[UserCheckoutAccepted event handler]
+    IdempotentCommand[Identified CreateOrderCommand]
+    OrderCommandHandler[CreateOrderCommand handler]
+    OrderingEventHandlers[Stock and payment result handlers]
+    OrderingHub[Ordering SignalR Hub]
+    CheckoutConsumer -->|dispatches with checkout request ID| IdempotentCommand
+    IdempotentCommand -->|handles| OrderCommandHandler
+  end
+
+  subgraph CatalogBoundary[Catalog microservice ownership]
+    CatalogStockHandler[Awaiting-validation stock handler]
+  end
+
+  subgraph PaymentBoundary[Payment microservice ownership]
+    PaymentHandler[Stock-confirmed payment handler]
+  end
+
+  subgraph Stores[Service-owned stores]
+    BasketRedis[(Basket Redis)]
+    OrderingSQL[(Ordering relational database)]
+    CatalogSQL[(Catalog relational database)]
+  end
+
+  subgraph EventInfrastructure[External event-bus infrastructure]
+    EventBus[Event-bus abstraction]
+    RabbitMQ[RabbitMQ - development/test]
+    AzureServiceBus[Azure Service Bus - alternative]
+    EventBus -->|implementation| RabbitMQ
+    EventBus -.->|alternative implementation| AzureServiceBus
+  end
+
+  Browser -->|HTTP/REST| WebBFF
+  Mobile -->|HTTP/REST| MobileBFF
+  WebBFF -->|HTTP POST checkout| BasketAPI
+  MobileBFF -->|HTTP POST checkout| BasketAPI
+  BasketCheckout -->|reads customer basket| BasketRedis
+  BasketCheckout -->|publishes UserCheckoutAcceptedIntegrationEvent| EventBus
+  BasketCheckout -.->|then returns HTTP 202 Accepted| WebBFF
+  BasketCheckout -.->|then returns HTTP 202 Accepted| MobileBFF
+  EventBus -->|delivers UserCheckoutAcceptedIntegrationEvent| CheckoutConsumer
+
+  OrderCommandHandler -->|transactionally creates order| OrderingSQL
+  OrderCommandHandler -->|records/publishes OrderStartedIntegrationEvent| EventBus
+  OrderCommandHandler -->|records/publishes OrderStatusChangedToSubmittedIntegrationEvent| EventBus
+  EventBus -->|delivers OrderStartedIntegrationEvent| BasketEventHandler
+  BasketEventHandler -->|deletes checked-out basket| BasketRedis
+
+  EventBus -->|delivers OrderStatusChangedToAwaitingValidationIntegrationEvent| CatalogStockHandler
+  CatalogStockHandler -->|validates and decrements stock| CatalogSQL
+  CatalogStockHandler -->|publishes stock-confirmed or stock-rejected| EventBus
+  EventBus -->|delivers stock result| OrderingEventHandlers
+  OrderingEventHandlers -->|confirmed: changes order state; rejected: cancels order| OrderingSQL
+
+  OrderingEventHandlers -->|publishes OrderStatusChangedToStockConfirmedIntegrationEvent| EventBus
+  EventBus -->|delivers stock-confirmed event| PaymentHandler
+  EventBus -->|delivers stock-confirmed event| OrderingHub
+  PaymentHandler -->|publishes OrderPaymentSuccededIntegrationEvent in sample flow| EventBus
+  EventBus -->|delivers payment-succeeded event| OrderingEventHandlers
+  OrderingEventHandlers -->|marks order paid| OrderingSQL
+  OrderingEventHandlers -->|publishes paid status| EventBus

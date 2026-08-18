@@ -1,0 +1,35 @@
+{
+  "eval_id": "eshop-broad",
+  "eval_name": "eShop broad architecture",
+  "prompt": "Using only the supplied Microsoft eShopOnContainers evidence, create the most useful broad architecture diagram for an engineer who needs to understand the system's callers, ownership boundaries, runtime services, stores, external infrastructure, and major directed HTTP, persistence, messaging, and notification relationships. This is a structural overview, not a request timeline. Do not invent unsupported components or interactions. Preserve the source used to generate the diagram and make the final artifact self-contained and reviewable offline.",
+  "configurations": {
+    "signal-render": [
+      "build-signal-graph",
+      "render-signal-graph"
+    ],
+    "mermaid-show-me": [
+      "mermaid-diagrams",
+      "show-me"
+    ]
+  },
+  "assertions": [
+    "Browser and mobile callers and their separate Web and Mobile BFF/API gateway boundaries are represented without merging their identities.",
+    "Basket, Ordering, Catalog, Payment, and Ordering SignalR Hub runtime boundaries are represented.",
+    "Redis, Ordering SQL, Catalog SQL, and RabbitMQ/event-bus infrastructure are represented with correct ownership or external-infrastructure semantics.",
+    "Major HTTP ingress, persistence, event publication/delivery, payment, and SignalR notification relationships are directional and specifically labelled.",
+    "The artifact does not imply that HTTP 202 checkout acceptance waits for asynchronous order completion.",
+    "Fraud, shipping, card-network, and email services or relationships are absent.",
+    "The broad structural view does not duplicate runtime identities merely to express execution order.",
+    "The authoritative source and final reviewable artifact are both preserved, and the final artifact has no required network dependency.",
+    "Every material relationship visible in the final artifact is supported by the supplied fixture and represented consistently in its authoritative source.",
+    "The final artifact remains useful for tracing a major relationship from each caller through application boundaries to persistence, messaging, or notification infrastructure."
+  ],
+  "blind_review_questions": [
+    "Which callers enter through which gateway?",
+    "Where is the basket stored?",
+    "Which service owns each relational store?",
+    "What infrastructure carries integration events?",
+    "Does checkout acceptance wait for order completion?",
+    "How does a final order status reach the user?"
+  ]
+}
