@@ -29,7 +29,7 @@ Do not use an unconditional `git pull`: it can merge, rebase, or touch local cha
 ## Delivery boundaries
 
 - Never commit or push directly to a default or protected branch.
-- Deliver completed repository changes from a dedicated feature branch by committing, pushing, and using the pull-request skill.
+- Use the ship-branch-pull-request skill to perform the complete delivery sequence from a dedicated feature branch: verify and commit intended changes, push the branch, and create or update its pull request.
 - Refresh the remote default branch before pushing and preserve both local and upstream work. Merging, releasing, and deploying require explicit user authorization.
 
 ## Delegation and subagents
