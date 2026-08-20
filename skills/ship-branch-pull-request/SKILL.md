@@ -1,12 +1,12 @@
 ---
 name: ship-branch-pull-request
-description: Executes end-to-end Git branch delivery: inspect and verify the finished work, stage the intended files, commit, push, and create or update the GitHub pull request. Use whenever a user asks to ship, publish, commit, push, raise/open/update a PR, or otherwise deliver repository changes—even if nothing has been committed or pushed yet. Treat the pull request, not a list of commands or a push alone, as the delivery artifact.
+description: Executes the Git and GitHub side of branch delivery: inspect repository state, stage intended files, commit, push, and create or update the pull request. Use whenever a user asks to ship, publish, commit, push, raise/open/update a PR, or otherwise deliver repository changes—even if nothing has been committed or pushed yet. This skill does not run application tests, builds, linters, or other task validation.
 compatibility: Requires Git and GitHub CLI (`gh`) with repository access.
 ---
 
 # Ship Branch as a Pull Request
 
-A branch is not delivered until its intended changes are verified, committed, pushed, and represented by a useful pull request. Perform that complete workflow yourself with the available tools. Do not merely print commands, give the user instructions, stop after a commit or push, or assume another agent phase will finish the handoff.
+This skill owns only the Git and GitHub delivery sequence: inspect, stage, commit, push, and create or update the pull request. Assume implementation validation belongs to the task that produced the changes. Do not run application tests, builds, linters, typechecks, formatters, renderers, or content-validation tools. Perform the Git delivery workflow yourself; do not merely print commands, stop after a commit or push, or assume another phase will finish the handoff.
 
 ## Autonomous delivery contract
 
@@ -17,11 +17,10 @@ Before changing Git state, honor repository-level synchronization, protected-bra
 ## Workflow
 
 1. **Discover the delivery scope.** Inspect branch/upstream status, remotes, the refreshed remote default branch, working-tree changes, untracked files, staged changes, and the complete branch diff and commit range. Distinguish the task's intended changes from unrelated pre-existing work. If the current branch is the default/protected branch and changes need committing, create or switch to an appropriate dedicated feature branch as repository policy allows; never commit directly to the default branch.
-2. **Verify the work before committing.** Run the strongest relevant checks available in the repository (targeted tests, build, lint/typecheck, formatting or content validation, plus `git diff --check`). Do not install dependencies. A missing optional inspection utility is not itself a failure when an installed equivalent can verify the result; use available alternatives and report any verification gap accurately. Fix failures caused by the intended changes when feasible. Do not ship known-broken work as ready.
-3. **Stage only intended changes.** Review `git diff`, `git diff --staged`, and untracked files. Unstage unrelated pre-staged entries without altering their working-tree content. Add explicit task paths when whole files belong to the task; use selective/hunk staging when intended and unrelated edits share a file. Recheck the exact staged patch so unrelated edits, generated scratch files, secrets, and credentials are excluded. If there is nothing new to commit, proceed only if the branch already contains the intended commits.
-4. **Commit when needed.** Create a concise commit message that describes the outcome. Run applicable repository hooks normally; do not bypass them. Reinspect status and the resulting commit. If hooks modify files, review and verify those modifications before amending or creating another commit.
-5. **Push safely.** Identify the intended head remote explicitly from Git configuration and remote URLs. Push the current feature branch to that remote and set upstream when absent. Never force-push unless the user explicitly authorized rewriting that branch. Confirm the local tip is represented by that remote branch after pushing. A successful push is an intermediate step, not completion.
-6. **Identify PR coordinates.** Verify the branch is not the default branch. Derive the destination `repo` and base owner from the intended base remote—not from whichever repository `gh repo view` infers from the working directory. Derive the head owner/repository from the remote that received the push. Verify the pushed head repository and branch match the qualified `head_ref`, then identify the intended base explicitly. This prevents fork and multi-remote deliveries from targeting the wrong repository.
+2. **Stage only intended changes.** Review `git diff`, `git diff --staged`, and untracked files. Unstage unrelated pre-staged entries without altering their working-tree content. Add explicit task paths when whole files belong to the task; use selective/hunk staging when intended and unrelated edits share a file. Recheck the exact staged patch so unrelated edits, generated scratch files, secrets, and credentials are excluded. If there is nothing new to commit, proceed only if the branch already contains the intended commits.
+3. **Commit when needed.** Create a concise commit message that describes the outcome. Run applicable repository hooks normally; do not bypass them. Reinspect status and the resulting commit. If hooks modify files, review and verify those modifications before amending or creating another commit.
+4. **Push safely.** Identify the intended head remote explicitly from Git configuration and remote URLs. Push the current feature branch to that remote and set upstream when absent. Never force-push unless the user explicitly authorized rewriting that branch. Confirm the local tip is represented by that remote branch after pushing. A successful push is an intermediate step, not completion.
+5. **Identify PR coordinates.** Verify the branch is not the default branch. Derive the destination `repo` and base owner from the intended base remote—not from whichever repository `gh repo view` infers from the working directory. Derive the head owner/repository from the remote that received the push. Verify the pushed head repository and branch match the qualified `head_ref`, then identify the intended base explicitly. This prevents fork and multi-remote deliveries from targeting the wrong repository.
    Obtain repository and ref values from Git or `gh` output into variables; never paste repository-, branch-, user-, or generated text into shell source. Query GitHub with explicit `--repo "$repo"` after deriving it from the selected remote. Before using values, require repository owners and names to match `^[A-Za-z0-9_.-]+$`, branch and base names to match `^[A-Za-z0-9._/-]+$`, and PR numbers to match `^[0-9]+$`. Stop if any value fails validation.
    ```bash
    # Derive these from the explicitly selected and inspected base/head remotes.
@@ -36,13 +35,13 @@ Before changing Git state, honor repository-level synchronization, protected-bra
      exit 1
    fi
    ```
-7. **Find an existing PR.** Check using the exact destination repository and qualified head branch:
+6. **Find an existing PR.** Check using the exact destination repository and qualified head branch:
    ```bash
    gh pr list --repo "$repo" --head "$head_ref" --state all \
      --json number,state,isDraft,title,url,baseRefName,headRefName
    ```
    Prefer an open PR when historical closed or merged PRs also exist for a reused branch. Confirm that its `baseRefName` is the intended comparison base before updating it; do not silently retarget a PR whose base differs.
-8. **Update rather than duplicate.** If an open PR exists, update its title or body when they no longer describe the final diff. Do not create a duplicate:
+7. **Update rather than duplicate.** If an open PR exists, update its title or body when they no longer describe the final diff. Do not create a duplicate:
    ```bash
    title_file=$(mktemp)
    body_file=$(mktemp)
@@ -51,7 +50,7 @@ Before changing Git state, honor repository-level synchronization, protected-bra
    gh pr edit "$pr_number" --repo "$repo" \
      --title "$pr_title" --body-file "$body_file"
    ```
-9. **Create the PR when absent.** If no open PR exists, create one. Completed and verified work should be ready for review; add `--draft` only while work is genuinely incomplete or readiness is uncertain:
+8. **Create the PR when absent.** If no open PR exists, create one. Finished work should normally be ready for review; add `--draft` only while work is genuinely incomplete or readiness is uncertain:
    ```bash
    title_file=$(mktemp)
    body_file=$(mktemp)
@@ -65,13 +64,12 @@ Before changing Git state, honor repository-level synchronization, protected-bra
    ```bash
    gh pr ready "$pr_number" --repo "$repo"
    ```
-10. **Describe the complete result.** Ensure the PR body describes the final branch rather than the conversation or only the latest commit. Include:
+9. **Describe the complete result.** Ensure the PR body describes the final branch rather than the conversation or only the latest commit. Include:
    - concise summary of the outcome;
    - important implementation or content changes;
-   - verification performed and its result;
    - remaining risks, limitations, or follow-ups when relevant;
    - useful guidance that helps reviewers focus on important behavior or decisions.
-11. **Verify the remote handoff.** Read the PR back and inspect its checks, review decision, and merge-conflict status before reporting:
+10. **Verify the remote handoff.** Read the PR back and inspect its checks, review decision, and merge-conflict status before reporting:
    ```bash
    gh pr view "$pr_number" --repo "$repo" \
      --json number,url,state,isDraft,baseRefName,headRefName,mergeStateStatus,reviewDecision,statusCheckRollup
@@ -85,15 +83,15 @@ Do not describe pushed branch work as complete without one of these outcomes:
 - the existing open PR was verified/updated and the same status details were reported; or
 - an actual blocker was established (for example, missing authentication, insufficient repository permission, or the remote host not supporting the available PR tooling).
 
-A clean working tree, successful commit or push, a command recipe, or a commit hash alone does not satisfy delivery. The normal final response is concise: commit, PR URL, ready/draft state, checks, review/conflict status, verification run, and any genuine residual risk.
+A clean working tree, successful commit or push, a command recipe, or a commit hash alone does not satisfy delivery. The normal final response is concise: commit, PR URL, ready/draft state, checks, review/conflict status, and any genuine residual risk.
 
 ## Safety and edge cases
 
 - Never create a PR from the default branch to itself.
 - Never create duplicate PRs for the same head branch.
-- For already committed but unpushed work, verify and push it before continuing; do not manufacture an empty commit.
+- For already committed but unpushed work, inspect and push it before continuing; do not manufacture an empty commit.
 - When there is no new work and the branch contains no unmerged commits, report that concrete state rather than creating an empty commit or meaningless PR.
-- Preserve unrelated dirty files and exclude them from staging. If they prevent safe verification, switching branches, or pushing, report the exact obstruction.
+- Preserve unrelated dirty files and exclude them from staging. If they prevent safe branch switching or pushing, report the exact obstruction.
 - If a push is rejected or non-fast-forward, fetch and diagnose the relationship; never respond with a force-push, reset, or rebase unless separately authorized.
 - Do not reopen a merged or intentionally closed PR automatically; inspect branch history and create the appropriate new PR only when the branch contains unmerged work.
 - Respect explicit user instructions not to commit, push, or create a PR, and respect a requested draft/ready state. Complete every independent permitted stage and report the resulting boundary accurately.
