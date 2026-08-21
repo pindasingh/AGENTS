@@ -27,17 +27,29 @@ For parallel delegation, the parent issues multiple independent tool calls in on
 
 Each invocation:
 
-1. writes the complete prompt to a private temporary file;
-2. launches a separate Pi JSON-mode process in the requested working directory;
-3. passes the parent's current model and a supported thinking level;
+1. writes the complete prompt to a private temporary run directory;
+2. creates a dedicated `session.jsonl` and launches a separate Pi JSON-mode process in the requested working directory;
+3. passes the parent's current model and effective thinking level through unchanged;
 4. passes the explicit `--tools` allowlist, `--no-skills`, and `--exclude-tools subagent`;
 5. returns a background job id immediately;
 6. streams progress to `/context-viewer`; and
 7. injects the final result as a visible follow-up that resumes the parent.
 
-The extension uses argument arrays with `shell: false`; it does not build a quoted shell command. Temporary prompt files are removed after the child exits.
+The extension uses argument arrays with `shell: false`; it does not build a quoted shell command. The temporary prompt is removed after exit, while the JSONL session is retained under the operating system's temporary directory and its path remains in result details. This survives the child and parent turn for inspection/recovery, but it is not permanent archival storage and may eventually be removed by OS temp cleanup.
 
 ## Visibility and control
+
+The parent model can control only jobs owned by its session:
+
+```typescript
+subagent_control({ action: "list" })
+subagent_control({ action: "cancel", id: "subagent-2" })
+subagent_control({ action: "cancel-all" })
+```
+
+Cancellation requires the exact returned job id and never scans or kills unidentified shared processes.
+
+Human controls remain available:
 
 - `/context-viewer [open|close|toggle]` shows the primary → job → child context tree.
 - `/subagents` lists active jobs.
@@ -62,6 +74,7 @@ pi/extensions/subagent/
 ├── README.md
 ├── index.ts
 ├── launch-contract.ts
+├── control-contract.ts
 ├── activity.ts
 ├── context-viewer.ts
 └── task-title.ts

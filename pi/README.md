@@ -8,7 +8,9 @@ These resources depend on Pi's extension and discovery APIs and are therefore Pi
 
 Every invocation supplies a descriptive `name`, an explicit least-privilege `tools` allowlist, and a complete standalone `prompt`. Skills and recursive delegation are disabled for every child. The caller's prompt must directly include task-critical conversation context—such as proposed changes or user decisions—that is absent from referenced files.
 
-The matching [`subagent` skill](../skills/subagent/SKILL.md) teaches the parent how to construct a complete handoff. Multiple independent calls provide visible parallel fanout without named role profiles or a hidden chain DSL.
+The matching [`subagent` skill](../skills/subagent/SKILL.md) teaches the parent how to construct a complete handoff. Multiple independent calls provide visible parallel fanout without hidden profile inheritance or a chain DSL.
+
+The existing `pi/agents/` scout, reviewer, and worker profiles remain available for compatibility with profile-based integrations and already-running older extension sessions. They are not silently injected into the explicit spawn path; any role requirements needed by a new child belong in its visible prompt.
 
 ## Web tools
 

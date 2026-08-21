@@ -2,9 +2,11 @@ export const RUN_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62})$/;
 const TOOL_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
 export interface ChildLaunchConfig {
+	name: string;
+	sessionPath: string;
 	tools: string[];
 	model?: string;
-	thinking: "off" | "minimal" | "low" | "medium";
+	thinking: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 }
 
 export function buildChildArgs(config: ChildLaunchConfig): string[] {
@@ -12,7 +14,10 @@ export function buildChildArgs(config: ChildLaunchConfig): string[] {
 		"--mode",
 		"json",
 		"-p",
-		"--no-session",
+		"--session",
+		config.sessionPath,
+		"--name",
+		config.name,
 		"--thinking",
 		config.thinking,
 		"--exclude-tools",

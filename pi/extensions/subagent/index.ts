@@ -27,12 +27,13 @@ import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { ChildActivityTracker } from "./activity.ts";
 import { ContextViewer, SUBAGENT_JOB_ENTRY_TYPE } from "./context-viewer.ts";
+import { cancelAllOwnedJobs, cancelOwnedJob, terminalJobStatus } from "./control-contract.ts";
 import { buildChildArgs, RUN_NAME_PATTERN, validateSpawnContract } from "./launch-contract.ts";
 
 const COLLAPSED_ITEM_COUNT = 10;
 
 type AgentScope = "request";
-type SubagentThinkingLevel = "off" | "minimal" | "low" | "medium";
+type SubagentThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
 interface AgentConfig {
 	name: string;
@@ -186,6 +187,7 @@ export interface SingleResult {
 	usage: UsageStats;
 	nested?: NestedInvocation[];
 	model?: string;
+	sessionPath?: string;
 	stopReason?: string;
 	errorMessage?: string;
 	step?: number;
@@ -353,7 +355,7 @@ async function runSingleAgent(
 		};
 	}
 
-	const args = buildChildArgs(agent);
+	let args: string[] = [];
 
 	let tmpPromptDir: string | null = null;
 	let tmpPromptPath: string | null = null;
@@ -387,16 +389,22 @@ async function runSingleAgent(
 	emitUpdate();
 
 	try {
+		const taskFile = await writePromptToTempFile(agent.name, task);
+		tmpTaskDir = taskFile.dir;
+		tmpTaskPath = taskFile.filePath;
+		const sessionPath = path.join(tmpTaskDir, "session.jsonl");
+		await withFileMutationQueue(sessionPath, async () => {
+			await fs.promises.writeFile(sessionPath, "", { encoding: "utf-8", mode: 0o600 });
+		});
+		currentResult.sessionPath = sessionPath;
+		args = buildChildArgs({ ...agent, name: agent.name, sessionPath });
+
 		if (agent.systemPrompt.trim()) {
 			const tmp = await writePromptToTempFile(agent.name, agent.systemPrompt);
 			tmpPromptDir = tmp.dir;
 			tmpPromptPath = tmp.filePath;
 			args.push("--append-system-prompt", tmpPromptPath);
 		}
-
-		const taskFile = await writePromptToTempFile(agent.name, task);
-		tmpTaskDir = taskFile.dir;
-		tmpTaskPath = taskFile.filePath;
 		args.push(`@${tmpTaskPath}`);
 		let wasAborted = false;
 
@@ -535,12 +543,6 @@ async function runSingleAgent(
 			} catch {
 				/* ignore */
 			}
-		if (tmpTaskDir)
-			try {
-				fs.rmdirSync(tmpTaskDir);
-			} catch {
-				/* ignore */
-			}
 		if (tmpPromptPath)
 			try {
 				fs.unlinkSync(tmpPromptPath);
@@ -555,6 +557,13 @@ async function runSingleAgent(
 			}
 	}
 }
+
+const SubagentControlParams = Type.Object({
+	action: Type.Union([Type.Literal("list"), Type.Literal("cancel"), Type.Literal("cancel-all")], {
+		description: "List this session's jobs, cancel one exact job id, or cancel all jobs owned by this session",
+	}),
+	id: Type.Optional(Type.String({ description: "Exact background job id required for cancel" })),
+});
 
 const SubagentParams = Type.Object({
 	name: Type.String({
@@ -603,8 +612,8 @@ export default function (pi: ExtensionAPI) {
 		handler: async (args, ctx) => {
 			const [action, jobId] = args.trim().split(/\s+/, 2);
 			if (action === "cancel-all") {
-				for (const job of backgroundJobs.values()) job.controller.abort();
-				ctx.ui.notify(`Cancelling ${backgroundJobs.size} subagent job(s).`, "info");
+				const ids = cancelAllOwnedJobs(backgroundJobs);
+				ctx.ui.notify(`Cancelling ${ids.length} subagent job(s).`, "info");
 				return;
 			}
 			if (action === "cancel") {
@@ -613,7 +622,7 @@ export default function (pi: ExtensionAPI) {
 					ctx.ui.notify(`Unknown subagent job: ${jobId || "(missing id)"}`, "warning");
 					return;
 				}
-				job.controller.abort();
+				cancelOwnedJob(backgroundJobs, jobId);
 				ctx.ui.notify(`Cancelling ${jobId}.`, "info");
 				return;
 			}
@@ -634,6 +643,43 @@ export default function (pi: ExtensionAPI) {
 	pi.on("agent_settled", (_event, ctx) => contextViewer.updatePrimary(ctx, false));
 	pi.on("model_select", (_event, ctx) => contextViewer.updatePrimary(ctx));
 	pi.on("session_tree", (_event, ctx) => contextViewer.restoreFromBranch(ctx));
+	pi.registerTool({
+		name: "subagent_control",
+		label: "Subagent Control",
+		description: "List or cancel background subagent jobs owned by this parent session. Cancellation requires an exact returned job id; this tool never targets unidentified or shared processes.",
+		promptSnippet: "List or cancel this session's background subagent jobs",
+		parameters: SubagentControlParams,
+		async execute(_toolCallId, params) {
+			if (params.action === "list") {
+				const jobs = Array.from(backgroundJobs, ([id, job]) => ({ id, name: job.runName, description: job.description }));
+				return {
+					content: [{ type: "text", text: jobs.length > 0
+						? jobs.map((job) => `${job.id}: ${job.name} — ${job.description}`).join("\n")
+						: "No subagent jobs are running." }],
+					details: { jobs },
+				};
+			}
+			if (params.action === "cancel") {
+				if (!params.id) {
+					return { content: [{ type: "text", text: "Cancel requires the exact job id returned by subagent." }], details: {} };
+				}
+				const job = backgroundJobs.get(params.id);
+				if (!job) {
+					return { content: [{ type: "text", text: `Unknown subagent job: ${params.id}. No process was signalled.` }], details: {} };
+				}
+				cancelOwnedJob(backgroundJobs, params.id);
+				return { content: [{ type: "text", text: `Cancellation requested for ${params.id} (${job.runName}).` }], details: { id: params.id } };
+			}
+			const ids = cancelAllOwnedJobs(backgroundJobs);
+			return {
+				content: [{ type: "text", text: ids.length > 0
+					? `Cancellation requested for ${ids.length} job(s): ${ids.join(", ")}.`
+					: "No subagent jobs are running." }],
+				details: { ids },
+			};
+		},
+	});
+
 	pi.on("session_shutdown", (_event, ctx) => {
 		for (const job of backgroundJobs.values()) {
 			if (job.details) {
@@ -657,23 +703,20 @@ export default function (pi: ExtensionAPI) {
 			"Spawn one isolated Pi child with a descriptive name, explicit tool allowlist, and complete standalone prompt.",
 			"Child skills are always disabled and the subagent tool is always excluded.",
 			"The prompt must carry relevant conversation-only context, decisions, proposals, constraints, and expected output; file references alone are not a handoff.",
-			"Delegation runs in the background and completion automatically resumes the parent in a follow-up turn.",
+			"Delegation runs in the background and completion automatically resumes the parent in a follow-up turn. Use subagent_control with the returned job id to list or cancel owned jobs.",
 		].join(" "),
 		promptSnippet: "Spawn an isolated child with name, tools, and a self-contained prompt",
 		promptGuidelines: [
 			"Before spawning, put all task-critical context into prompt, especially user decisions or proposed changes that do not exist in referenced files.",
 			"Choose the smallest sufficient tool allowlist. Child skills and recursive subagents are unavailable.",
+			"Keep the returned job id. Use subagent_control to list or cancel this session's jobs; never kill unidentified processes.",
 			"After delegation, continue only independent work; do not duplicate or overlap the delegated scope. Completion automatically starts a follow-up turn.",
 		],
 		parameters: SubagentParams,
 
 		async execute(toolCallId, request, _signal, _onUpdate, ctx) {
 			const agentScope: AgentScope = "request";
-			const thinking = (["off", "minimal", "low", "medium"] as const).includes(
-				ctx.thinkingLevel as SubagentThinkingLevel,
-			)
-				? (ctx.thinkingLevel as SubagentThinkingLevel)
-				: "medium";
+			const thinking = ctx.thinkingLevel as SubagentThinkingLevel;
 			const requestedTools = request.tools.map((tool) => tool.trim()).filter(Boolean);
 			const requestedModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
 			const requestedAgent: AgentConfig = {
@@ -829,12 +872,13 @@ export default function (pi: ExtensionAPI) {
 						});
 					}
 					const message = error instanceof Error ? error.message : String(error);
+					const status = terminalJobStatus(controller.signal.aborted);
 					pi.sendMessage(
 						{
 							customType: "subagent-completion",
-							content: `Background subagent job ${jobId} failed: ${message}`,
+							content: `Background subagent job ${jobId} ${status}: ${message}`,
 							display: true,
-							details: { jobId },
+							details: { jobId, result: latestDetails },
 						},
 						{ triggerTurn: true, deliverAs: "followUp" },
 					);

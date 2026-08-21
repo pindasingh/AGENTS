@@ -42,6 +42,18 @@ Before calling the tool, ask: **Could a fresh agent understand every material re
 
 For independent parallel work, issue several separate `subagent` calls in the same turn with distinct names, prompts, and non-overlapping authority. Use one writer per working directory.
 
+## Control running jobs
+
+Keep every job id returned by `subagent`. The parent can safely inspect and cancel only jobs owned by its session:
+
+```typescript
+subagent_control({ action: "list" })
+subagent_control({ action: "cancel", id: "subagent-2" })
+subagent_control({ action: "cancel-all" })
+```
+
+Use the exact returned id. If a job cannot be identified in `list`, do not kill shared processes through the shell.
+
 ## Parent responsibilities
 
 The parent owns task decomposition, complete context handoff, synthesis, and verification. After spawning, continue only independent work and do not duplicate the child's scope. Treat the returned result as evidence rather than authority; inspect important claims and validate changes before completion.

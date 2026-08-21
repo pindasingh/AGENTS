@@ -6,17 +6,22 @@ import { buildChildArgs, validateSpawnContract } from "./launch-contract.ts";
 test("child launch disables skills and recursive delegation while preserving requested tools", () => {
 	assert.deepEqual(
 		buildChildArgs({
+			name: "field-name-inventory",
+			sessionPath: "C:/tmp/field-name-inventory/session.jsonl",
 			tools: ["read", "grep", "find", "ls"],
 			model: "openai-codex/gpt-5.6-sol",
-			thinking: "medium",
+			thinking: "low",
 		}),
 		[
 			"--mode",
 			"json",
 			"-p",
-			"--no-session",
+			"--session",
+			"C:/tmp/field-name-inventory/session.jsonl",
+			"--name",
+			"field-name-inventory",
 			"--thinking",
-			"medium",
+			"low",
 			"--exclude-tools",
 			"subagent",
 			"--no-skills",
@@ -26,6 +31,16 @@ test("child launch disables skills and recursive delegation while preserving req
 			"read,grep,find,ls",
 		],
 	);
+});
+
+test("child launch passes an overridden effective thinking level through unchanged", () => {
+	const args = buildChildArgs({
+		name: "deep-review",
+		sessionPath: "C:/tmp/deep-review/session.jsonl",
+		tools: ["read"],
+		thinking: "max",
+	});
+	assert.equal(args[args.indexOf("--thinking") + 1], "max");
 });
 
 test("spawn contract requires a safe name, tools without subagent, and a non-empty prompt", () => {
