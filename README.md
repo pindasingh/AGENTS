@@ -8,7 +8,6 @@ Canonical, version-controlled resources shared by local coding agents.
 - `skills/` — harness-neutral [Agent Skills](https://agentskills.io/) packages. Pi and other compatible agents can load these.
 - `benchmarks/` — operator-run evaluation harnesses and preserved results; these are not Agent Skills and are not model-invokable.
 - `pi/extensions/` — Pi-specific TypeScript extensions.
-- `pi/agents/` — specialist profiles consumed by Pi's `subagent` extension.
 
 The generic policy and skills stay at the repository root because they are useful across agent harnesses. Pi runtime code and Pi discovery formats stay under `pi/`.
 
@@ -20,7 +19,6 @@ The canonical Pi resources are this repository. The local Pi paths should point 
 ~/.pi/agent/AGENTS.md  -> <repo>/AGENTS.md
 ~/.pi/agent/skills     -> <repo>/skills
 ~/.pi/agent/extensions -> <repo>/pi/extensions
-~/.pi/agent/agents     -> <repo>/pi/agents
 ```
 
 These links are host provisioning maintained outside agent instructions. Agents must not create, replace, or repair them as part of normal repository work.
@@ -38,8 +36,5 @@ Pi's mutable and sensitive runtime data is intentionally not tracked here:
 - `dependency-install-guard.ts` — enforces the local no-dependency-install policy.
 - `herdr-agent-state.ts` — Herdr's Pi lifecycle integration. Herdr may regenerate this file; because Pi links to this repository, review and commit any generated update.
 - `skill-toggle.ts` — toggles every discovered skill between agent-invocable and manual-only by updating its `disable-model-invocation` frontmatter through `/toggle-skills`.
-- `subagent/` — adds the `subagent` tool, advertises the available user-agent catalogue to the model, and provides isolated single, parallel, and chained Pi subprocesses plus `/context-viewer`.
-- `subagent-explorer-alert.ts` — records a durable, visible session error whenever a model requests the nonexistent `explorer` agent; it does not alias or rewrite the request.
+- `subagent/` — adds an explicit `name`/`tools`/`prompt` spawn tool for isolated Pi children, disables child skills and recursive delegation, and provides background hand-back plus `/context-viewer`.
 - `direct-web-tools.ts` — dependency-free `web_search` and `web_fetch` tools; search parses Bing's public HTML results directly, without search APIs, MCP search providers, or API keys.
-
-The matching subagent profiles are in `pi/agents/`.

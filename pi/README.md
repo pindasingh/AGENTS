@@ -4,17 +4,11 @@ These resources depend on Pi's extension and discovery APIs and are therefore Pi
 
 ## Subagents
 
-`extensions/subagent/` registers an LLM-callable `subagent` tool. Each delegated task runs in a separate Pi process with an isolated context window.
+`extensions/subagent/` registers an LLM-callable `subagent` spawn tool. Each delegated task runs in a separate Pi process with an isolated context window.
 
-Available profiles:
+Every invocation supplies a descriptive `name`, an explicit least-privilege `tools` allowlist, and a complete standalone `prompt`. Skills and recursive delegation are disabled for every child. The caller's prompt must directly include task-critical conversation context—such as proposed changes or user decisions—that is absent from referenced files.
 
-- `scout` — focused read-only codebase discovery at low thinking
-- `reviewer` — read-only quality and security review
-- `worker` — primary-like implementation of bounded delegated work at low thinking, without subagent delegation
-
-Subagent profile thinking is mandatory, static, and limited to `off`, `minimal`, `low`, or `medium`; callers cannot override it. Every child process excludes the `subagent` tool, preventing recursive delegation.
-
-Project-local profiles in `.pi/agents/` are not enabled by default. Calling the tool with `agentScope: "project"` or `"both"` enables them and may require interactive confirmation.
+The matching [`subagent` skill](../skills/subagent/SKILL.md) teaches the parent how to construct a complete handoff. Multiple independent calls provide visible parallel fanout without named role profiles or a hidden chain DSL.
 
 ## Web tools
 

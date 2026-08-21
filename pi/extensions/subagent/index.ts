@@ -4,11 +4,10 @@
  * Spawns a separate `pi` process for each subagent invocation,
  * giving it an isolated context window.
  *
- * Supports three modes:
- *   - Single: { agent: "name", task: "..." }
- *   - Parallel: { tasks: [{ agent: "name", task: "..." }, ...] }
- *   - Chain: { chain: [{ agent: "name", task: "... {previous} ..." }, ...] }
+ * Public contract: { name, tools, prompt, cwd? }
  *
+ * The caller supplies a descriptive run name, a least-privilege tool allowlist,
+ * and a complete standalone prompt. Child skill discovery is always disabled.
  * Uses JSON mode to capture structured output from subagents.
  */
 
@@ -18,28 +17,37 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { Message } from "@earendil-works/pi-ai";
-import { StringEnum } from "@earendil-works/pi-ai";
 import {
-	CONFIG_DIR_NAME,
 	type ExtensionAPI,
 	type ExtensionCommandContext,
-	getAgentDir,
 	getMarkdownTheme,
 	withFileMutationQueue,
 } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { type AgentConfig, type AgentScope, discoverAgents, type SubagentThinkingLevel } from "./agents.ts";
 import { ChildActivityTracker } from "./activity.ts";
 import { ContextViewer, SUBAGENT_JOB_ENTRY_TYPE } from "./context-viewer.ts";
+import { buildChildArgs, RUN_NAME_PATTERN, validateSpawnContract } from "./launch-contract.ts";
 
-const MAX_PARALLEL_TASKS = 8;
-const MAX_CONCURRENCY = 4;
 const COLLAPSED_ITEM_COUNT = 10;
-const PER_TASK_OUTPUT_CAP = 50 * 1024;
+
+type AgentScope = "request";
+type SubagentThinkingLevel = "off" | "minimal" | "low" | "medium";
+
+interface AgentConfig {
+	name: string;
+	description: string;
+	tools: string[];
+	model?: string;
+	thinking: SubagentThinkingLevel;
+	systemPrompt: string;
+	source: "request";
+	filePath: string;
+}
 
 interface BackgroundJob {
 	controller: AbortController;
+	runName: string;
 	description: string;
 	toolCallId: string;
 	details?: SubagentDetails;
@@ -166,7 +174,7 @@ export interface NestedInvocation {
 
 export interface SingleResult {
 	agent: string;
-	agentSource: "user" | "project" | "unknown";
+	agentSource: "request" | "unknown";
 	task: string;
 	activity?: string;
 	thinking?: SubagentThinkingLevel;
@@ -186,7 +194,7 @@ export interface SingleResult {
 export interface SubagentDetails {
 	mode: "single" | "parallel" | "chain";
 	agentScope: AgentScope;
-	projectAgentsDir: string | null;
+	projectAgentsDir: null;
 	jobId?: string;
 	results: SingleResult[];
 }
@@ -272,17 +280,6 @@ function getResultOutput(result: SingleResult): string {
 	return getFinalOutput(result.messages) || "(no output)";
 }
 
-function truncateParallelOutput(output: string): string {
-	const byteLength = Buffer.byteLength(output, "utf8");
-	if (byteLength <= PER_TASK_OUTPUT_CAP) return output;
-
-	let truncated = output.slice(0, PER_TASK_OUTPUT_CAP);
-	while (Buffer.byteLength(truncated, "utf8") > PER_TASK_OUTPUT_CAP) {
-		truncated = truncated.slice(0, -1);
-	}
-	return `${truncated}\n\n[Output truncated: ${byteLength - Buffer.byteLength(truncated, "utf8")} bytes omitted. Full output preserved in tool details.]`;
-}
-
 type DisplayItem = { type: "text"; text: string } | { type: "toolCall"; name: string; args: Record<string, any> };
 
 function getDisplayItems(messages: Message[]): DisplayItem[] {
@@ -296,26 +293,6 @@ function getDisplayItems(messages: Message[]): DisplayItem[] {
 		}
 	}
 	return items;
-}
-
-async function mapWithConcurrencyLimit<TIn, TOut>(
-	items: TIn[],
-	concurrency: number,
-	fn: (item: TIn, index: number) => Promise<TOut>,
-): Promise<TOut[]> {
-	if (items.length === 0) return [];
-	const limit = Math.max(1, Math.min(concurrency, items.length));
-	const results: TOut[] = new Array(items.length);
-	let nextIndex = 0;
-	const workers = new Array(limit).fill(null).map(async () => {
-		while (true) {
-			const current = nextIndex++;
-			if (current >= items.length) return;
-			results[current] = await fn(items[current], current);
-		}
-	});
-	await Promise.all(workers);
-	return results;
 }
 
 async function writePromptToTempFile(agentName: string, prompt: string): Promise<{ dir: string; filePath: string }> {
@@ -376,21 +353,12 @@ async function runSingleAgent(
 		};
 	}
 
-	const args: string[] = [
-		"--mode",
-		"json",
-		"-p",
-		"--no-session",
-		"--thinking",
-		agent.thinking,
-		"--exclude-tools",
-		"subagent",
-	];
-	if (agent.model) args.push("--model", agent.model);
-	if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
+	const args = buildChildArgs(agent);
 
 	let tmpPromptDir: string | null = null;
 	let tmpPromptPath: string | null = null;
+	let tmpTaskDir: string | null = null;
+	let tmpTaskPath: string | null = null;
 
 	const currentResult: SingleResult = {
 		agent: agentName,
@@ -426,7 +394,10 @@ async function runSingleAgent(
 			args.push("--append-system-prompt", tmpPromptPath);
 		}
 
-		args.push(`Task: ${task}`);
+		const taskFile = await writePromptToTempFile(agent.name, task);
+		tmpTaskDir = taskFile.dir;
+		tmpTaskPath = taskFile.filePath;
+		args.push(`@${tmpTaskPath}`);
 		let wasAborted = false;
 
 		const exitCode = await new Promise<number>((resolve) => {
@@ -528,9 +499,12 @@ async function runSingleAgent(
 				resolve(code ?? 0);
 			});
 
-			proc.on("error", () => {
+			proc.on("error", (error) => {
 				processClosed = true;
 				if (killTimer) clearTimeout(killTimer);
+				currentResult.errorMessage = error.message;
+				currentResult.stderr += `${currentResult.stderr ? "\n" : ""}${error.message}`;
+				setActivity("Failed to start child process");
 				resolve(1);
 			});
 
@@ -555,6 +529,18 @@ async function runSingleAgent(
 		if (wasAborted) throw new Error("Subagent was aborted");
 		return currentResult;
 	} finally {
+		if (tmpTaskPath)
+			try {
+				fs.unlinkSync(tmpTaskPath);
+			} catch {
+				/* ignore */
+			}
+		if (tmpTaskDir)
+			try {
+				fs.rmdirSync(tmpTaskDir);
+			} catch {
+				/* ignore */
+			}
 		if (tmpPromptPath)
 			try {
 				fs.unlinkSync(tmpPromptPath);
@@ -570,33 +556,23 @@ async function runSingleAgent(
 	}
 }
 
-const TaskItem = Type.Object({
-	agent: Type.String({ description: "Name of the agent to invoke" }),
-	task: Type.String({ description: "Task to delegate to the agent" }),
-	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
-});
-
-const ChainItem = Type.Object({
-	agent: Type.String({ description: "Name of the agent to invoke" }),
-	task: Type.String({ description: "Task with optional {previous} placeholder for prior output" }),
-	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
-});
-
-const AgentScopeSchema = StringEnum(["user", "project", "both"] as const, {
-	description: 'Which agent directories to use. Default: "user". Use "both" to include project-local agents.',
-	default: "user",
-});
-
 const SubagentParams = Type.Object({
-	agent: Type.Optional(Type.String({ description: "Name of the agent to invoke (for single mode)" })),
-	task: Type.Optional(Type.String({ description: "Task to delegate (for single mode)" })),
-	tasks: Type.Optional(Type.Array(TaskItem, { description: "Array of {agent, task} for parallel execution" })),
-	chain: Type.Optional(Type.Array(ChainItem, { description: "Array of {agent, task} for sequential execution" })),
-	agentScope: Type.Optional(AgentScopeSchema),
-	confirmProjectAgents: Type.Optional(
-		Type.Boolean({ description: "Prompt before running project-local agents. Default: true.", default: true }),
-	),
-	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process (single mode)" })),
+	name: Type.String({
+		description: "Short unique run name using lowercase letters, digits, and hyphens",
+		minLength: 1,
+		maxLength: 63,
+		pattern: RUN_NAME_PATTERN.source,
+	}),
+	tools: Type.Array(Type.String({ minLength: 1 }), {
+		description: "Explicit least-privilege child tool allowlist; subagent is forbidden",
+		minItems: 1,
+		uniqueItems: true,
+	}),
+	prompt: Type.String({
+		description: "Complete standalone task prompt, including relevant decisions and context not present in referenced files",
+		minLength: 1,
+	}),
+	cwd: Type.Optional(Type.String({ description: "Working directory for the child Pi process" })),
 });
 
 export default function (pi: ExtensionAPI) {
@@ -604,10 +580,6 @@ export default function (pi: ExtensionAPI) {
 	const backgroundJobs = new Map<string, BackgroundJob>();
 	let nextJobNumber = 1;
 	let runtimeActive = true;
-	const availableUserAgents = discoverAgents(process.cwd(), "user").agents;
-	const availableUserAgentNames = availableUserAgents.map((agent) => agent.name).join(", ") || "none";
-	const availableUserAgentCatalog =
-		availableUserAgents.map((agent) => `${agent.name} (${agent.description})`).join("; ") || "none";
 	const handleContextViewerCommand = async (args: string, ctx: ExtensionCommandContext): Promise<void> => {
 		const action = args.trim().toLowerCase() || "toggle";
 		if (action === "open") contextViewer.open(ctx);
@@ -682,29 +654,40 @@ export default function (pi: ExtensionAPI) {
 		name: "subagent",
 		label: "Subagent",
 		description: [
-			`Available user agents: ${availableUserAgentCatalog}. Use these exact names; scout is the reconnaissance/exploration agent.`,
-			"Delegate tasks to specialized subagents with isolated context. Delegation runs in the background and completion automatically resumes the parent in a follow-up turn.",
-			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
-			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
-			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
+			"Spawn one isolated Pi child with a descriptive name, explicit tool allowlist, and complete standalone prompt.",
+			"Child skills are always disabled and the subagent tool is always excluded.",
+			"The prompt must carry relevant conversation-only context, decisions, proposals, constraints, and expected output; file references alone are not a handoff.",
+			"Delegation runs in the background and completion automatically resumes the parent in a follow-up turn.",
 		].join(" "),
-		promptSnippet: `Delegate work to available agents: ${availableUserAgentNames}`,
+		promptSnippet: "Spawn an isolated child with name, tools, and a self-contained prompt",
 		promptGuidelines: [
-			`For subagent calls using the default user scope, use only these advertised agent names: ${availableUserAgentNames}. Use scout for reconnaissance or exploration.`,
-			"The subagent tool runs asynchronously. After delegation, continue only independent work; do not duplicate or overlap the delegated scope. A completion message will automatically start a follow-up turn so you can pick the result back up.",
+			"Before spawning, put all task-critical context into prompt, especially user decisions or proposed changes that do not exist in referenced files.",
+			"Choose the smallest sufficient tool allowlist. Child skills and recursive subagents are unavailable.",
+			"After delegation, continue only independent work; do not duplicate or overlap the delegated scope. Completion automatically starts a follow-up turn.",
 		],
 		parameters: SubagentParams,
 
-		async execute(toolCallId, params, _signal, _onUpdate, ctx) {
-			const agentScope: AgentScope = params.agentScope ?? "user";
-			const discovery = discoverAgents(ctx.cwd, agentScope);
-			const agents = discovery.agents;
-			const confirmProjectAgents = params.confirmProjectAgents ?? true;
-
-			const hasChain = (params.chain?.length ?? 0) > 0;
-			const hasTasks = (params.tasks?.length ?? 0) > 0;
-			const hasSingle = Boolean(params.agent && params.task);
-			const modeCount = Number(hasChain) + Number(hasTasks) + Number(hasSingle);
+		async execute(toolCallId, request, _signal, _onUpdate, ctx) {
+			const agentScope: AgentScope = "request";
+			const thinking = (["off", "minimal", "low", "medium"] as const).includes(
+				ctx.thinkingLevel as SubagentThinkingLevel,
+			)
+				? (ctx.thinkingLevel as SubagentThinkingLevel)
+				: "medium";
+			const requestedTools = request.tools.map((tool) => tool.trim()).filter(Boolean);
+			const requestedModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+			const requestedAgent: AgentConfig = {
+				name: request.name,
+				description: "Invocation-defined subagent",
+				tools: requestedTools,
+				model: requestedModel,
+				thinking,
+				systemPrompt: "",
+				source: "request",
+				filePath: "",
+			};
+			const agents = [requestedAgent];
+			const discovery = { agents, projectAgentsDir: null } as const;
 			let detailsJobId: string | undefined;
 			let latestDetails: SubagentDetails | undefined;
 
@@ -738,224 +721,53 @@ export default function (pi: ExtensionAPI) {
 				return ctx.model?.id === model ? ctx.model.contextWindow : 0;
 			};
 
-			if (modeCount !== 1) {
-				const available = agents.map((a) => `${a.name} (${a.source})`).join(", ") || "none";
+			const validationError = validateSpawnContract(request.name, requestedTools, request.prompt);
+			if (validationError) {
 				return {
-					content: [
-						{
-							type: "text",
-							text: `Invalid parameters. Provide exactly one mode.\nAvailable agents: ${available}`,
-						},
-					],
+					content: [{ type: "text", text: validationError }],
 					details: makeDetails("single")([]),
 				};
 			}
-			if (hasTasks && params.tasks!.length > MAX_PARALLEL_TASKS) {
+
+			if (Array.from(backgroundJobs.values()).some((job) => job.runName === request.name)) {
 				return {
-					content: [
-						{
-							type: "text",
-							text: `Too many parallel tasks (${params.tasks!.length}). Max is ${MAX_PARALLEL_TASKS}.`,
-						},
-					],
-					details: makeDetails("parallel")([]),
+					content: [{ type: "text", text: `A subagent named ${request.name} is already running.` }],
+					details: makeDetails("single")([]),
 				};
-			}
-
-			if ((agentScope === "project" || agentScope === "both") && confirmProjectAgents && ctx.hasUI) {
-				const requestedAgentNames = new Set<string>();
-				if (params.chain) for (const step of params.chain) requestedAgentNames.add(step.agent);
-				if (params.tasks) for (const t of params.tasks) requestedAgentNames.add(t.agent);
-				if (params.agent) requestedAgentNames.add(params.agent);
-
-				const projectAgentsRequested = Array.from(requestedAgentNames)
-					.map((name) => agents.find((a) => a.name === name))
-					.filter((a): a is AgentConfig => a?.source === "project");
-
-				if (projectAgentsRequested.length > 0) {
-					const names = projectAgentsRequested.map((a) => a.name).join(", ");
-					const dir = discovery.projectAgentsDir ?? "(unknown)";
-					const ok = await ctx.ui.confirm(
-						"Run project-local agents?",
-						`Agents: ${names}\nSource: ${dir}\n\nProject agents are repo-controlled. Only continue for trusted repositories.`,
-					);
-					if (!ok)
-						return {
-							content: [{ type: "text", text: "Canceled: project-local agents not approved." }],
-							details: makeDetails(hasChain ? "chain" : hasTasks ? "parallel" : "single")([]),
-						};
-				}
 			}
 
 			const jobId = `subagent-${nextJobNumber++}`;
 			detailsJobId = jobId;
 			const controller = new AbortController();
-			const taskPreview = params.task && params.task.length > 120 ? `${params.task.slice(0, 120)}...` : params.task;
-			const invocationDescription = params.chain?.length
-				? `chain (${params.chain.length} steps)`
-				: params.tasks?.length
-					? `parallel (${params.tasks.length} tasks)`
-					: `${params.agent}: ${taskPreview}`;
-			backgroundJobs.set(jobId, { controller, description: invocationDescription, toolCallId });
+			const taskPreview = request.prompt.length > 120 ? `${request.prompt.slice(0, 120)}...` : request.prompt;
+			const invocationDescription = `${request.name}: ${taskPreview}`;
+			backgroundJobs.set(jobId, { controller, runName: request.name, description: invocationDescription, toolCallId });
 
-			const queuedResult = (agentName: string, task: string, step?: number): SingleResult => {
-				const agent = agents.find((candidate) => candidate.name === agentName);
-				return {
-					agent: agentName,
-					agentSource: agent?.source ?? "unknown",
-					task,
-					exitCode: -1,
-					messages: [],
-					stderr: "",
-					usage: emptyUsage(),
-					status: "queued",
-					activity: `Queued: ${task}`,
-					thinking: agent?.thinking,
-					step,
-				};
-			};
-			const initialMode = hasChain ? "chain" : hasTasks ? "parallel" : "single";
-			const initialResults = params.chain?.length
-				? params.chain.map((item, index) => queuedResult(item.agent, item.task, index + 1))
-				: params.tasks?.length
-					? params.tasks.map((item) => queuedResult(item.agent, item.task))
-					: [queuedResult(params.agent!, params.task!)];
+			const initialMode = "single" as const;
+			const initialResults: SingleResult[] = [{
+				agent: request.name,
+				agentSource: "request",
+				task: request.prompt,
+				exitCode: -1,
+				messages: [],
+				stderr: "",
+				usage: emptyUsage(),
+				status: "queued",
+				activity: `Queued: ${request.prompt}`,
+				thinking,
+			}];
 			const initialDetails = makeDetails(initialMode)(initialResults);
 			contextViewer.startInvocation(toolCallId, initialDetails);
 			if (ctx.mode === "tui") contextViewer.open(ctx, true);
 			contextViewer.updatePrimary(ctx);
 
 			const executeInvocation = async (): Promise<AgentToolResult<SubagentDetails>> => {
-			if (params.chain && params.chain.length > 0) {
-				const results: SingleResult[] = [];
-				let previousOutput = "";
-
-				for (let i = 0; i < params.chain.length; i++) {
-					const step = params.chain[i];
-					const taskWithContext = step.task.replace(/\{previous\}/g, previousOutput);
-
-					// Create update callback that includes all previous results
-					const chainUpdate: OnUpdateCallback = (partial) => {
-						// Combine completed results with the current result and queued future steps.
-						const currentResult = partial.details?.results[0];
-						if (currentResult) makeDetails("chain")([...results, currentResult, ...initialResults.slice(i + 1)]);
-					};
-
-					const result = await runSingleAgent(
-						ctx.cwd,
-						agents,
-						step.agent,
-						taskWithContext,
-						step.cwd,
-						i + 1,
-						controller.signal,
-						chainUpdate,
-						buildDetails("chain"),
-						resolveContextWindow,
-					);
-					results.push(result);
-
-					const isError = isFailedResult(result);
-					if (isError) {
-						const errorMsg = getResultOutput(result);
-						const skippedReason = `Skipped because chain step ${i + 1} (${step.agent}) failed`;
-						const skippedResults = initialResults.slice(i + 1).map((queued) => ({
-							...queued,
-							exitCode: 1,
-							status: "aborted" as const,
-							activity: "Skipped after earlier chain failure",
-							stopReason: "aborted" as const,
-							errorMessage: skippedReason,
-							stderr: skippedReason,
-						}));
-						return {
-							content: [{ type: "text", text: `Chain stopped at step ${i + 1} (${step.agent}): ${errorMsg}` }],
-							details: makeDetails("chain")([...results, ...skippedResults]),
-						};
-					}
-					previousOutput = getFinalOutput(result.messages);
-				}
-				return {
-					content: [{ type: "text", text: getFinalOutput(results[results.length - 1].messages) || "(no output)" }],
-					details: makeDetails("chain")(results),
-				};
-			}
-
-			if (params.tasks && params.tasks.length > 0) {
-				// Track all results for streaming updates, preserving queued tasks.
-				const allResults = initialResults.map((result) => ({ ...result }));
-
-				const emitParallelUpdate = () => {
-					makeDetails("parallel")([...allResults]);
-				};
-
-				const results = await mapWithConcurrencyLimit(params.tasks, MAX_CONCURRENCY, async (t, index) => {
-					try {
-						if (controller.signal.aborted) throw new Error("Subagent was aborted");
-						const result = await runSingleAgent(
-							ctx.cwd,
-							agents,
-							t.agent,
-							t.task,
-							t.cwd,
-							undefined,
-							controller.signal,
-							// Per-task update callback
-							(partial) => {
-								if (partial.details?.results[0]) {
-									allResults[index] = partial.details.results[0];
-									emitParallelUpdate();
-								}
-							},
-							buildDetails("parallel"),
-							resolveContextWindow,
-						);
-						allResults[index] = result;
-						emitParallelUpdate();
-						return result;
-					} catch (error) {
-						const message = error instanceof Error ? error.message : String(error);
-						const failedResult: SingleResult = {
-							...allResults[index],
-							exitCode: 1,
-							status: controller.signal.aborted ? "aborted" : "failed",
-							activity: controller.signal.aborted ? "Aborted" : "Failed",
-							stopReason: controller.signal.aborted ? "aborted" : "error",
-							errorMessage: allResults[index].errorMessage ?? message,
-							stderr: allResults[index].stderr || message,
-						};
-						allResults[index] = failedResult;
-						emitParallelUpdate();
-						return failedResult;
-					}
-				});
-
-				const successCount = results.filter((r) => !isFailedResult(r)).length;
-				const summaries = results.map((r) => {
-					const output = truncateParallelOutput(getResultOutput(r));
-					const status = isFailedResult(r)
-						? `failed${r.stopReason && r.stopReason !== "end" ? ` (${r.stopReason})` : ""}`
-						: "completed";
-					return `### [${r.agent}] ${status}\n\n${output}`;
-				});
-				return {
-					content: [
-						{
-							type: "text",
-							text: `Parallel: ${successCount}/${results.length} succeeded\n\n${summaries.join("\n\n---\n\n")}`,
-						},
-					],
-					details: makeDetails("parallel")(results),
-				};
-			}
-
-			if (params.agent && params.task) {
 				const result = await runSingleAgent(
 					ctx.cwd,
 					agents,
-					params.agent,
-					params.task,
-					params.cwd,
+					request.name,
+					request.prompt,
+					request.cwd,
 					undefined,
 					controller.signal,
 					(partial) => {
@@ -965,11 +777,9 @@ export default function (pi: ExtensionAPI) {
 					buildDetails("single"),
 					resolveContextWindow,
 				);
-				const isError = isFailedResult(result);
-				if (isError) {
-					const errorMsg = getResultOutput(result);
+				if (isFailedResult(result)) {
 					return {
-						content: [{ type: "text", text: `Agent ${result.stopReason || "failed"}: ${errorMsg}` }],
+						content: [{ type: "text", text: `Agent ${result.stopReason || "failed"}: ${getResultOutput(result)}` }],
 						details: makeDetails("single")([result]),
 					};
 				}
@@ -977,13 +787,6 @@ export default function (pi: ExtensionAPI) {
 					content: [{ type: "text", text: getFinalOutput(result.messages) || "(no output)" }],
 					details: makeDetails("single")([result]),
 				};
-			}
-
-			const available = agents.map((a) => `${a.name} (${a.source})`).join(", ") || "none";
-			return {
-				content: [{ type: "text", text: `Invalid parameters. Available agents: ${available}` }],
-				details: makeDetails("single")([]),
-			};
 			};
 
 			void Promise.resolve()
@@ -1049,46 +852,13 @@ export default function (pi: ExtensionAPI) {
 		},
 
 		renderCall(args, theme, _context) {
-			const scope: AgentScope = args.agentScope ?? "user";
-			if (args.chain && args.chain.length > 0) {
-				let text =
-					theme.fg("toolTitle", theme.bold("subagent ")) +
-					theme.fg("accent", `chain (${args.chain.length} steps)`) +
-					theme.fg("muted", ` [${scope}]`);
-				for (let i = 0; i < Math.min(args.chain.length, 3); i++) {
-					const step = args.chain[i];
-					// Clean up {previous} placeholder for display
-					const cleanTask = step.task.replace(/\{previous\}/g, "").trim();
-					const preview = cleanTask.length > 40 ? `${cleanTask.slice(0, 40)}...` : cleanTask;
-					text +=
-						"\n  " +
-						theme.fg("muted", `${i + 1}.`) +
-						" " +
-						theme.fg("accent", step.agent) +
-						theme.fg("dim", ` ${preview}`);
-				}
-				if (args.chain.length > 3) text += `\n  ${theme.fg("muted", `... +${args.chain.length - 3} more`)}`;
-				return new Text(text, 0, 0);
-			}
-			if (args.tasks && args.tasks.length > 0) {
-				let text =
-					theme.fg("toolTitle", theme.bold("subagent ")) +
-					theme.fg("accent", `parallel (${args.tasks.length} tasks)`) +
-					theme.fg("muted", ` [${scope}]`);
-				for (const t of args.tasks.slice(0, 3)) {
-					const preview = t.task.length > 40 ? `${t.task.slice(0, 40)}...` : t.task;
-					text += `\n  ${theme.fg("accent", t.agent)}${theme.fg("dim", ` ${preview}`)}`;
-				}
-				if (args.tasks.length > 3) text += `\n  ${theme.fg("muted", `... +${args.tasks.length - 3} more`)}`;
-				return new Text(text, 0, 0);
-			}
-			const agentName = args.agent || "...";
-			const preview = args.task ? (args.task.length > 60 ? `${args.task.slice(0, 60)}...` : args.task) : "...";
-			let text =
-				theme.fg("toolTitle", theme.bold("subagent ")) +
-				theme.fg("accent", agentName) +
-				theme.fg("muted", ` [${scope}]`);
-			text += `\n  ${theme.fg("dim", preview)}`;
+			const preview = args.prompt.length > 80 ? `${args.prompt.slice(0, 80)}...` : args.prompt;
+			const tools = args.tools.join(",");
+			const text =
+				theme.fg("toolTitle", theme.bold("subagent spawn ")) +
+				theme.fg("accent", args.name) +
+				`\n  ${theme.fg("muted", `tools=${tools} · skills=off`)}` +
+				`\n  ${theme.fg("dim", preview)}`;
 			return new Text(text, 0, 0);
 		},
 
