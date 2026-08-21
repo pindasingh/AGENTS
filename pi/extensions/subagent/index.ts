@@ -275,6 +275,10 @@ function isFailedResult(result: SingleResult): boolean {
 	return result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";
 }
 
+function getSessionPaths(details: SubagentDetails | undefined): string[] {
+	return Array.from(new Set(details?.results.map((result) => result.sessionPath).filter((value): value is string => Boolean(value)) ?? []));
+}
+
 function getResultOutput(result: SingleResult): string {
 	if (isFailedResult(result)) {
 		return result.errorMessage || result.stderr || getFinalOutput(result.messages) || "(no output)";
@@ -651,10 +655,15 @@ export default function (pi: ExtensionAPI) {
 		parameters: SubagentControlParams,
 		async execute(_toolCallId, params) {
 			if (params.action === "list") {
-				const jobs = Array.from(backgroundJobs, ([id, job]) => ({ id, name: job.runName, description: job.description }));
+				const jobs = Array.from(backgroundJobs, ([id, job]) => ({
+					id,
+					name: job.runName,
+					description: job.description,
+					sessionPaths: getSessionPaths(job.details),
+				}));
 				return {
 					content: [{ type: "text", text: jobs.length > 0
-						? jobs.map((job) => `${job.id}: ${job.name} — ${job.description}`).join("\n")
+						? jobs.map((job) => `${job.id}: ${job.name} — ${job.description}${job.sessionPaths.length > 0 ? `\n  session: ${job.sessionPaths.join(", ")}` : ""}`).join("\n")
 						: "No subagent jobs are running." }],
 					details: { jobs },
 				};
@@ -849,10 +858,12 @@ export default function (pi: ExtensionAPI) {
 						.join("\n") || "(no output)";
 					const failed = result.details?.results.some(isFailedResult) ?? false;
 					const status = failed ? "failed" : "completed";
+					const sessionPaths = getSessionPaths(result.details);
+					const sessionText = sessionPaths.length > 0 ? `\n\nRetained session: ${sessionPaths.join(", ")}` : "";
 					pi.sendMessage(
 						{
 							customType: "subagent-completion",
-							content: `Background subagent job ${jobId} ${status}.\n\n${output}\n\nPick up this delegated result now.`,
+							content: `Background subagent job ${jobId} ${status}.\n\n${output}${sessionText}\n\nPick up this delegated result now.`,
 							display: true,
 							details: { jobId, result: result.details },
 						},
@@ -873,10 +884,12 @@ export default function (pi: ExtensionAPI) {
 					}
 					const message = error instanceof Error ? error.message : String(error);
 					const status = terminalJobStatus(controller.signal.aborted);
+					const sessionPaths = getSessionPaths(latestDetails);
+					const sessionText = sessionPaths.length > 0 ? `\n\nRetained session: ${sessionPaths.join(", ")}` : "";
 					pi.sendMessage(
 						{
 							customType: "subagent-completion",
-							content: `Background subagent job ${jobId} ${status}: ${message}`,
+							content: `Background subagent job ${jobId} ${status}: ${message}${sessionText}`,
 							display: true,
 							details: { jobId, result: latestDetails },
 						},
