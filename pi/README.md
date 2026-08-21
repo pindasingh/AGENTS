@@ -10,7 +10,7 @@ Every invocation supplies a descriptive `name`, an explicit least-privilege `too
 
 The matching [`subagent` skill](../skills/subagent/SKILL.md) teaches the parent how to construct a complete handoff. Multiple independent calls provide visible parallel fanout without hidden profile inheritance or a chain DSL.
 
-The existing `pi/agents/` scout, reviewer, and worker profiles remain available for compatibility with profile-based integrations and already-running older extension sessions. They are not silently injected into the explicit spawn path; any role requirements needed by a new child belong in its visible prompt.
+Subagents have no hidden role profiles. Any specialization belongs in the invocation's visible `name`, `tools`, and standalone `prompt`. `/context-viewer` only observes runtime telemetry; it never selects or configures a child.
 
 ## Web tools
 
@@ -34,4 +34,4 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
-After changing a linked extension or profile, use Pi's `/reload` command.
+After changing a linked extension, use Pi's `/reload` command.
