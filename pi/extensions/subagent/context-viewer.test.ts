@@ -11,7 +11,7 @@ const theme = {
 function result(task: string, activity?: string, pid?: number): SingleResult {
 	return {
 		agent: "worker",
-		agentSource: "user",
+		agentSource: "request",
 		task,
 		activity,
 		thinking: "low",
@@ -103,7 +103,7 @@ assert.doesNotMatch(noActivity[0]!, /pid:/);
 const pendingResult = result("review", "Queued: review");
 pendingResult.status = "queued";
 const failedDetails = terminalizePendingDetails(
-	{ mode: "single", agentScope: "user", projectAgentsDir: null, results: [pendingResult] },
+	{ mode: "single", agentScope: "request", projectAgentsDir: null, results: [pendingResult] },
 	new Error("spawn failed"),
 	false,
 );
@@ -112,7 +112,7 @@ assert.equal(failedDetails.results[0]?.activity, "Failed");
 const abortedResult = result("review", "Starting review");
 abortedResult.status = "running";
 const abortedDetails = terminalizePendingDetails(
-	{ mode: "single", agentScope: "user", projectAgentsDir: null, results: [abortedResult] },
+	{ mode: "single", agentScope: "request", projectAgentsDir: null, results: [abortedResult] },
 	new Error("aborted"),
 	true,
 );

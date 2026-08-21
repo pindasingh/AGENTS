@@ -4,17 +4,13 @@ These resources depend on Pi's extension and discovery APIs and are therefore Pi
 
 ## Subagents
 
-`extensions/subagent/` registers an LLM-callable `subagent` tool. Each delegated task runs in a separate Pi process with an isolated context window.
+`extensions/subagent/` registers an LLM-callable `subagent` spawn tool. Each delegated task runs in a separate Pi process with an isolated context window.
 
-Available profiles:
+Every invocation supplies a descriptive `name`, an explicit least-privilege `tools` allowlist, and a complete standalone `prompt`. Skills and recursive delegation are disabled for every child. The caller's prompt must directly include task-critical conversation context—such as proposed changes or user decisions—that is absent from referenced files.
 
-- `scout` — focused read-only codebase discovery at low thinking
-- `reviewer` — read-only quality and security review
-- `worker` — primary-like implementation of bounded delegated work at low thinking, without subagent delegation
+The matching [`subagent` skill](../skills/subagent/SKILL.md) teaches the parent how to construct a complete handoff. Multiple independent calls provide visible parallel fanout without hidden profile inheritance or a chain DSL.
 
-Subagent profile thinking is mandatory, static, and limited to `off`, `minimal`, `low`, or `medium`; callers cannot override it. Every child process excludes the `subagent` tool, preventing recursive delegation.
-
-Project-local profiles in `.pi/agents/` are not enabled by default. Calling the tool with `agentScope: "project"` or `"both"` enables them and may require interactive confirmation.
+Subagents have no hidden role profiles. Any specialization belongs in the invocation's visible `name`, `tools`, and standalone `prompt`. `/context-viewer` only observes runtime telemetry; it never selects or configures a child.
 
 ## Web tools
 
@@ -38,4 +34,4 @@ Run `/toggle-skills` to configure every skill currently discovered by Pi:
 
 Run `/context-viewer open`, `/context-viewer close`, or `/context-viewer` to toggle a live widget below the editor. It displays primary and child-subagent context occupancy as a tree. Completed subagent runs are reconstructed from the active session branch.
 
-After changing a linked extension or profile, use Pi's `/reload` command.
+After changing a linked extension, use Pi's `/reload` command.
